@@ -1,10 +1,14 @@
+use std::default::Default;
 use vulkano::device::{physical::PhysicalDeviceType, DeviceExtensions, Device, DeviceCreateInfo, QueueCreateInfo};
+use vulkano::format::Format;
+use vulkano::image::ImageUsage;
 use vulkano::VulkanLibrary;
 use vulkano::instance::{Instance, InstanceCreateInfo};
+use vulkano::swapchain::{ColorSpace, SurfaceInfo, Swapchain, SwapchainCreateInfo};
 use vulkano_win::VkSurfaceBuild;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::WindowBuilder;
+use winit::window::{Window, WindowBuilder};
 
 fn main() {
     let library = VulkanLibrary::new()
@@ -23,6 +27,7 @@ fn main() {
         .expect("could not create window");
 
     let device_extensions = DeviceExtensions {
+        khr_swapchain:true,
         ..DeviceExtensions::empty()
     };
 
@@ -63,7 +68,7 @@ fn main() {
         physical_device.properties().device_type,
     );
 
-    let (_device, mut queues) = Device::new(
+    let (device, mut queues) = Device::new(
         physical_device,
         DeviceCreateInfo {
             enabled_extensions: device_extensions,
@@ -77,6 +82,52 @@ fn main() {
 
     let _queue = queues.next().expect("could not fetch queue");
 
+    let (mut _swapchain, _images) = {
+        let surface_capabilities = device
+            .physical_device()
+            .surface_capabilities(&surface, SurfaceInfo::default())
+            .expect("could not fetch surface capabilities");
+
+        let image_format = Some(
+            device
+                .physical_device()
+                .surface_formats(&surface, SurfaceInfo::default())
+                .expect("could not fetch surface formats")
+                .iter()
+                .min_by_key(|(format, color)| {
+                    // Prefer a RGB8/sRGB format
+                    match (format, color) {
+                        (Format::B8G8R8A8_SRGB, _) => 1,
+                        (Format::R8G8B8A8_SRGB, ColorSpace::SrgbNonLinear) => 2,
+                        (_, _) => 3
+                    }
+                }).expect("could not fetch image format")
+                .0 // just the format
+        );
+        
+        let window = surface.object().unwrap().downcast_ref::<Window>().unwrap();
+
+        Swapchain::new(
+            device.clone(),
+            surface.clone(),
+            SwapchainCreateInfo {
+                min_image_count: surface_capabilities.min_image_count +1,
+                image_format,
+                image_extent: window.inner_size().into(),
+                image_usage: ImageUsage {
+                    color_attachment: true,
+                    ..Default::default()
+                },
+                composite_alpha: surface_capabilities.
+                    supported_composite_alpha
+                    .iter().next()
+                    .expect("could not fetch supported composite alpha"),
+                ..Default::default()
+            }
+
+        ).expect("failed to create _swapchain")
+    };
+
     event_loop.run(|event, _, control_flow| {
         match event {
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
@@ -85,5 +136,4 @@ fn main() {
             _ => ()
         }
     });
-
 }
