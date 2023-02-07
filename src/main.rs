@@ -1,4 +1,4 @@
-use vulkano::device::{physical::PhysicalDeviceType, DeviceExtensions};
+use vulkano::device::{physical::PhysicalDeviceType, DeviceExtensions, Device, DeviceCreateInfo, QueueCreateInfo};
 use vulkano::VulkanLibrary;
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano_win::VkSurfaceBuild;
@@ -26,7 +26,7 @@ fn main() {
         ..DeviceExtensions::empty()
     };
 
-    let (physical_device, _queue_family_index) = instance
+    let (physical_device, queue_family_index) = instance
         .enumerate_physical_devices()
         .expect("could not enumerate physical devices")
         .filter(|p| {
@@ -62,6 +62,20 @@ fn main() {
         physical_device.properties().device_name,
         physical_device.properties().device_type,
     );
+
+    let (_device, mut queues) = Device::new(
+        physical_device,
+        DeviceCreateInfo {
+            enabled_extensions: device_extensions,
+            queue_create_infos: vec![QueueCreateInfo {
+                queue_family_index,
+                ..Default::default()
+            }],
+            ..Default::default()
+        },
+    ).expect("could not create logical device");
+
+    let _queue = queues.next().expect("could not fetch queue");
 
     event_loop.run(|event, _, control_flow| {
         match event {
