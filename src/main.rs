@@ -1,3 +1,4 @@
+use vulkano::device::{physical::PhysicalDeviceType, DeviceExtensions};
 use vulkano::VulkanLibrary;
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano_win::VkSurfaceBuild;
@@ -17,9 +18,50 @@ fn main() {
     }).expect("failed to create instance");
 
     let event_loop = EventLoop::new();
-    let _surface = WindowBuilder::new()
+    let surface = WindowBuilder::new()
         .build_vk_surface(&event_loop, instance.clone())
         .expect("could not create window");
+
+    let device_extensions = DeviceExtensions {
+        ..DeviceExtensions::empty()
+    };
+
+    let (physical_device, _queue_family_index) = instance
+        .enumerate_physical_devices()
+        .expect("could not enumerate physical devices")
+        .filter(|p| {
+            // check if device extensions are supported
+            p.supported_extensions().contains(&device_extensions)
+        })
+        .filter_map(|p| {
+            p.queue_family_properties()
+                .iter()
+                .enumerate()
+                .position(|(i, q)| {
+                    // check for graphics flag in queue family
+                    q.queue_flags.graphics &&
+                        p.surface_support(i as u32, &surface).unwrap_or(false)
+                })
+                .map(|i| (p, i as u32))
+        })
+        .min_by_key(|(p, _)| {
+            // prefer discrete gpus
+            match p.properties().device_type {
+                PhysicalDeviceType::DiscreteGpu => 0,
+                PhysicalDeviceType::IntegratedGpu => 1,
+                PhysicalDeviceType::VirtualGpu => 2,
+                PhysicalDeviceType::Cpu => 3,
+                PhysicalDeviceType::Other => 4,
+                _ => 5
+            }
+        })
+        .expect("No suitable physical device found");
+
+    println!(
+        "Using device: {} (type: {:?})",
+        physical_device.properties().device_name,
+        physical_device.properties().device_type,
+    );
 
     event_loop.run(|event, _, control_flow| {
         match event {
