@@ -1,37 +1,107 @@
+use std::default::Default;
 use std::sync::Arc;
+use cgmath::{Matrix4, Point3, Rad, SquareMatrix, Vector3};
 use vulkano::device::{physical::PhysicalDeviceType, DeviceExtensions, Device, DeviceCreateInfo, QueueCreateInfo};
 use vulkano::format::Format;
 use vulkano::image::{ImageAccess, ImageUsage, SwapchainImage};
 use vulkano::{sync, VulkanLibrary};
-use vulkano::instance::{Instance, InstanceCreateInfo};
-use vulkano::memory::allocator::StandardMemoryAllocator;
-use vulkano::swapchain::{acquire_next_image, AcquireError, ColorSpace, SurfaceInfo, Swapchain, SwapchainCreateInfo, SwapchainCreationError, SwapchainPresentInfo};
+use vulkano::instance::{Instance, InstanceCreateInfo, InstanceExtensions};
+use vulkano::memory::allocator::{MemoryUsage, StandardMemoryAllocator};
+use vulkano::swapchain::{acquire_next_image, AcquireError, ColorSpace, Surface, SurfaceInfo, Swapchain, SwapchainCreateInfo, SwapchainCreationError, SwapchainPresentInfo};
 use vulkano_win::VkSurfaceBuild;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::{Window, WindowBuilder};
-use bytemuck::{Pod, Zeroable};
-use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer, TypedBufferAccess};
+use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer, CpuBufferPool, TypedBufferAccess};
 use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, RenderPassBeginInfo, SubpassContents};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
+use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
+use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
+use vulkano::device::physical::PhysicalDevice;
 use vulkano::image::view::ImageView;
+use vulkano::instance::debug::{DebugUtilsMessageSeverity, DebugUtilsMessageType, DebugUtilsMessenger, DebugUtilsMessengerCreateInfo};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::vertex_input::BuffersDefinition;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
-use vulkano::pipeline::GraphicsPipeline;
+use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::sync::{FlushError, GpuFuture};
+use crate::mesh::{Mesh, MeshVertex};
+
+mod mesh;
+mod camera;
 
 fn main() {
     let library = VulkanLibrary::new()
         .expect("no local Vulkan library/DLL");
 
-    let instance_extensions = vulkano_win::required_extensions(&library);
+    let instance_extensions = InstanceExtensions {
+        ext_debug_report: true,
+        ..vulkano_win::required_extensions(&library)
+    };
 
+    // NOTE: To simplify the example code we won't verify these layer(s) are actually in the layers list:
+    // see: https://github.com/vulkano-rs/vulkano/blob/85e9d1c24ec612023dbc5b13e6164706ea52e963/examples/src/bin/debug.rs#L64
     let instance = Instance::new(library, InstanceCreateInfo {
         enabled_extensions: instance_extensions,
+        enabled_layers: vec![String::from("VK_LAYER_KHRONOS_validation")],
         ..Default::default()
     }).expect("failed to create instance");
+
+
+    let _debug_callback = unsafe {
+        DebugUtilsMessenger::new(
+            instance.clone(),
+            DebugUtilsMessengerCreateInfo {
+                message_severity: DebugUtilsMessageSeverity {
+                    error: true,
+                    warning: true,
+                    information: false,
+                    verbose: false,
+                    ..Default::default()
+                },
+                message_type: DebugUtilsMessageType {
+                    general: true,
+                    validation: true,
+                    performance: true,
+                    ..Default::default()
+                },
+                ..DebugUtilsMessengerCreateInfo::user_callback(Arc::new(|msg| {
+                    let severity = if msg.severity.error {
+                        "Error"
+                    } else if msg.severity.warning {
+                        "Warning"
+                    } else if msg.severity.information {
+                        "Information"
+                    } else if msg.severity.verbose {
+                        "Verbose"
+                    } else {
+                        "Unknown"
+                    };
+
+                    let ty = if msg.ty.general {
+                        "General"
+                    } else if msg.ty.validation {
+                        "Validation"
+                    } else if msg.ty.performance {
+                        "Performance"
+                    } else {
+                        "Unknown"
+                    };
+
+                    println!(
+                        "[VkDebug][Layer: {}][Severity: {}][Type: {}]: {}",
+                        msg.layer_prefix.unwrap_or("Unknown"),
+                        severity,
+                        ty,
+                        msg.description
+                    );
+                }))
+            },
+        )
+            .ok()
+    };
+
 
     let event_loop = EventLoop::new();
     let surface = WindowBuilder::new()
@@ -43,36 +113,11 @@ fn main() {
         ..DeviceExtensions::empty()
     };
 
-    let (physical_device, queue_family_index) = instance
-        .enumerate_physical_devices()
-        .expect("could not enumerate physical devices")
-        .filter(|p| {
-            // check if device extensions are supported
-            p.supported_extensions().contains(&device_extensions)
-        })
-        .filter_map(|p| {
-            p.queue_family_properties()
-                .iter()
-                .enumerate()
-                .position(|(i, q)| {
-                    // check for graphics flag in queue family
-                    q.queue_flags.graphics &&
-                        p.surface_support(i as u32, &surface).unwrap_or(false)
-                })
-                .map(|i| (p, i as u32))
-        })
-        .min_by_key(|(p, _)| {
-            // prefer discrete gpus
-            match p.properties().device_type {
-                PhysicalDeviceType::DiscreteGpu => 0,
-                PhysicalDeviceType::IntegratedGpu => 1,
-                PhysicalDeviceType::VirtualGpu => 2,
-                PhysicalDeviceType::Cpu => 3,
-                PhysicalDeviceType::Other => 4,
-                _ => 5
-            }
-        })
-        .expect("No suitable physical device found");
+    let (physical_device, queue_family_index) = find_physical_device(
+        instance.clone(),
+        surface.clone(),
+        &device_extensions
+    );
 
     println!(
         "Using device: {} (type: {:?})",
@@ -137,30 +182,35 @@ fn main() {
                 ..Default::default()
             }
 
-        ).expect("failed to create _swapchain")
+        ).expect("failed to create swapchain")
     };
 
-    let memory_allocator = StandardMemoryAllocator::new_default(device.clone());
-
-    #[repr(C)]
-    #[derive(Clone, Copy, Debug, Default, Zeroable, Pod)]
-    struct Vertex {
-        position: [f32; 2],
+    mod vs {
+        vulkano_shaders::shader! {
+            ty: "vertex",
+            path: "assets/shaders/vert.glsl",
+            types_meta: {
+                 use bytemuck::{Pod, Zeroable};
+                #[derive(Clone, Copy, Zeroable, Pod)]
+            }
+        }
     }
 
-    let vertices = [
-        Vertex {
-            position: [-0.5,0.5]
-        },
-        Vertex {
-            position: [0.5,0.5]
-        },
-        Vertex {
-            position: [0.0,-0.5]
+    mod fs {
+        vulkano_shaders::shader! {
+            ty: "fragment",
+            path: "assets/shaders/frag.glsl"
         }
-    ];
+    }
 
-    vulkano::impl_vertex!(Vertex, position);
+    let vs = vs::load(device.clone()).unwrap();
+    let fs = fs::load(device.clone()).unwrap();
+
+    let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
+
+    let cube = Mesh::cube(0.5, 0.5, 0.5);
+
+
 
     let vertex_buffer = CpuAccessibleBuffer::from_iter(
         &memory_allocator,
@@ -169,57 +219,36 @@ fn main() {
             ..Default::default()
         },
         false,
-        vertices
-    ).expect("could not upload data to GPU");
+        cube.vertices.iter().cloned()
+    ).expect("could not upload vertex data to GPU");
 
-    mod vs {
-        vulkano_shaders::shader! {
-            ty: "vertex",
-            src: "
-				#version 450
-				layout(location = 0) in vec2 position;
-				void main() {
-					gl_Position = vec4(position, 0.0, 1.0);
-				}
-			"
-        }
-    }
+    let index_buffer = CpuAccessibleBuffer::from_iter(
+        &memory_allocator,
+        BufferUsage {
+            index_buffer: true,
+            ..Default::default()
+        },
+        false,
+        cube.indices.iter().cloned()
+    ).expect("could not upload indices data to GPU");
 
-    mod fs {
-        vulkano_shaders::shader! {
-            ty: "fragment",
-            src: "
-				#version 450
-				layout(location = 0) out vec4 f_color;
-				void main() {
-					f_color = vec4(1.0, 0.0, 0.0, 1.0);
-				}
-			"
-        }
-    }
-
-    let vs = vs::load(device.clone()).unwrap();
-    let fs = fs::load(device.clone()).unwrap();
+    let uniform_buffer = CpuBufferPool::<vs::ty::Data>::new(
+        memory_allocator.clone(),
+        BufferUsage {
+            uniform_buffer: true,
+            ..Default::default()
+        },
+        MemoryUsage::Upload,
+    );
 
     let render_pass = vulkano::single_pass_renderpass!(
         device.clone(),
         attachments: {
             // `color` is a custom name we give to the first and only attachment.
             color: {
-                // `load: Clear` means that we ask the GPU to clear the content of this
-                // attachment at the start of the drawing.
                 load: Clear,
-                // `store: Store` means that we ask the GPU to store the output of the draw
-                // in the actual image. We could also ask it to discard the result.
                 store: Store,
-                // `format: <ty>` indicates the type of the format of the image. This has to
-                // be one of the types of the `vulkano::format` module (or alternatively one
-                // of your structs that implements the `FormatDesc` trait). Here we use the
-                // same format as the swapchain.
                 format: swapchain.image_format(),
-                // `samples: 1` means that we ask the GPU to use one sample to determine the value
-                // of each pixel in the color attachment. We could use a larger value (multisampling)
-                // for antialiasing. An example of this can be found in msaa-renderpass.rs.
                 samples: 1,
             }
         },
@@ -237,7 +266,7 @@ fn main() {
         // in. The pipeline will only be usable from this particular subpass.
         .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
         // We need to indicate the layout of the vertices.
-        .vertex_input_state(BuffersDefinition::new().vertex::<Vertex>())
+        .vertex_input_state(BuffersDefinition::new().vertex::<MeshVertex>())
         // The content of the vertex buffer describes a list of triangles.
         .input_assembly_state(InputAssemblyState::new())
         // A Vulkan shader can in theory contain multiple entry points, so we have to specify
@@ -250,6 +279,8 @@ fn main() {
         // Now that our builder is filled, we call `build()` to obtain an actual pipeline.
         .build(device.clone())
         .expect("could not create pipeline");
+
+    let descriptor_set_allocator = StandardDescriptorSetAllocator::new(device.clone());
 
     // Dynamic viewports allow us to recreate just the viewport when the window is resized
     // Otherwise we would have to recreate the whole pipeline.
@@ -272,7 +303,6 @@ fn main() {
     let command_buffer_allocator =
         StandardCommandBufferAllocator::new(device.clone(), Default::default());
 
-    // Initialization is finally finished!
 
     // In some situations, the swapchain will become invalid by itself. This includes for example
     // when the window is resized (as the images of the swapchain will no longer match the
@@ -350,6 +380,32 @@ fn main() {
                     recreate_swapchain = false;
                 }
 
+                let aspect_ratio = swapchain.image_extent()[0] as f32 / swapchain.image_extent()[1] as f32;
+
+                let proj = cgmath::perspective(Rad(std::f32::consts::FRAC_PI_2), aspect_ratio, 0.01, 100.0);
+
+                let view: Matrix4<f32> = Matrix4::look_at_rh(
+                    Point3::new(0.5,0.5,-1.0),
+                    Point3::new(0.0,0.0,0.0),
+                    Vector3::new(0.0,-1.0,0.0),
+                );
+
+                let world: Matrix4<f32> = Matrix4::identity();
+
+                let uniform_data = vs::ty::Data {
+                    world: world.into(),
+                    view: view.into(),
+                    proj: proj.into()
+                };
+
+                let uniform_buffer_subbuffer = uniform_buffer.from_data(uniform_data).unwrap();
+
+                let set = PersistentDescriptorSet::new(
+                    &descriptor_set_allocator,
+                    pipeline.layout().set_layouts().get(0).unwrap().clone(),
+                    [WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer)],
+                ).expect("could not create descriptor set");
+
                 // Before we can draw on the output, we have to *acquire* an image from the swapchain. If
                 // no image is available (which happens if you submit draw commands too quickly), then the
                 // function will block.
@@ -417,8 +473,10 @@ fn main() {
                     // Since we used an `EmptyPipeline` object, the objects have to be `()`.
                     .set_viewport(0, [viewport.clone()])
                     .bind_pipeline_graphics(pipeline.clone())
+                    .bind_index_buffer(index_buffer.clone())
                     .bind_vertex_buffers(0, vertex_buffer.clone())
-                    .draw(vertex_buffer.len() as u32, 1, 0, 0)
+                    .bind_descriptor_sets(PipelineBindPoint::Graphics, pipeline.layout().clone(), 0, set.clone())
+                    .draw_indexed(index_buffer.len() as u32, 1, 0, 0, 0)
                     .unwrap()
                     // We leave the render pass. Note that if we had multiple
                     // subpasses we could have called `next_subpass` to jump to the next subpass.
@@ -463,6 +521,39 @@ fn main() {
             _ => (),
         }
     });
+}
+
+fn find_physical_device(instance: Arc<Instance>, surface: Arc<Surface>, device_extensions: &DeviceExtensions) -> (Arc<PhysicalDevice>, u32) {
+    instance
+        .enumerate_physical_devices()
+        .expect("could not enumerate physical devices")
+        .filter(|p| {
+            // check if device extensions are supported
+            p.supported_extensions().contains(&device_extensions)
+        })
+        .filter_map(|p| {
+            p.queue_family_properties()
+                .iter()
+                .enumerate()
+                .position(|(i, q)| {
+                    // check for graphics flag in queue family
+                    q.queue_flags.graphics &&
+                        p.surface_support(i as u32, &surface).unwrap_or(false)
+                })
+                .map(|i| (p, i as u32))
+        })
+        .min_by_key(|(p, _)| {
+            // prefer discrete gpus
+            match p.properties().device_type {
+                PhysicalDeviceType::DiscreteGpu => 0,
+                PhysicalDeviceType::IntegratedGpu => 1,
+                PhysicalDeviceType::VirtualGpu => 2,
+                PhysicalDeviceType::Cpu => 3,
+                PhysicalDeviceType::Other => 4,
+                _ => 5
+            }
+        })
+        .expect("No suitable physical device found")
 }
 
 /// This method is called once during initialization, then again whenever the window is resized
