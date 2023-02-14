@@ -1,25 +1,19 @@
 use crate::application::{Application, Run};
 
+mod application;
 mod camera;
+mod context;
 mod input;
 pub mod mesh;
-mod context;
-mod application;
 mod render;
 
-struct Game {
+struct Game {}
 
-}
-
-impl Run for Game {
-
-}
+impl Run for Game {}
 
 impl Game {
     pub fn new() -> Game {
-        Game {
-
-        }
+        Game {}
     }
 }
 
