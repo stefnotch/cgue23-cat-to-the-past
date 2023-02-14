@@ -5,7 +5,7 @@ use winit::window::WindowBuilder;
 use crate::camera::Camera;
 use crate::context::Context;
 use crate::input::InputMap;
-use crate::renderer::Renderer;
+use crate::render::Renderer;
 
 pub struct Application {
     context: Context,
@@ -61,7 +61,6 @@ impl Application {
                 } => {
                     self.game_state.camera.update_aspect_ratio();
                     self.renderer.recreate_swapchain();
-                    runner.resize(&mut self.game_state);
                     println!("RESIZE");
                 }
 
@@ -106,13 +105,13 @@ impl Application {
                 }
 
                 Event::RedrawEventsCleared => {
+                    runner.update(&mut self.game_state);
                     self.renderer.render(&self.context);
                     println!("REDRAW");
                 }
 
                 _ => (),
             }
-            runner.update(&mut self.game_state);
             // self.input_map.key_release(VirtualKeyCode::A);
         });
     }
@@ -122,6 +121,4 @@ pub trait Run {
     fn input(&self, _application: &mut GameState) {}
 
     fn update(&self, _application: &mut GameState) {}
-
-    fn resize(&self, _application: &mut GameState) {}
 }
