@@ -1,4 +1,7 @@
+use std::sync::Arc;
 use bytemuck::{Pod, Zeroable};
+use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
+use vulkano::memory::allocator::MemoryAllocator;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, Zeroable, Pod)]
@@ -11,10 +14,13 @@ vulkano::impl_vertex!(MeshVertex, position);
 pub struct Mesh {
     pub vertices: Vec<MeshVertex>,
     pub indices: Vec<u32>,
+
+    pub vertex_buffer: Arc<CpuAccessibleBuffer<[MeshVertex]>>,
+    pub index_buffer: Arc<CpuAccessibleBuffer<[u32]>>,
 }
 
 impl Mesh {
-    pub fn cube(width: f32, height: f32, depth: f32) -> Self {
+    pub fn cube(width: f32, height: f32, depth: f32, allocator: &(impl MemoryAllocator + ?Sized)) -> Arc<Self> {
         let vertices = vec![
             // front
             MeshVertex { position: [-0.5, -0.5, 0.5] },
@@ -29,7 +35,7 @@ impl Mesh {
             MeshVertex { position: [-0.5, 0.5, -0.5] },
         ];
 
-        let vertices = vertices
+        let vertices: Vec<MeshVertex> = vertices
             .into_iter()
             .map(|mut vertex| {
                 vertex.position[0] *= width;
@@ -55,9 +61,32 @@ impl Mesh {
             1, 0, 4, 1, 4, 5,
         ];
 
-        Mesh {
+        let vertex_buffer = CpuAccessibleBuffer::from_iter(
+            allocator,
+            BufferUsage {
+                vertex_buffer: true,
+                ..Default::default()
+            },
+            false,
+            vertices.iter().cloned(),
+        ).expect("could not upload vertex data to GPU");
+
+        let index_buffer = CpuAccessibleBuffer::from_iter(
+            allocator,
+            BufferUsage {
+                index_buffer: true,
+                ..Default::default()
+            },
+            false,
+            indices.iter().cloned(),
+        ).expect("could not upload indices data to GPU");
+
+        Arc::new(Mesh {
             vertices,
             indices,
-        }
+
+            vertex_buffer,
+            index_buffer,
+        })
     }
 }

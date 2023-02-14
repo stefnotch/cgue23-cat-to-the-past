@@ -1,24 +1,22 @@
 use std::sync::Arc;
-use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer, RenderPassBeginInfo, SubpassContents};
-use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::device::Device;
 use vulkano::format::Format;
-use vulkano::image::{ImageAccess, ImageUsage, SwapchainImage};
+use vulkano::image::{ImageUsage, SwapchainImage};
 use vulkano::image::view::ImageView;
-use vulkano::pipeline::graphics::viewport::Viewport;
-use vulkano::pipeline::PipelineBindPoint;
-use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass};
 use vulkano::swapchain::{acquire_next_image, AcquireError, ColorSpace, Surface, SurfaceInfo, Swapchain, SwapchainCreateInfo, SwapchainCreationError, SwapchainPresentInfo};
 use vulkano::sync;
 use vulkano::sync::{FlushError, GpuFuture};
 use winit::window::Window;
 use crate::context::Context;
+use crate::render::scene_renderer::SceneRenderer;
 
+/// Responsible for keeping the swapchain up-to-date and calling the sub-rendersystems
 pub struct Renderer {
     recreate_swapchain: bool,
     previous_frame_end: Option<Box<dyn GpuFuture>>,
     swapchain: Arc<Swapchain>,
-    images: Vec<Arc<SwapchainImage>>,
+    images: Vec<Arc<ImageView<SwapchainImage>>>,
+    scene_renderer: SceneRenderer,
 }
 
 impl Renderer {
@@ -27,12 +25,20 @@ impl Renderer {
 
         let (swapchain, images) = create_swapchain(context.device(), context.surface());
 
+        let images = images
+            .into_iter()
+            .map(|image| ImageView::new_default(image.clone()).unwrap())
+            .collect::<Vec<_>>();
+
+        let scene_renderer = SceneRenderer::new(context);
+
         Renderer {
             recreate_swapchain: false,
             previous_frame_end,
 
             swapchain,
             images,
+            scene_renderer
         }
     }
 
@@ -42,7 +48,8 @@ impl Renderer {
 
     pub fn render(&mut self, context: &Context) {
         // On Windows, this can occur from minimizing the application.
-        let window = context.surface().object().unwrap().downcast_ref::<Window>().unwrap();
+        let surface = context.surface();
+        let window = surface.object().unwrap().downcast_ref::<Window>().unwrap();
         let dimensions = window.inner_size();
         if dimensions.width == 0 || dimensions.height == 0 {
             return;
@@ -73,8 +80,14 @@ impl Renderer {
 
             self.swapchain = new_swapchain;
 
-            // TODO: fetch new images from swapchain
+            self.images = new_images
+                .into_iter()
+                .map(|image| ImageView::new_default(image.clone()).unwrap())
+                .collect::<Vec<_>>();
+
             // TODO: delegate task to fetch new framebuffers to subrendersystems
+
+            self.scene_renderer.resize();
 
             self.recreate_swapchain = false;
         }
@@ -108,19 +121,12 @@ impl Renderer {
             .unwrap()
             .join(acquire_future);
 
+        let image = self.images[image_index as usize].clone();
 
-
+        self.scene_renderer.render(future, )
         // TODO: record render things
 
         let future = future
-            .then_execute(context.queue(), command_buffer)
-            .unwrap()
-            // The color output is now expected to contain our triangle. But in order to show it on
-            // the screen, we have to *present* the image by calling `present`.
-            //
-            // This function does not actually present the image immediately. Instead it submits a
-            // present command at the end of the queue. This means that it will only be presented once
-            // the GPU has finished executing the command buffer that draws the triangle.
             .then_swapchain_present(
                 context.queue(),
                 SwapchainPresentInfo::swapchain_image_index(self.swapchain.clone(), image_index),
