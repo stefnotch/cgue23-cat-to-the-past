@@ -17,32 +17,16 @@ impl Mesh {
     pub fn cube(width: f32, height: f32, depth: f32) -> Self {
         let vertices = vec![
             // front
-            MeshVertex {
-                position: [-0.5, -0.5, 0.5]
-            },
-            MeshVertex {
-                position: [0.5, -0.5, 0.5]
-            },
-            MeshVertex {
-                position: [0.5, 0.5, 0.5]
-            },
-            MeshVertex {
-                position: [-0.5, 0.5, 0.5]
-            },
+            MeshVertex { position: [-0.5, -0.5, 0.5] },
+            MeshVertex { position: [0.5, -0.5, 0.5] },
+            MeshVertex { position: [0.5, 0.5, 0.5] },
+            MeshVertex { position: [-0.5, 0.5, 0.5] },
 
             // back
-            MeshVertex {
-                position: [-0.5, -0.5, -0.5]
-            },
-            MeshVertex {
-                position: [0.5, -0.5, -0.5]
-            },
-            MeshVertex {
-                position: [0.5, 0.5, -0.5]
-            },
-            MeshVertex {
-                position: [-0.5, 0.5, -0.5]
-            }
+            MeshVertex { position: [-0.5, -0.5, -0.5] },
+            MeshVertex { position: [0.5, -0.5, -0.5] },
+            MeshVertex { position: [0.5, 0.5, -0.5] },
+            MeshVertex { position: [-0.5, 0.5, -0.5] },
         ];
 
         let vertices = vertices
@@ -56,24 +40,24 @@ impl Mesh {
             })
             .collect();
 
-        let indices= vec![
+        let indices = vec![
             // front
-            0,1,2,  0,2,3,
+            0, 1, 2, 0, 2, 3,
             // back
-            5,4,7,  5,7,6,
+            5, 4, 7, 5, 7, 6,
             // right
-            1,5,6,  1,6,2,
+            1, 5, 6, 1, 6, 2,
             // left
-            4,0,3,  4,3,7,
+            4, 0, 3, 4, 3, 7,
             // up
-            3,2,6,  3,6,7,
+            3, 2, 6, 3, 6, 7,
             // down
-            1,0,4,  1,4,5
+            1, 0, 4, 1, 4, 5,
         ];
 
         Mesh {
             vertices,
-            indices
+            indices,
         }
     }
 }
