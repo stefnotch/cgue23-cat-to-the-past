@@ -1,26 +1,32 @@
 use std::sync::Arc;
-use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo};
 use vulkano::device::physical::{PhysicalDevice, PhysicalDeviceType};
+use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo};
+use vulkano::instance::debug::{
+    DebugUtilsMessageSeverity, DebugUtilsMessageType, DebugUtilsMessenger,
+    DebugUtilsMessengerCreateInfo,
+};
 use vulkano::instance::{Instance, InstanceCreateInfo, InstanceExtensions};
-use vulkano::instance::debug::{DebugUtilsMessageSeverity, DebugUtilsMessageType, DebugUtilsMessenger, DebugUtilsMessengerCreateInfo};
 use vulkano::swapchain::Surface;
 use vulkano::VulkanLibrary;
 use vulkano_win::VkSurfaceBuild;
 use winit::event_loop::EventLoop;
 use winit::window::WindowBuilder;
 
+///
+/// see also https://gpuopen.com/learn/understanding-vulkan-objects/
 pub struct Context {
     instance: Arc<Instance>,
+    debug_callback: Option<DebugUtilsMessenger>,
     surface: Arc<Surface>,
     physical_device: Arc<PhysicalDevice>,
-    queue_family_index: u32,
     device: Arc<Device>,
-    queue: Arc<Queue>,
+    queue_family_index: u32,
+    graphics_queue: Arc<Queue>,
 }
 
 impl Context {
     pub fn new(window_builder: WindowBuilder, event_loop: &EventLoop<()>) -> Context {
-        let instance = create_instance();
+        let (instance, debug_callback) = create_instance();
 
         let surface = window_builder
             .build_vk_surface(&event_loop, instance.clone())
@@ -31,13 +37,10 @@ impl Context {
             ..DeviceExtensions::empty()
         };
 
-        let (physical_device, queue_family_index) = find_physical_device(
-            instance.clone(),
-            surface.clone(),
-            &device_extensions,
-        );
+        let (physical_device, queue_family_index) =
+            find_physical_device(instance.clone(), surface.clone(), &device_extensions);
 
-        let (device, queue) = create_logical_device(
+        let (device, graphics_queue) = create_logical_device(
             physical_device.clone(),
             queue_family_index,
             &device_extensions,
@@ -45,11 +48,12 @@ impl Context {
 
         Context {
             instance,
+            debug_callback,
             surface,
             physical_device,
             queue_family_index,
             device,
-            queue,
+            graphics_queue,
         }
     }
 
@@ -62,32 +66,59 @@ impl Context {
     }
 
     pub fn queue(&self) -> Arc<Queue> {
-        self.queue.clone()
+        self.graphics_queue.clone()
     }
 }
 
-fn create_instance() -> Arc<Instance> {
-    let library = VulkanLibrary::new()
-        .expect("no local Vulkan library/DLL");
+fn create_instance() -> (Arc<Instance>, Option<DebugUtilsMessenger>) {
+    let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
+
+    // calls vkEnumerateInstanceExtensionProperties under the hood https://docs.rs/vulkano/0.32.3/src/vulkano/library.rs.html#155
+    let supported_extensions = library.supported_extensions();
+    let suported_layers: Vec<_> = library
+        .layer_properties()
+        .expect("could not enumerate layers")
+        .collect();
+
+    // enable debugging if available
+    let debug_extension_name = String::from("VK_LAYER_KHRONOS_validation");
+    let debug_enabled = supported_extensions.ext_debug_utils
+        && suported_layers
+            .iter()
+            .any(|l| l.name() == debug_extension_name);
 
     let instance_extensions = InstanceExtensions {
-        ext_debug_report: true,
+        ext_debug_utils: debug_enabled,
         ..vulkano_win::required_extensions(&library)
     };
 
-    // NOTE: To simplify the example code we won't verify these layer(s) are actually in the layers list:
-    // see: https://github.com/vulkano-rs/vulkano/blob/85e9d1c24ec612023dbc5b13e6164706ea52e963/examples/src/bin/debug.rs#L64
-    let instance = Instance::new(library, InstanceCreateInfo {
-        enabled_extensions: instance_extensions,
-        enabled_layers: vec![String::from("VK_LAYER_KHRONOS_validation")],
-        ..Default::default()
-    }).expect("failed to create instance");
+    let mut layers = vec![];
+    if debug_enabled {
+        layers.push(debug_extension_name);
+    }
 
-    instance
+    let instance = Instance::new(
+        library,
+        InstanceCreateInfo {
+            enabled_extensions: instance_extensions,
+            enabled_layers: layers,
+            ..Default::default()
+        },
+    )
+    .expect("failed to create instance");
+
+    // the debug callback should stay alive as long as the instance
+    // otherwise the callback will be dropped and no longer print any messages
+    let debug_callback = if debug_enabled {
+        create_debug_callback(instance.clone())
+    } else {
+        None
+    };
+    (instance, debug_callback)
 }
 
-fn create_debug_callback(instance: Arc<Instance>) {
-    let _debug_callback = unsafe {
+fn create_debug_callback(instance: Arc<Instance>) -> Option<DebugUtilsMessenger> {
+    let debug_callback = unsafe {
         DebugUtilsMessenger::new(
             instance.clone(),
             DebugUtilsMessengerCreateInfo {
@@ -137,12 +168,17 @@ fn create_debug_callback(instance: Arc<Instance>) {
                 }))
             },
         )
-            .ok()
+        .ok()
     };
+
+    debug_callback
 }
 
-fn find_physical_device(instance: Arc<Instance>, surface: Arc<Surface>,
-                            device_extensions: &DeviceExtensions) -> (Arc<PhysicalDevice>, u32) {
+fn find_physical_device(
+    instance: Arc<Instance>,
+    surface: Arc<Surface>,
+    device_extensions: &DeviceExtensions,
+) -> (Arc<PhysicalDevice>, u32) {
     instance
         .enumerate_physical_devices()
         .expect("could not enumerate physical devices")
@@ -156,8 +192,7 @@ fn find_physical_device(instance: Arc<Instance>, surface: Arc<Surface>,
                 .enumerate()
                 .position(|(i, q)| {
                     // check for graphics flag in queue family
-                    q.queue_flags.graphics &&
-                        p.surface_support(i as u32, &surface).unwrap_or(false)
+                    q.queue_flags.graphics && p.surface_support(i as u32, &surface).unwrap_or(false)
                 })
                 .map(|i| (p, i as u32))
         })
@@ -169,15 +204,17 @@ fn find_physical_device(instance: Arc<Instance>, surface: Arc<Surface>,
                 PhysicalDeviceType::VirtualGpu => 2,
                 PhysicalDeviceType::Cpu => 3,
                 PhysicalDeviceType::Other => 4,
-                _ => 5
+                _ => 5,
             }
         })
         .expect("No suitable physical device found")
 }
 
-fn create_logical_device(physical_device: Arc<PhysicalDevice>,
-                             queue_family_index: u32,
-                             device_extensions: &DeviceExtensions) -> (Arc<Device>, Arc<Queue>) {
+fn create_logical_device(
+    physical_device: Arc<PhysicalDevice>,
+    queue_family_index: u32,
+    device_extensions: &DeviceExtensions,
+) -> (Arc<Device>, Arc<Queue>) {
     let (device, mut queues) = Device::new(
         physical_device.clone(),
         DeviceCreateInfo {
@@ -188,9 +225,10 @@ fn create_logical_device(physical_device: Arc<PhysicalDevice>,
             }],
             ..Default::default()
         },
-    ).expect("could not create logical device");
+    )
+    .expect("could not create logical device");
 
-    let queue = queues.next().expect("could not fetch queue");
+    let graphics_queue = queues.next().expect("could not fetch queue");
 
-    (device, queue)
+    (device, graphics_queue)
 }
