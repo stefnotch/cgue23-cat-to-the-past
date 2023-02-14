@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use bytemuck::{Pod, Zeroable};
+use std::sync::Arc;
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use vulkano::memory::allocator::MemoryAllocator;
 
@@ -20,19 +20,39 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn cube(width: f32, height: f32, depth: f32, allocator: &(impl MemoryAllocator + ?Sized)) -> Arc<Self> {
+    pub fn cube(
+        width: f32,
+        height: f32,
+        depth: f32,
+        allocator: &(impl MemoryAllocator + ?Sized),
+    ) -> Arc<Self> {
         let vertices = vec![
             // front
-            MeshVertex { position: [-0.5, -0.5, 0.5] },
-            MeshVertex { position: [0.5, -0.5, 0.5] },
-            MeshVertex { position: [0.5, 0.5, 0.5] },
-            MeshVertex { position: [-0.5, 0.5, 0.5] },
-
+            MeshVertex {
+                position: [-0.5, -0.5, 0.5],
+            },
+            MeshVertex {
+                position: [0.5, -0.5, 0.5],
+            },
+            MeshVertex {
+                position: [0.5, 0.5, 0.5],
+            },
+            MeshVertex {
+                position: [-0.5, 0.5, 0.5],
+            },
             // back
-            MeshVertex { position: [-0.5, -0.5, -0.5] },
-            MeshVertex { position: [0.5, -0.5, -0.5] },
-            MeshVertex { position: [0.5, 0.5, -0.5] },
-            MeshVertex { position: [-0.5, 0.5, -0.5] },
+            MeshVertex {
+                position: [-0.5, -0.5, -0.5],
+            },
+            MeshVertex {
+                position: [0.5, -0.5, -0.5],
+            },
+            MeshVertex {
+                position: [0.5, 0.5, -0.5],
+            },
+            MeshVertex {
+                position: [-0.5, 0.5, -0.5],
+            },
         ];
 
         let vertices: Vec<MeshVertex> = vertices
@@ -48,16 +68,11 @@ impl Mesh {
 
         let indices = vec![
             // front
-            0, 1, 2, 0, 2, 3,
-            // back
-            5, 4, 7, 5, 7, 6,
-            // right
-            1, 5, 6, 1, 6, 2,
-            // left
-            4, 0, 3, 4, 3, 7,
-            // up
-            3, 2, 6, 3, 6, 7,
-            // down
+            0, 1, 2, 0, 2, 3, // back
+            5, 4, 7, 5, 7, 6, // right
+            1, 5, 6, 1, 6, 2, // left
+            4, 0, 3, 4, 3, 7, // up
+            3, 2, 6, 3, 6, 7, // down
             1, 0, 4, 1, 4, 5,
         ];
 
@@ -69,7 +84,8 @@ impl Mesh {
             },
             false,
             vertices.iter().cloned(),
-        ).expect("could not upload vertex data to GPU");
+        )
+        .expect("could not upload vertex data to GPU");
 
         let index_buffer = CpuAccessibleBuffer::from_iter(
             allocator,
@@ -79,7 +95,8 @@ impl Mesh {
             },
             false,
             indices.iter().cloned(),
-        ).expect("could not upload indices data to GPU");
+        )
+        .expect("could not upload indices data to GPU");
 
         Arc::new(Mesh {
             vertices,

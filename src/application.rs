@@ -1,11 +1,11 @@
-use winit::dpi::LogicalSize;
-use winit::event::{DeviceEvent, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::WindowBuilder;
 use crate::camera::Camera;
 use crate::context::Context;
 use crate::input::InputMap;
 use crate::render::Renderer;
+use winit::dpi::LogicalSize;
+use winit::event::{DeviceEvent, Event, KeyboardInput, WindowEvent};
+use winit::event_loop::{ControlFlow, EventLoop};
+use winit::window::WindowBuilder;
 
 pub struct Application {
     context: Context,
@@ -25,7 +25,10 @@ impl Application {
         let event_loop = EventLoop::new();
 
         let window_builder = WindowBuilder::new()
-            .with_inner_size(LogicalSize { width: 800, height: 800 })
+            .with_inner_size(LogicalSize {
+                width: 800,
+                height: 800,
+            })
             .with_title("CG Project");
 
         let context = Context::new(window_builder, &event_loop);
@@ -41,11 +44,15 @@ impl Application {
             context,
             event_loop,
             game_state,
-            renderer
+            renderer,
         }
     }
 
-    pub fn run<T>(mut self, runner: T) where T: Run + 'static, Self: 'static {
+    pub fn run<T>(mut self, runner: T)
+    where
+        T: Run + 'static,
+        Self: 'static,
+    {
         self.event_loop.run(move |event, _, control_flow| {
             match event {
                 Event::WindowEvent {
@@ -64,45 +71,33 @@ impl Application {
                     println!("RESIZE");
                 }
 
-                Event::WindowEvent {
-                    event,
-                    ..
-                } => {
-                    match event {
-                        WindowEvent::KeyboardInput {
-                            input: KeyboardInput {
+                Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::KeyboardInput {
+                        input:
+                            KeyboardInput {
                                 virtual_keycode: Some(key_code),
                                 state,
                                 ..
                             },
-                            ..
-                        } => {
-                            println!("[KeyboardInput] keycode: {:?}, state: {:?}", key_code, state);
-                        }
-                        WindowEvent::MouseInput {
-                            button,
-                            state,
-                            ..
-                        } => {
-                            println!("[MouseInput] button: {:?}, state: {:?}", button, state);
-                        }
-                        _ => (),
+                        ..
+                    } => {
+                        println!(
+                            "[KeyboardInput] keycode: {:?}, state: {:?}",
+                            key_code, state
+                        );
                     }
-                }
+                    WindowEvent::MouseInput { button, state, .. } => {
+                        println!("[MouseInput] button: {:?}, state: {:?}", button, state);
+                    }
+                    _ => (),
+                },
 
-                Event::DeviceEvent {
-                    event,
-                    ..
-                } => {
-                    match event {
-                        DeviceEvent::MouseMotion {
-                            delta
-                        } => {
-                            println!("[MouseMotion] delta: {:?}", delta);
-                        }
-                        _ => (),
+                Event::DeviceEvent { event, .. } => match event {
+                    DeviceEvent::MouseMotion { delta } => {
+                        println!("[MouseMotion] delta: {:?}", delta);
                     }
-                }
+                    _ => (),
+                },
 
                 Event::RedrawEventsCleared => {
                     runner.update(&mut self.game_state);

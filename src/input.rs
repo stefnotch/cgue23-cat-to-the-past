@@ -24,5 +24,4 @@ impl InputMap {
     pub fn is_pressed(&self, key: VirtualKeyCode) -> bool {
         self.state[key as usize]
     }
-
 }

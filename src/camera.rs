@@ -16,21 +16,15 @@ impl Camera {
         let pitch = Rad::from(Deg(0.0));
 
         Camera {
-            view: calculate_view(
-                position,
-                yaw,
-                pitch
-            ),
+            view: calculate_view(position, yaw, pitch),
             proj: cgmath::perspective(Rad::from(Deg(fov)), aspect_ratio, near, far),
             position,
             yaw,
-            pitch
+            pitch,
         }
     }
 
-    pub fn update_aspect_ratio(&mut self) {
-
-    }
+    pub fn update_aspect_ratio(&mut self) {}
 
     pub fn view(&self) -> &Matrix4<f32> {
         &self.view
@@ -48,11 +42,7 @@ fn calculate_view(position: Point3<f32>, yaw: Rad<f32>, pitch: Rad<f32>) -> Matr
     let (sin_pitch, cos_pitch) = pitch.0.sin_cos();
     let (sin_yaw, cos_yaw) = yaw.0.sin_cos();
 
-    let cam_direction = Vector3::new(
-        cos_pitch * cos_yaw,
-        sin_pitch,
-        cos_pitch * sin_yaw
-    );
+    let cam_direction = Vector3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw);
 
     Matrix4::look_to_rh(position, cam_direction, Vector3::unit_y())
 }
