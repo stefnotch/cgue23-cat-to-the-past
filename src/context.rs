@@ -78,6 +78,7 @@ fn create_instance() -> (Arc<Instance>, Option<DebugUtilsMessenger>) {
     let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
 
     // calls vkEnumerateInstanceExtensionProperties under the hood https://docs.rs/vulkano/0.32.3/src/vulkano/library.rs.html#155
+    // see also https://www.lunarg.com/wp-content/uploads/2018/05/Vulkan-Debug-Utils_05_18_v1.pdf
     let supported_extensions = library.supported_extensions();
     let suported_layers: Vec<_> = library
         .layer_properties()
