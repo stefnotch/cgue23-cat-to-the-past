@@ -7,7 +7,7 @@ use vulkano::instance::debug::{
 };
 use vulkano::instance::{Instance, InstanceCreateInfo, InstanceExtensions};
 use vulkano::swapchain::Surface;
-use vulkano::VulkanLibrary;
+use vulkano::{Version, VulkanLibrary};
 use vulkano_win::VkSurfaceBuild;
 use winit::event_loop::EventLoop;
 use winit::window::WindowBuilder;
@@ -107,6 +107,7 @@ fn create_instance() -> (Arc<Instance>, Option<DebugUtilsMessenger>) {
         InstanceCreateInfo {
             enabled_extensions: instance_extensions,
             enabled_layers: layers,
+            max_api_version: Some(Version::major_minor(1, 2)),
             ..Default::default()
         },
     )
@@ -163,6 +164,9 @@ fn create_debug_callback(instance: Arc<Instance>) -> Option<DebugUtilsMessenger>
                         panic!("no-impl");
                     };
 
+                    if msg.severity.verbose {
+                        return;
+                    }
                     println!(
                         "{} {} {}: {}",
                         msg.layer_prefix.unwrap_or("unknown"),
