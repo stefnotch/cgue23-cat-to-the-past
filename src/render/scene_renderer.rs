@@ -1,5 +1,5 @@
 use crate::context::Context;
-use crate::mesh::{Mesh, MeshVertex};
+use crate::scene::mesh::{Mesh, MeshVertex};
 use cgmath::{Matrix4, Point3};
 use std::default::Default;
 use std::sync::Arc;

@@ -4,8 +4,8 @@ mod application;
 mod camera;
 mod context;
 mod input;
-pub mod mesh;
 mod render;
+mod scene;
 
 struct Game {}
 
