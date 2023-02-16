@@ -68,7 +68,6 @@ impl Application {
                 } => {
                     self.game_state.camera.update_aspect_ratio();
                     self.renderer.recreate_swapchain();
-                    println!("RESIZE");
                 }
 
                 Event::WindowEvent { event, .. } => match event {
@@ -94,7 +93,7 @@ impl Application {
 
                 Event::DeviceEvent { event, .. } => match event {
                     DeviceEvent::MouseMotion { delta } => {
-                        println!("[MouseMotion] delta: {:?}", delta);
+                        //println!("[MouseMotion] delta: {:?}", delta);
                     }
                     _ => (),
                 },
@@ -102,7 +101,6 @@ impl Application {
                 Event::RedrawEventsCleared => {
                     runner.update(&mut self.game_state);
                     self.renderer.render(&self.context);
-                    println!("REDRAW");
                 }
 
                 _ => (),
