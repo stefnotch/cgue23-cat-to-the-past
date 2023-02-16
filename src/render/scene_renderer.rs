@@ -1,15 +1,16 @@
 use crate::context::Context;
 use crate::mesh::{Mesh, MeshVertex};
+use cgmath::{Matrix4, Point3};
 use std::default::Default;
 use std::sync::Arc;
-use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer, CpuBufferPool, TypedBufferAccess};
-use vulkano::command_buffer::allocator::{
-    StandardCommandBufferAlloc, StandardCommandBufferAllocator,
-};
+use vulkano::buffer::{BufferUsage, CpuBufferPool, TypedBufferAccess};
+use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, RenderPassBeginInfo,
     SubpassContents,
 };
+use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
+use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
 use vulkano::image::SwapchainImage;
@@ -27,6 +28,9 @@ pub struct SceneRenderer {
     pub mesh: Arc<Mesh>,
     pub framebuffers: Vec<Arc<Framebuffer>>,
     pub command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
+    pub uniform_buffer: CpuBufferPool<vs::ty::Data>,
+    // maybe move that to the main renderer?
+    pub descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
 }
 
 impl SceneRenderer {
@@ -79,6 +83,7 @@ impl SceneRenderer {
             .build(context.device())
             .expect("could not create pipeline");
 
+        // TODO: let the main_renderer manage those swapchain related framebuffers?
         let framebuffers = images
             .into_iter()
             .map(|image| {
@@ -93,12 +98,17 @@ impl SceneRenderer {
             })
             .collect();
 
+        let descriptor_set_allocator =
+            Arc::new(StandardDescriptorSetAllocator::new(context.device()));
+
         SceneRenderer {
             render_pass,
             pipeline,
             mesh: cube,
             framebuffers,
             command_buffer_allocator,
+            uniform_buffer,
+            descriptor_set_allocator,
         }
     }
 
@@ -132,6 +142,40 @@ impl SceneRenderer {
             &self.command_buffer_allocator,
             context.queue_family_index(),
             CommandBufferUsage::OneTimeSubmit,
+        )
+        .unwrap();
+
+        // descriptor set
+        let uniform_buffer_subbuffer = {
+            let aspect_ratio = 1.0;
+            let proj = cgmath::perspective(
+                cgmath::Rad(std::f32::consts::FRAC_PI_2),
+                aspect_ratio,
+                0.01,
+                100.0,
+            );
+            let view = Matrix4::look_at_rh(
+                Point3::new(0.3, 0.3, 1.0),
+                Point3::new(0.0, 0.0, 0.0),
+                cgmath::Vector3::new(0.0, -1.0, 0.0),
+            );
+            let scale = Matrix4::from_scale(1.0);
+
+            let uniform_data = vs::ty::Data {
+                world: Matrix4::from(cgmath::Matrix3::from_angle_y(cgmath::Rad(1.1))).into(),
+                view: (view * scale).into(),
+                proj: proj.into(),
+            };
+
+            self.uniform_buffer.from_data(uniform_data).unwrap()
+        };
+
+        let layout = self.pipeline.layout().set_layouts().get(0).unwrap();
+        // TODO: Don't create a new descriptor set every frame
+        let set = PersistentDescriptorSet::new(
+            &self.descriptor_set_allocator,
+            layout.clone(),
+            [WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer)],
         )
         .unwrap();
 
