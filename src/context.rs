@@ -68,6 +68,10 @@ impl Context {
     pub fn queue(&self) -> Arc<Queue> {
         self.graphics_queue.clone()
     }
+
+    pub fn queue_family_index(&self) -> u32 {
+        self.queue_family_index
+    }
 }
 
 fn create_instance() -> (Arc<Instance>, Option<DebugUtilsMessenger>) {
