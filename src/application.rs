@@ -3,6 +3,7 @@ use crate::context::Context;
 use crate::input::InputMap;
 use crate::render::Renderer;
 use crate::scene::scene_graph::SceneGraph;
+use winit::dpi;
 use winit::dpi::LogicalSize;
 use winit::event::{DeviceEvent, Event, KeyboardInput, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -68,10 +69,10 @@ impl Application {
                 }
 
                 Event::WindowEvent {
-                    event: WindowEvent::Resized(_),
+                    event: WindowEvent::Resized(dpi::PhysicalSize { width, height }),
                     ..
                 } => {
-                    self.game_state.camera.update_aspect_ratio();
+                    self.game_state.camera.update_aspect_ratio(width, height);
                     self.renderer.recreate_swapchain();
                 }
 

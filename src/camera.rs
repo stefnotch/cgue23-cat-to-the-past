@@ -24,7 +24,7 @@ impl Camera {
         }
     }
 
-    pub fn update_aspect_ratio(&mut self) {}
+    pub fn update_aspect_ratio(&mut self, width: u32, height: u32) {}
 
     pub fn view(&self) -> &Matrix4<f32> {
         &self.view

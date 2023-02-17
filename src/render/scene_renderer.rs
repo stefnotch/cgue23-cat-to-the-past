@@ -25,14 +25,14 @@ use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpa
 use vulkano::sync::GpuFuture;
 
 pub struct SceneRenderer {
-    pub render_pass: Arc<RenderPass>,
-    pub pipeline: Arc<GraphicsPipeline>,
-    pub mesh: Arc<Mesh>,
-    pub framebuffers: Vec<Arc<Framebuffer>>,
-    pub command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
-    pub uniform_buffer: CpuBufferPool<vs::ty::Data>,
+    render_pass: Arc<RenderPass>,
+    pipeline: Arc<GraphicsPipeline>,
+    mesh: Arc<Mesh>,
+    framebuffers: Vec<Arc<Framebuffer>>,
+    command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
+    uniform_buffer: CpuBufferPool<vs::ty::Data>,
     // maybe move that to the main renderer?
-    pub descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
+    descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
 }
 
 impl SceneRenderer {
@@ -226,7 +226,7 @@ impl SubRenderer for SceneRenderer {
                     //
                     // Only attachments that have `LoadOp::Clear` are provided with clear
                     // values, any others should use `ClearValue::None` as the clear value.
-                    clear_values: vec![Some([0.0, 0.0, 1.0, 1.0].into())],
+                    clear_values: vec![Some([0.2, 0.4, 0.8, 1.0].into())],
                     ..RenderPassBeginInfo::framebuffer(
                         self.framebuffers[swapchain_frame_index as usize].clone(),
                     )
