@@ -1,4 +1,4 @@
-use crate::application::{Application, Run};
+use crate::application::{Application, GameState, Run};
 
 mod application;
 mod camera;
@@ -9,7 +9,15 @@ mod scene;
 
 struct Game {}
 
-impl Run for Game {}
+impl Run for Game {
+    fn input(&self, _application: &mut GameState) {
+        // todo!()
+    }
+
+    fn update(&self, _application: &mut GameState) {
+        // todo!()
+    }
+}
 
 impl Game {
     pub fn new() -> Game {
