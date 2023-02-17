@@ -4,12 +4,15 @@ const NUM_KEYS: usize = VirtualKeyCode::Cut as usize + 1;
 
 pub struct InputMap {
     state: [bool; NUM_KEYS],
+    /// delta since last frame
+    mouse_delta: (f64, f64),
 }
 
 impl InputMap {
     pub fn new() -> Self {
         InputMap {
             state: [false; NUM_KEYS],
+            mouse_delta: (0.0, 0.0),
         }
     }
 
@@ -23,5 +26,18 @@ impl InputMap {
 
     pub fn is_pressed(&self, key: VirtualKeyCode) -> bool {
         self.state[key as usize]
+    }
+
+    pub fn mouse_move(&mut self, delta: (f64, f64)) {
+        self.mouse_delta.0 += delta.0;
+        self.mouse_delta.1 += delta.1;
+    }
+
+    pub fn mouse_delta(&self) -> (f64, f64) {
+        self.mouse_delta
+    }
+
+    pub fn new_frame(&mut self) {
+        self.mouse_delta = (0.0, 0.0);
     }
 }
