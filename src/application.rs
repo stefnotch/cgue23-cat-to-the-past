@@ -3,6 +3,7 @@ use crate::context::Context;
 use crate::input::InputMap;
 use crate::render::Renderer;
 use crate::scene::scene_graph::SceneGraph;
+use std::time::Instant;
 use winit::dpi;
 use winit::dpi::LogicalSize;
 use winit::event::{DeviceEvent, Event, KeyboardInput, WindowEvent};
@@ -59,6 +60,8 @@ impl Application {
         T: Run + 'static,
         Self: 'static,
     {
+        let mut last_frame = Instant::now();
+
         self.event_loop.run(move |event, _, control_flow| {
             match event {
                 Event::WindowEvent {
@@ -96,7 +99,12 @@ impl Application {
                 },
 
                 Event::RedrawEventsCleared => {
-                    runner.update(&mut self.game_state);
+                    let delta_time = last_frame.elapsed().as_secs_f64();
+                    last_frame = Instant::now();
+
+                    // println!("Deltatime: {dt}");
+
+                    runner.update(&mut self.game_state, delta_time);
                     self.renderer.render(&self.context, &self.game_state);
                 }
 
@@ -108,7 +116,7 @@ impl Application {
 }
 
 pub trait Run {
-    fn input(&self, _application: &mut GameState);
+    fn input(&self, state: &mut GameState);
 
-    fn update(&self, _application: &mut GameState);
+    fn update(&self, state: &mut GameState, delta_time: f64);
 }

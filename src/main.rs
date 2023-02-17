@@ -10,11 +10,11 @@ mod scene;
 struct Game {}
 
 impl Run for Game {
-    fn input(&self, _application: &mut GameState) {
+    fn input(&self, _state: &mut GameState) {
         // todo!()
     }
 
-    fn update(&self, _application: &mut GameState) {
+    fn update(&self, _state: &mut GameState, _delta_time: f64) {
         // todo!()
     }
 }
