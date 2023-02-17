@@ -1,2 +1,2 @@
 pub mod mesh;
-mod scene_graph;
+pub mod scene_graph;

@@ -2,6 +2,7 @@ use crate::camera::Camera;
 use crate::context::Context;
 use crate::input::InputMap;
 use crate::render::Renderer;
+use crate::scene::scene_graph::SceneGraph;
 use winit::dpi::LogicalSize;
 use winit::event::{DeviceEvent, Event, KeyboardInput, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -18,6 +19,7 @@ pub struct Application {
 pub struct GameState {
     input_map: InputMap,
     camera: Camera,
+    scene_graph: SceneGraph,
 }
 
 impl Application {
@@ -35,9 +37,12 @@ impl Application {
 
         let renderer = Renderer::new(&context);
 
+        // TODO: calculate aspect ratio (assume 800x800 window for now)
+
         let game_state = GameState {
             input_map: InputMap::new(),
             camera: Camera::new(60.0, 1.0, 0.01, 100.0),
+            scene_graph: SceneGraph::new(),
         };
 
         Application {
@@ -79,28 +84,19 @@ impl Application {
                                 ..
                             },
                         ..
-                    } => {
-                        println!(
-                            "[KeyboardInput] keycode: {:?}, state: {:?}",
-                            key_code, state
-                        );
-                    }
-                    WindowEvent::MouseInput { button, state, .. } => {
-                        println!("[MouseInput] button: {:?}, state: {:?}", button, state);
-                    }
+                    } => {}
+                    WindowEvent::MouseInput { button, state, .. } => {}
                     _ => (),
                 },
 
                 Event::DeviceEvent { event, .. } => match event {
-                    DeviceEvent::MouseMotion { delta } => {
-                        //println!("[MouseMotion] delta: {:?}", delta);
-                    }
+                    DeviceEvent::MouseMotion { delta } => {}
                     _ => (),
                 },
 
                 Event::RedrawEventsCleared => {
                     runner.update(&mut self.game_state);
-                    self.renderer.render(&self.context);
+                    self.renderer.render(&self.context, &self.game_state);
                 }
 
                 _ => (),
@@ -111,7 +107,7 @@ impl Application {
 }
 
 pub trait Run {
-    fn input(&self, _application: &mut GameState) {}
+    fn input(&self, _application: &mut GameState);
 
-    fn update(&self, _application: &mut GameState) {}
+    fn update(&self, _application: &mut GameState);
 }

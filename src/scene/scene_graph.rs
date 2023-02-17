@@ -2,7 +2,7 @@ use cgmath::{Quaternion, Vector2, Vector3, Zero};
 
 use super::mesh::Mesh;
 
-struct SceneGraph {
+pub struct SceneGraph {
     root: SceneNode,
 }
 
@@ -75,7 +75,7 @@ struct Light {
 }
 
 impl SceneGraph {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             root: SceneNode::new(),
         }

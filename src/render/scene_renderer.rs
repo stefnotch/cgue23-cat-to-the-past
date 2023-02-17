@@ -1,6 +1,8 @@
+use crate::application::GameState;
 use crate::context::Context;
+use crate::render::SubRenderer;
 use crate::scene::mesh::{Mesh, MeshVertex};
-use cgmath::{Matrix4, Point3};
+use cgmath::{Matrix4, Point3, Vector3};
 use std::default::Default;
 use std::sync::Arc;
 use vulkano::buffer::{BufferUsage, CpuBufferPool, TypedBufferAccess};
@@ -111,8 +113,10 @@ impl SceneRenderer {
             descriptor_set_allocator,
         }
     }
+}
 
-    pub fn resize(&mut self, images: &[Arc<ImageView<SwapchainImage>>]) {
+impl SubRenderer for SceneRenderer {
+    fn resize(&mut self, images: &[Arc<ImageView<SwapchainImage>>]) {
         self.framebuffers = images
             .into_iter()
             .map(|image| {
@@ -128,9 +132,10 @@ impl SceneRenderer {
             .collect();
     }
 
-    pub fn render<F>(
+    fn render<F>(
         &self,
         context: &Context,
+        game_state: &GameState,
         future: F,
         swapchain_frame_index: u32,
         viewport: &Viewport,
@@ -170,12 +175,44 @@ impl SceneRenderer {
             self.uniform_buffer.from_data(uniform_data).unwrap()
         };
 
+        // descriptor set
+        let uniform_buffer_subbuffer2 = {
+            let aspect_ratio = 1.0;
+            let proj = cgmath::perspective(
+                cgmath::Rad(std::f32::consts::FRAC_PI_2),
+                aspect_ratio,
+                0.01,
+                100.0,
+            );
+            let view = Matrix4::look_at_rh(
+                Point3::new(0.3, 0.3, 1.0),
+                Point3::new(0.0, 0.0, 0.0),
+                cgmath::Vector3::new(0.0, -1.0, 0.0),
+            );
+            let scale = Matrix4::from_scale(1.0);
+
+            let uniform_data = vs::ty::Data {
+                world: Matrix4::from_translation(Vector3::new(0.0, -0.5, 0.0)).into(),
+                view: (view * scale).into(),
+                proj: proj.into(),
+            };
+
+            self.uniform_buffer.from_data(uniform_data).unwrap()
+        };
+
         let layout = self.pipeline.layout().set_layouts().get(0).unwrap();
         // TODO: Don't create a new descriptor set every frame
         let set = PersistentDescriptorSet::new(
             &self.descriptor_set_allocator,
             layout.clone(),
             [WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer)],
+        )
+        .unwrap();
+
+        let set2 = PersistentDescriptorSet::new(
+            &self.descriptor_set_allocator,
+            layout.clone(),
+            [WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer2)],
         )
         .unwrap();
 
@@ -211,6 +248,14 @@ impl SceneRenderer {
             )
             .bind_index_buffer(self.mesh.index_buffer.clone())
             .bind_vertex_buffers(0, self.mesh.vertex_buffer.clone())
+            .draw_indexed(self.mesh.index_buffer.len() as u32, 1, 0, 0, 0)
+            .unwrap()
+            .bind_descriptor_sets(
+                PipelineBindPoint::Graphics,
+                self.pipeline.layout().clone(),
+                0,
+                set2.clone(),
+            )
             .draw_indexed(self.mesh.index_buffer.len() as u32, 1, 0, 0, 0)
             .unwrap()
             .end_render_pass()

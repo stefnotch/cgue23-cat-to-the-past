@@ -1,7 +1,9 @@
+use crate::application::GameState;
 use crate::context::Context;
 use crate::render::scene_renderer::SceneRenderer;
 use std::sync::Arc;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
+use vulkano::command_buffer::CommandBufferExecFuture;
 use vulkano::device::Device;
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
@@ -29,6 +31,21 @@ struct SwapchainContainer {
     swapchain: Arc<Swapchain>,
     images: Vec<Arc<ImageView<SwapchainImage>>>,
     dimensions: [u32; 2],
+}
+
+pub trait SubRenderer {
+    fn resize(&mut self, swapchain_images: &[Arc<ImageView<SwapchainImage>>]);
+
+    fn render<F>(
+        &self,
+        context: &Context,
+        game_state: &GameState,
+        future: F,
+        swapchain_frame_index: u32,
+        viewport: &Viewport,
+    ) -> CommandBufferExecFuture<F>
+    where
+        F: GpuFuture + 'static;
 }
 
 impl Renderer {
@@ -68,7 +85,7 @@ impl Renderer {
         self.recreate_swapchain = true;
     }
 
-    pub fn render(&mut self, context: &Context) {
+    pub fn render(&mut self, context: &Context, game_state: &GameState) {
         // On Windows, this can occur from minimizing the application.
         let surface = context.surface();
         let window = surface.object().unwrap().downcast_ref::<Window>().unwrap();
@@ -130,9 +147,9 @@ impl Renderer {
 
         let future = self.previous_frame_end.take().unwrap().join(acquire_future);
 
-        let future = self
-            .scene_renderer
-            .render(&context, future, image_index, &self.viewport);
+        let future =
+            self.scene_renderer
+                .render(&context, &game_state, future, image_index, &self.viewport);
         // TODO: record render things
 
         let future = future
