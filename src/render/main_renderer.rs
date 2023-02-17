@@ -117,8 +117,6 @@ impl Renderer {
 
             self.viewport.dimensions = self.swapchain.dimensions.map(|i| i as f32);
 
-            // TODO: delegate task to fetch new framebuffers to subrendersystems
-
             self.scene_renderer.resize(&self.swapchain.images);
 
             self.recreate_swapchain = false;
