@@ -8,7 +8,7 @@ use winit::dpi;
 use winit::dpi::LogicalSize;
 use winit::event::{DeviceEvent, Event, KeyboardInput, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::WindowBuilder;
+use winit::window::{CursorGrabMode, Window, WindowBuilder};
 
 pub struct Application {
     context: Context,
@@ -19,8 +19,8 @@ pub struct Application {
 
 // these are the application thingys that the game actually needs
 pub struct GameState {
-    input_map: InputMap,
-    camera: Camera,
+    pub input_map: InputMap,
+    pub camera: Camera,
     scene_graph: SceneGraph,
 }
 
@@ -75,7 +75,9 @@ impl Application {
                     event: WindowEvent::Resized(dpi::PhysicalSize { width, height }),
                     ..
                 } => {
-                    self.game_state.camera.update_aspect_ratio(width, height);
+                    let new_aspect_ratio = width as f32 / height as f32;
+
+                    self.game_state.camera.update_aspect_ratio(new_aspect_ratio);
                     self.renderer.recreate_swapchain();
                 }
 
@@ -94,7 +96,9 @@ impl Application {
                 },
 
                 Event::DeviceEvent { event, .. } => match event {
-                    DeviceEvent::MouseMotion { delta } => {}
+                    DeviceEvent::MouseMotion { delta } => {
+                        self.game_state.input_map.mouse_move(delta);
+                    }
                     _ => (),
                 },
 
@@ -104,8 +108,10 @@ impl Application {
 
                     // println!("Deltatime: {dt}");
 
+                    self.game_state.camera.update();
                     runner.update(&mut self.game_state, delta_time);
                     self.renderer.render(&self.context, &self.game_state);
+                    self.game_state.input_map.new_frame();
                 }
 
                 _ => (),

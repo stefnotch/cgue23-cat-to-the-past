@@ -2,7 +2,7 @@ use crate::application::GameState;
 use crate::context::Context;
 use crate::render::SubRenderer;
 use crate::scene::mesh::{Mesh, MeshVertex};
-use cgmath::{Matrix4, Point3, Vector3};
+use cgmath::{Matrix4, Point3, SquareMatrix, Vector3};
 use std::default::Default;
 use std::sync::Arc;
 use vulkano::buffer::{BufferUsage, CpuBufferPool, TypedBufferAccess};
@@ -27,9 +27,10 @@ use vulkano::sync::GpuFuture;
 pub struct SceneRenderer {
     render_pass: Arc<RenderPass>,
     pipeline: Arc<GraphicsPipeline>,
-    mesh: Arc<Mesh>,
     framebuffers: Vec<Arc<Framebuffer>>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
+
+    mesh: Arc<Mesh>,
     uniform_buffer: CpuBufferPool<vs::ty::Data>,
     // maybe move that to the main renderer?
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
@@ -152,24 +153,13 @@ impl SubRenderer for SceneRenderer {
 
         // descriptor set
         let uniform_buffer_subbuffer = {
-            let aspect_ratio = 1.0;
-            let proj = cgmath::perspective(
-                cgmath::Rad(std::f32::consts::FRAC_PI_2),
-                aspect_ratio,
-                0.01,
-                100.0,
-            );
-            let view = Matrix4::look_at_rh(
-                Point3::new(0.3, 0.3, 1.0),
-                Point3::new(0.0, 0.0, 0.0),
-                cgmath::Vector3::new(0.0, -1.0, 0.0),
-            );
-            let scale = Matrix4::from_scale(1.0);
+            let proj = game_state.camera.proj();
+            let view = game_state.camera.view();
 
             let uniform_data = vs::ty::Data {
-                world: Matrix4::from(cgmath::Matrix3::from_angle_y(cgmath::Rad(1.1))).into(),
-                view: (view * scale).into(),
-                proj: proj.into(),
+                world: Matrix4::identity().into(),
+                view: view.clone().into(),
+                proj: proj.clone().into(),
             };
 
             self.uniform_buffer.from_data(uniform_data).unwrap()
@@ -177,24 +167,13 @@ impl SubRenderer for SceneRenderer {
 
         // descriptor set
         let uniform_buffer_subbuffer2 = {
-            let aspect_ratio = 1.0;
-            let proj = cgmath::perspective(
-                cgmath::Rad(std::f32::consts::FRAC_PI_2),
-                aspect_ratio,
-                0.01,
-                100.0,
-            );
-            let view = Matrix4::look_at_rh(
-                Point3::new(0.3, 0.3, 1.0),
-                Point3::new(0.0, 0.0, 0.0),
-                cgmath::Vector3::new(0.0, -1.0, 0.0),
-            );
-            let scale = Matrix4::from_scale(1.0);
+            let proj = game_state.camera.proj();
+            let view = game_state.camera.view();
 
             let uniform_data = vs::ty::Data {
-                world: Matrix4::from_translation(Vector3::new(0.0, -0.5, 0.0)).into(),
-                view: (view * scale).into(),
-                proj: proj.into(),
+                world: Matrix4::from_translation(Vector3::new(2.0, 2.0, 10.0)).into(),
+                view: view.clone().into(),
+                proj: proj.clone().into(),
             };
 
             self.uniform_buffer.from_data(uniform_data).unwrap()
