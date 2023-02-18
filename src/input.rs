@@ -18,11 +18,11 @@ impl InputMap {
         }
     }
 
-    pub fn key_press(&mut self, key: VirtualKeyCode) {
+    pub fn update_key_press(&mut self, key: VirtualKeyCode) {
         self.state[key as usize] = true;
     }
 
-    pub fn key_release(&mut self, key: VirtualKeyCode) {
+    pub fn update_key_release(&mut self, key: VirtualKeyCode) {
         self.state[key as usize] = false;
     }
 
@@ -38,7 +38,7 @@ impl InputMap {
         !self.state[key as usize] && self.last_state[key as usize]
     }
 
-    pub fn mouse_move(&mut self, delta: (f64, f64)) {
+    pub fn update_mouse_move(&mut self, delta: (f64, f64)) {
         self.mouse_delta.0 += delta.0;
         self.mouse_delta.1 += delta.1;
     }

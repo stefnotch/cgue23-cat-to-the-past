@@ -111,7 +111,7 @@ impl Application {
 
                 Event::DeviceEvent { event, .. } => match event {
                     DeviceEvent::MouseMotion { delta } => {
-                        self.game_state.input_map.mouse_move(delta);
+                        self.game_state.input_map.update_mouse_move(delta);
                     }
                     _ => (),
                 },
