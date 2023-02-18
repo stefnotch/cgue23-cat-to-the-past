@@ -1,30 +1,33 @@
-use cgmath::{Quaternion, Vector2, Vector3, Zero};
+use std::sync::Arc;
 
-use super::mesh::Mesh;
+use cgmath::{Matrix4, Quaternion, Vector3, Zero};
 
+use super::{material::Material, mesh::Mesh};
+
+// TODO: What if the entire game logic isn't allowed to change the nodes.
+// *Instead*, it generates a *patch* (a redo action) and that patch is applied
+// to the scene graph. This way, the scene graph is always in a consistent state
+// and the game logic can't break it.
+// And things like the local and world transforms can be cached a bit better.
+/// A flat scene graph.
 pub struct SceneGraph {
-    root: SceneNode,
-}
-
-struct SceneNode {
-    transform: Transform,
-    bounding_box: BoundingBox,
-    data: SceneNodeData,
     children: Vec<SceneNode>,
 }
 
-trait ToSceneNodeData {
-    /// for inserting
-    fn to_scene_node_data(self) -> SceneNodeData;
+pub struct SceneNode {
+    local_transform: Transform,
+    bounding_box: BoundingBox,
+    data: SceneNodeData,
 }
-trait FromSceneNodeData {
+
+pub trait FromSceneNodeData {
     /// for getting
     fn from_scene_node_data(value: &SceneNodeData) -> Option<&Self>
     where
         Self: Sized;
 }
 
-enum SceneNodeData {
+pub enum SceneNodeData {
     Model(Model),
     RigidBody(RigidBody),
     Light(Light),
@@ -44,6 +47,12 @@ impl Transform {
             scale: Vector3::new(1.0, 1.0, 1.0),
         }
     }
+
+    fn to_matrix(&self) -> Matrix4<f32> {
+        Matrix4::from_translation(self.position)
+            * Matrix4::from(self.rotation)
+            * Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z)
+    }
 }
 
 /// Axis-aligned bounding box.
@@ -60,16 +69,17 @@ impl BoundingBox {
     }
 }
 
-struct Model {
-    geometry: Mesh,
-    material: (), //Material, // references a shader and its inputs
+pub struct Model {
+    pub mesh: Arc<Mesh>,
+    // S: DescriptorSetsCollection
+    pub material: Arc<Material>,
 }
 
-struct RigidBody {
+pub struct RigidBody {
     // physics engine stuff
 }
 
-struct Light {
+pub struct Light {
     color: Vector3<f32>,
     intensity: f32,
 }
@@ -77,18 +87,30 @@ struct Light {
 impl SceneGraph {
     pub fn new() -> Self {
         Self {
-            root: SceneNode::new(),
+            children: Vec::new(),
         }
     }
 
-    fn get_data_recursive<'a, T>(&'a self) -> Vec<&'a T>
+    pub fn add<T>(&mut self, data: T)
+    where
+        T: Into<SceneNode>,
+    {
+        let node = data.into();
+        self.children.push(node);
+    }
+
+    pub fn get_data_recursive<'a, T, U>(
+        &'a self,
+        callback: fn(&'a SceneNode) -> U,
+    ) -> Vec<(&'a T, U)>
     where
         T: FromSceneNodeData,
+        U: 'a,
     {
         let mut result = Vec::new();
-        {
-            self.root.get_data_recursive(&mut result);
-        }
+        self.children.iter().for_each(|child| {
+            child.get_data_recursive(callback, &mut result);
+        });
         result
     }
 }
@@ -96,31 +118,27 @@ impl SceneGraph {
 impl SceneNode {
     fn new() -> Self {
         Self {
-            transform: Transform::new(),
+            local_transform: Transform::new(),
             bounding_box: BoundingBox::new(),
             data: SceneNodeData::Empty,
-            children: Vec::new(),
         }
     }
 
     // TODO: Figure out why the lifetime annotations work like that
-    fn get_data_recursive<'a, 'b, T>(&'a self, mut result: &'b mut Vec<&'a T>)
-    where
+    fn get_data_recursive<'a, 'b, T, U>(
+        &'a self,
+        callback: fn(&'a SceneNode) -> U,
+        mut result: &'b mut Vec<(&'a T, U)>,
+    ) where
         T: FromSceneNodeData,
     {
         if let Some(value) = T::from_scene_node_data(&self.data) {
-            result.push(value);
+            result.push((value, callback(self)));
         }
-
-        self.children.iter().for_each(|child| {
-            child.get_data_recursive(&mut result);
-        });
     }
-}
 
-impl ToSceneNodeData for Model {
-    fn to_scene_node_data(self) -> SceneNodeData {
-        SceneNodeData::Model(self)
+    pub(crate) fn world_matrix(&self) -> Matrix4<f32> {
+        self.local_transform.to_matrix()
     }
 }
 
@@ -129,6 +147,16 @@ impl FromSceneNodeData for Model {
         match value {
             SceneNodeData::Model(v) => Some(v),
             _ => None,
+        }
+    }
+}
+
+impl Into<SceneNode> for Model {
+    fn into(self) -> SceneNode {
+        SceneNode {
+            local_transform: Transform::new(),
+            bounding_box: BoundingBox::new(),
+            data: SceneNodeData::Model(self),
         }
     }
 }

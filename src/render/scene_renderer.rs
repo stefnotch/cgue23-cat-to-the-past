@@ -2,6 +2,7 @@ use crate::application::GameState;
 use crate::context::Context;
 use crate::render::SubRenderer;
 use crate::scene::mesh::{Mesh, MeshVertex};
+use crate::scene::scene_graph::{Model, SceneNode};
 use cgmath::{Matrix4, Point3, SquareMatrix, Vector3};
 use std::default::Default;
 use std::sync::Arc;
@@ -12,7 +13,7 @@ use vulkano::command_buffer::{
     SubpassContents,
 };
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
-use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
+use vulkano::descriptor_set::{DescriptorSet, PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
 use vulkano::image::SwapchainImage;
@@ -30,7 +31,6 @@ pub struct SceneRenderer {
     framebuffers: Vec<Arc<Framebuffer>>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
 
-    mesh: Arc<Mesh>,
     uniform_buffer: CpuBufferPool<vs::ty::Data>,
     // maybe move that to the main renderer?
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
@@ -48,8 +48,7 @@ impl SceneRenderer {
 
         let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(context.device()));
 
-        let cube = Mesh::cube(0.5, 0.5, 0.5, &memory_allocator);
-
+        // a pool of buffers, giving us more buffers as needed
         let uniform_buffer = CpuBufferPool::<vs::ty::Data>::new(
             memory_allocator.clone(),
             BufferUsage {
@@ -107,7 +106,6 @@ impl SceneRenderer {
         SceneRenderer {
             render_pass,
             pipeline,
-            mesh: cube,
             framebuffers,
             command_buffer_allocator,
             uniform_buffer,
@@ -151,49 +149,11 @@ impl SubRenderer for SceneRenderer {
         )
         .unwrap();
 
-        // descriptor set
-        let uniform_buffer_subbuffer = {
-            let proj = game_state.camera.proj();
-            let view = game_state.camera.view();
-
-            let uniform_data = vs::ty::Data {
-                world: Matrix4::identity().into(),
-                view: view.clone().into(),
-                proj: proj.clone().into(),
-            };
-
-            self.uniform_buffer.from_data(uniform_data).unwrap()
-        };
-
-        // descriptor set
-        let uniform_buffer_subbuffer2 = {
-            let proj = game_state.camera.proj();
-            let view = game_state.camera.view();
-
-            let uniform_data = vs::ty::Data {
-                world: Matrix4::from_translation(Vector3::new(2.0, 2.0, 10.0)).into(),
-                view: view.clone().into(),
-                proj: proj.clone().into(),
-            };
-
-            self.uniform_buffer.from_data(uniform_data).unwrap()
-        };
-
-        let layout = self.pipeline.layout().set_layouts().get(0).unwrap();
-        // TODO: Don't create a new descriptor set every frame
-        let set = PersistentDescriptorSet::new(
-            &self.descriptor_set_allocator,
-            layout.clone(),
-            [WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer)],
-        )
-        .unwrap();
-
-        let set2 = PersistentDescriptorSet::new(
-            &self.descriptor_set_allocator,
-            layout.clone(),
-            [WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer2)],
-        )
-        .unwrap();
+        // read from scene
+        let camera = &game_state.camera;
+        let models = game_state
+            .scene_graph
+            .get_data_recursive::<Model, &SceneNode>(|node| node);
 
         builder
             // Before we can draw, we have to *enter a render pass*.
@@ -218,27 +178,51 @@ impl SubRenderer for SceneRenderer {
             // The last two parameters contain the list of resources to pass to the shaders.
             // Since we used an `EmptyPipeline` object, the objects have to be `()`.
             .set_viewport(0, [viewport.clone()])
-            .bind_pipeline_graphics(self.pipeline.clone())
-            .bind_descriptor_sets(
-                PipelineBindPoint::Graphics,
-                self.pipeline.layout().clone(),
-                0,
-                set.clone(),
+            .bind_pipeline_graphics(self.pipeline.clone());
+
+        // TODO: models with different pipelines
+        let layout = self.pipeline.layout().set_layouts().get(0).unwrap();
+        for (model, scene_node) in models {
+            // descriptor set
+            let uniform_buffer_subbuffer = {
+                let proj = game_state.camera.proj();
+                let view = game_state.camera.view();
+
+                let uniform_data = vs::ty::Data {
+                    world: scene_node.world_matrix().into(),
+                    view: view.clone().into(),
+                    proj: proj.clone().into(),
+                };
+
+                self.uniform_buffer.from_data(uniform_data).unwrap()
+            };
+
+            // TODO: Don't create a new descriptor set every frame
+            /*
+                let e = WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer);
+            set.resources().update(&e);
+             */
+            let set = PersistentDescriptorSet::new(
+                &self.descriptor_set_allocator,
+                layout.clone(),
+                [WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer)],
             )
-            .bind_index_buffer(self.mesh.index_buffer.clone())
-            .bind_vertex_buffers(0, self.mesh.vertex_buffer.clone())
-            .draw_indexed(self.mesh.index_buffer.len() as u32, 1, 0, 0, 0)
-            .unwrap()
-            .bind_descriptor_sets(
-                PipelineBindPoint::Graphics,
-                self.pipeline.layout().clone(),
-                0,
-                set2.clone(),
-            )
-            .draw_indexed(self.mesh.index_buffer.len() as u32, 1, 0, 0, 0)
-            .unwrap()
-            .end_render_pass()
             .unwrap();
+
+            builder
+                .bind_descriptor_sets(
+                    PipelineBindPoint::Graphics,
+                    self.pipeline.layout().clone(),
+                    0,
+                    set.clone(),
+                )
+                .bind_index_buffer(model.mesh.index_buffer.clone())
+                .bind_vertex_buffers(0, model.mesh.vertex_buffer.clone())
+                .draw_indexed(model.mesh.index_buffer.len() as u32, 1, 0, 0, 0)
+                .unwrap();
+        }
+
+        builder.end_render_pass().unwrap();
 
         // Finish building the command buffer by calling `build`.
         let command_buffer = builder.build().unwrap();
