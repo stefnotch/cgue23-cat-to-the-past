@@ -21,7 +21,7 @@ pub struct Application {
 pub struct GameState {
     pub input_map: InputMap,
     pub camera: Camera,
-    scene_graph: SceneGraph,
+    pub scene_graph: SceneGraph,
 }
 
 impl Application {
@@ -60,7 +60,21 @@ impl Application {
         T: Run + 'static,
         Self: 'static,
     {
+        runner.init(&mut self.game_state);
+
         let mut last_frame = Instant::now();
+
+        // Dummy code to test the renderer
+        let memory_allocator = std::sync::Arc::new(
+            vulkano::memory::allocator::StandardMemoryAllocator::new_default(self.context.device()),
+        );
+        let cube = crate::scene::mesh::Mesh::cube(0.5, 0.5, 0.5, &memory_allocator);
+        self.game_state
+            .scene_graph
+            .add(crate::scene::scene_graph::Model {
+                mesh: cube,
+                material: std::sync::Arc::new(crate::scene::material::Material {}),
+            });
 
         self.event_loop.run(move |event, _, control_flow| {
             match event {
@@ -122,6 +136,8 @@ impl Application {
 }
 
 pub trait Run {
+    fn init(&self, state: &mut GameState);
+
     fn input(&self, state: &mut GameState);
 
     fn update(&self, state: &mut GameState, delta_time: f64);
