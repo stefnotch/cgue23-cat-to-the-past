@@ -11,3 +11,13 @@ Then load the past (save) where the sword was still on the table. And since that
 
 Should make for an interesting puzzle game. Or a stealth:tm: game, because you can always openly smack the guy in front of you, get to the next area...and then just load the past where the guard was still alive and didn't alert the entire facility.
 Or that mechanic could be used to make a cat where you basically have a cheatcode. You can indefinitely pet the cat, because as soon as it's satisfied, you just turn time back... 🐈
+
+## More concrete ideas
+
+3D Platformer game: 
+- pull objects down, climb onto it and use the rewind mechanic to get the object back up
+
+Balancing:
+- falling down kills you
+- getting shot kills you
+- player can't move while rewinding but still gets affected by the environment (bullet traveling backwards kills you)

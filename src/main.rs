@@ -1,4 +1,4 @@
-use crate::application::{Application, GameState, Run};
+use crate::application::{AppConfig, Application, GameState, Run};
 use cgmath::Rad;
 
 mod application;
@@ -34,7 +34,15 @@ impl Game {
 }
 
 fn main() {
+    // TODO: read from file
+    let config = AppConfig {
+        resolution: (800, 800),
+        fullscreen: false,
+        brightness: 1.0,
+        refresh_rate: 60, // ignored for now
+    };
+
     let game = Game::new();
-    let application = Application::new();
+    let application = Application::new(&config);
     application.run(game);
 }
