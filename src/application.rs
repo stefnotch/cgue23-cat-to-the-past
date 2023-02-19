@@ -8,7 +8,18 @@ use winit::dpi;
 use winit::dpi::LogicalSize;
 use winit::event::{DeviceEvent, Event, KeyboardInput, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::{CursorGrabMode, Window, WindowBuilder};
+use winit::window::Fullscreen::Exclusive;
+use winit::window::WindowBuilder;
+
+pub struct AppConfig {
+    pub resolution: (u32, u32),
+    pub fullscreen: bool,
+    /// Projectors are usually very dark, this parameter should control how bright your total
+    /// scene is, e.g., an illumination multiplier
+    pub brightness: f32,
+    // TODO: not really sure how to implement this
+    pub refresh_rate: u32,
+}
 
 pub struct Application {
     context: Context,
@@ -25,25 +36,36 @@ pub struct GameState {
 }
 
 impl Application {
-    pub fn new() -> Application {
+    pub fn new(config: &AppConfig) -> Application {
         let event_loop = EventLoop::new();
 
-        let window_builder = WindowBuilder::new()
+        let monitor = event_loop
+            .available_monitors()
+            .next()
+            .expect("no monitor found!");
+
+        let mut window_builder = WindowBuilder::new()
             .with_inner_size(LogicalSize {
-                width: 800,
-                height: 800,
+                width: config.resolution.0,
+                height: config.resolution.1,
             })
             .with_title("CG Project");
+
+        if config.fullscreen {
+            if let Some(video_mode) = monitor.video_modes().next() {
+                window_builder = window_builder.with_fullscreen(Some(Exclusive(video_mode)))
+            }
+        }
 
         let context = Context::new(window_builder, &event_loop);
 
         let renderer = Renderer::new(&context);
 
-        // TODO: calculate aspect ratio (assume 800x800 window for now)
+        let aspect_ratio = config.resolution.0 as f32 / config.resolution.1 as f32;
 
         let game_state = GameState {
             input_map: InputMap::new(),
-            camera: Camera::new(60.0, 1.0, 0.01, 100.0),
+            camera: Camera::new(60.0, aspect_ratio, 0.01, 100.0),
             scene_graph: SceneGraph::new(),
         };
 
