@@ -151,7 +151,6 @@ impl Renderer {
         let future =
             self.scene_renderer
                 .render(&context, &game_state, future, image_index, &self.viewport);
-        // TODO: record render things
 
         let future = future
             .then_swapchain_present(
@@ -172,8 +171,8 @@ impl Renderer {
                 self.previous_frame_end = Some(sync::now(context.device().clone()).boxed());
             }
             Err(e) => {
-                panic!("Failed to flush future: {e:?}");
-                // previous_frame_end = Some(sync::now(device.clone()).boxed());
+                println!("Failed to flush future: {e:?}");
+                self.previous_frame_end = Some(sync::now(context.device()).boxed());
             }
         }
     }
