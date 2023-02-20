@@ -5,6 +5,7 @@ mod application;
 mod camera;
 mod context;
 mod input;
+mod physics;
 mod render;
 mod scene;
 
