@@ -8,6 +8,7 @@ use vulkano::device::Device;
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
 use vulkano::image::{ImageAccess, ImageUsage, SwapchainImage};
+use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::swapchain::{
     acquire_next_image, AcquireError, ColorSpace, Surface, SurfaceInfo, Swapchain,
@@ -65,10 +66,13 @@ impl Renderer {
             Default::default(),
         ));
 
+        let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(context.device()));
+
         let scene_renderer = SceneRenderer::new(
             context,
             &swapchain.images,
             swapchain.swapchain.image_format(),
+            memory_allocator,
             command_buffer_allocator,
         );
 
