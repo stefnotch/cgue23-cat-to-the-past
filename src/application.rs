@@ -6,10 +6,10 @@ use crate::scene::scene_graph::SceneGraph;
 use std::time::Instant;
 use winit::dpi;
 use winit::dpi::LogicalSize;
-use winit::event::{DeviceEvent, Event, KeyboardInput, WindowEvent};
+use winit::event::{DeviceEvent, ElementState, Event, KeyboardInput, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Fullscreen::Exclusive;
-use winit::window::WindowBuilder;
+use winit::window::{CursorGrabMode, Window, WindowBuilder};
 
 pub struct AppConfig {
     pub resolution: (u32, u32),
@@ -56,12 +56,27 @@ impl Application {
             .with_title("CG Project");
 
         if config.fullscreen {
-            if let Some(video_mode) = monitor.video_modes().next() {
+            if let Some(video_mode) = monitor
+                .video_modes()
+                .filter(|v| v.refresh_rate_millihertz() == config.refresh_rate * 1000)
+                .next()
+            {
                 window_builder = window_builder.with_fullscreen(Some(Exclusive(video_mode)))
             }
         }
 
         let context = Context::new(window_builder, &event_loop);
+
+        // TODO: move to a more appropriate place
+        let surface = context.surface();
+        let window = surface.object().unwrap().downcast_ref::<Window>().unwrap();
+
+        window
+            .set_cursor_grab(CursorGrabMode::Confined)
+            .or_else(|_e| window.set_cursor_grab(CursorGrabMode::Locked))
+            .unwrap();
+
+        window.set_cursor_visible(false);
 
         let renderer = Renderer::new(&context);
 
@@ -81,7 +96,7 @@ impl Application {
         }
     }
 
-    pub fn run<T>(mut self, runner: T)
+    pub fn run<T>(mut self, mut runner: T)
     where
         T: Run + 'static,
         Self: 'static,
@@ -102,8 +117,8 @@ impl Application {
                 material: std::sync::Arc::new(crate::scene::material::Material {}),
             });
 
-        self.event_loop.run(move |event, _, control_flow| {
-            match event {
+        self.event_loop
+            .run(move |event, _, control_flow| match event {
                 Event::WindowEvent {
                     event: WindowEvent::CloseRequested,
                     ..
@@ -130,7 +145,14 @@ impl Application {
                                 ..
                             },
                         ..
-                    } => {}
+                    } => match state {
+                        ElementState::Pressed => {
+                            self.game_state.input_map.update_key_press(key_code)
+                        }
+                        ElementState::Released => {
+                            self.game_state.input_map.update_key_release(key_code)
+                        }
+                    },
                     WindowEvent::MouseInput { button, state, .. } => {}
                     _ => (),
                 },
@@ -146,8 +168,6 @@ impl Application {
                     let delta_time = last_frame.elapsed().as_secs_f64();
                     last_frame = Instant::now();
 
-                    // println!("Deltatime: {dt}");
-
                     self.game_state.camera.update();
                     runner.update(&mut self.game_state, delta_time);
                     self.renderer.render(&self.context, &self.game_state);
@@ -155,9 +175,7 @@ impl Application {
                 }
 
                 _ => (),
-            }
-            // self.input_map.key_release(VirtualKeyCode::A);
-        });
+            });
     }
 }
 
@@ -166,5 +184,5 @@ pub trait Run {
 
     fn input(&self, state: &mut GameState);
 
-    fn update(&self, state: &mut GameState, delta_time: f64);
+    fn update(&mut self, state: &mut GameState, delta_time: f64);
 }

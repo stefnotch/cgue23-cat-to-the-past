@@ -1,4 +1,6 @@
+use crate::input::InputMap;
 use cgmath::{Deg, EuclideanSpace, InnerSpace, Matrix4, Point3, Rad, Vector2, Vector3};
+use std::f32::consts::FRAC_PI_2;
 use winit::event::{ElementState, VirtualKeyCode};
 
 pub struct CameraSettings {
@@ -18,11 +20,9 @@ pub struct Camera {
     settings: CameraSettings,
 }
 
-pub struct CameraController {
-    movement: Vector3<f32>,
+pub struct PlayerController {
     speed: f32,
     sensitivity: f32,
-    rotation: Vector2<f32>, // yaw, pitch
 }
 
 impl Camera {
@@ -69,30 +69,55 @@ impl Camera {
     }
 }
 
-impl CameraController {
+impl PlayerController {
     pub fn new(speed: f32, sensitivity: f32) -> Self {
-        CameraController {
-            movement: Vector3::new(0.0, 0.0, 0.0),
-            rotation: Vector2::new(0.0, 0.0),
-            speed,
-            sensitivity,
+        PlayerController { speed, sensitivity }
+    }
+
+    pub fn update_camera(&mut self, camera: &mut Camera, input: &InputMap, delta_time: f64) {
+        let (dx, dy) = input.mouse_delta();
+
+        camera.yaw += Deg(dx as f32 * self.sensitivity).into();
+        camera.pitch += Deg(dy as f32 * self.sensitivity).into();
+
+        const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
+
+        if camera.pitch < -Rad(SAFE_FRAC_PI_2) {
+            camera.pitch = -Rad(SAFE_FRAC_PI_2);
+        } else if camera.pitch > Rad(SAFE_FRAC_PI_2) {
+            camera.pitch = Rad(SAFE_FRAC_PI_2);
         }
-    }
 
-    pub fn process_keyboard(&mut self, key: VirtualKeyCode, state: ElementState) {}
+        let mut direction: Vector3<f32> = Vector3::new(0.0, 0.0, 0.0);
+        if input.is_pressed(VirtualKeyCode::W) {
+            direction.z += 1.0;
+        }
+        if input.is_pressed(VirtualKeyCode::S) {
+            direction.z += -1.0;
+        }
 
-    pub fn process_mouse(&mut self, (dX, dY): (f32, f32)) {
-        self.rotation.x += dX;
-        self.rotation.y += dY;
-    }
+        if input.is_pressed(VirtualKeyCode::A) {
+            direction.x += -1.0;
+        }
+        if input.is_pressed(VirtualKeyCode::D) {
+            direction.x += 1.0;
+        }
 
-    pub fn update_camera(&mut self, camera: &mut Camera, delta_time: f64) {
-        camera.yaw += Deg(self.rotation.x).into();
-        camera.pitch += Deg(self.rotation.y).into();
+        if input.is_pressed(VirtualKeyCode::Space) {
+            direction.y += 1.0;
+        }
+        if input.is_pressed(VirtualKeyCode::LShift) {
+            direction.y += -1.0;
+        }
 
-        // TODO: prevent full pitch rotation
+        let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
+        let forward = Vector3::new(yaw_sin, 0.0, yaw_cos).normalize();
+        let right = Vector3::new(yaw_cos, 0.0, -yaw_sin).normalize();
+        let up = Vector3::unit_y();
 
-        self.rotation = Vector2::new(0.0, 0.0);
+        camera.position += forward * direction.z * self.speed * delta_time as f32;
+        camera.position += right * direction.x * self.speed * delta_time as f32;
+        camera.position += up * direction.y * self.speed * delta_time as f32;
     }
 }
 
