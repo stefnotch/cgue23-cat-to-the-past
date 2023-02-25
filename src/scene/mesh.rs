@@ -114,6 +114,62 @@ impl Mesh {
             })
             .collect();
 
+        let (vertex_buffer, index_buffer) = Mesh::setup_buffer(&vertices, &indices, allocator);
+
+        Arc::new(Mesh {
+            vertices,
+            indices,
+
+            vertex_buffer,
+            index_buffer,
+        })
+    }
+
+    pub fn plane_horizontal(
+        width: f32,
+        height: f32,
+        allocator: &(impl MemoryAllocator + ?Sized),
+    ) -> Arc<Self> {
+        let vertices = vec![
+            MeshVertex {
+                position: Vector3::new(-0.5 * width, 0.0, -0.5 * height).into(),
+                normal: Vector3::unit_y().into(),
+            },
+            MeshVertex {
+                position: Vector3::new(0.5 * width, 0.0, -0.5 * height).into(),
+                normal: Vector3::unit_y().into(),
+            },
+            MeshVertex {
+                position: Vector3::new(0.5 * width, 0.0, 0.5 * height).into(),
+                normal: Vector3::unit_y().into(),
+            },
+            MeshVertex {
+                position: Vector3::new(-0.5 * width, 0.0, 0.5 * height).into(),
+                normal: Vector3::unit_y().into(),
+            },
+        ];
+
+        let indices: Vec<u32> = vec![0, 1, 2, 2, 3, 0];
+
+        let (vertex_buffer, index_buffer) = Mesh::setup_buffer(&vertices, &indices, allocator);
+
+        Arc::new(Mesh {
+            vertices,
+            indices,
+
+            vertex_buffer,
+            index_buffer,
+        })
+    }
+
+    fn setup_buffer(
+        vertices: &[MeshVertex],
+        indices: &[u32],
+        allocator: &(impl MemoryAllocator + ?Sized),
+    ) -> (
+        Arc<CpuAccessibleBuffer<[MeshVertex]>>,
+        Arc<CpuAccessibleBuffer<[u32]>>,
+    ) {
         let vertex_buffer = CpuAccessibleBuffer::from_iter(
             allocator,
             BufferUsage {
@@ -136,12 +192,6 @@ impl Mesh {
         )
         .expect("could not upload indices data to GPU");
 
-        Arc::new(Mesh {
-            vertices,
-            indices,
-
-            vertex_buffer,
-            index_buffer,
-        })
+        (vertex_buffer, index_buffer)
     }
 }

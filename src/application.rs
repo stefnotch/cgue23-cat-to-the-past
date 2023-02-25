@@ -110,10 +110,19 @@ impl Application {
             vulkano::memory::allocator::StandardMemoryAllocator::new_default(self.context.device()),
         );
         let cube = crate::scene::mesh::Mesh::cube(0.5, 0.5, 0.5, &memory_allocator);
+
+        let plane = crate::scene::mesh::Mesh::plane_horizontal(5.0, 5.0, &memory_allocator);
         self.game_state
             .scene_graph
             .add(crate::scene::scene_graph::Model {
                 mesh: cube,
+                material: std::sync::Arc::new(crate::scene::material::Material {}),
+            });
+
+        self.game_state
+            .scene_graph
+            .add(crate::scene::scene_graph::Model {
+                mesh: plane,
                 material: std::sync::Arc::new(crate::scene::material::Material {}),
             });
 
