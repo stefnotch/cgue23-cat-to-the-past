@@ -34,13 +34,13 @@ pub enum SceneNodeData {
     Empty,
 }
 
-struct Transform {
-    position: Vector3<f32>,
-    rotation: Quaternion<f32>,
-    scale: Vector3<f32>,
+pub struct Transform {
+    pub position: Vector3<f32>,
+    pub rotation: Quaternion<f32>,
+    pub scale: Vector3<f32>,
 }
 impl Transform {
-    fn new() -> Transform {
+    pub fn new() -> Transform {
         Transform {
             position: Vector3::zero(),
             rotation: Quaternion::new(1.0, 0.0, 0.0, 0.0),
@@ -91,11 +91,7 @@ impl SceneGraph {
         }
     }
 
-    pub fn add<T>(&mut self, data: T)
-    where
-        T: Into<SceneNode>,
-    {
-        let node = data.into();
+    pub fn add(&mut self, node: SceneNode) {
         self.children.push(node);
     }
 
@@ -116,7 +112,18 @@ impl SceneGraph {
 }
 
 impl SceneNode {
-    fn new() -> Self {
+    pub fn new<T>(data: T, transform: Transform) -> Self
+    where
+        T: Into<SceneNodeData>,
+    {
+        Self {
+            local_transform: transform,
+            bounding_box: BoundingBox::new(),
+            data: data.into(),
+        }
+    }
+
+    pub fn new_empty() -> Self {
         Self {
             local_transform: Transform::new(),
             bounding_box: BoundingBox::new(),
@@ -151,12 +158,8 @@ impl FromSceneNodeData for Model {
     }
 }
 
-impl Into<SceneNode> for Model {
-    fn into(self) -> SceneNode {
-        SceneNode {
-            local_transform: Transform::new(),
-            bounding_box: BoundingBox::new(),
-            data: SceneNodeData::Model(self),
-        }
+impl Into<SceneNodeData> for Model {
+    fn into(self) -> SceneNodeData {
+        SceneNodeData::Model(self)
     }
 }
