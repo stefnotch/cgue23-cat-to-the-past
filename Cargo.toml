@@ -10,3 +10,4 @@ winit = "0.27.3"
 bytemuck = "1.13.0"
 vulkano-shaders = "0.32.0"
 cgmath = "0.18.0"
+rapier3d = { version = "0.17.1", features = [ "simd-stable" ] }

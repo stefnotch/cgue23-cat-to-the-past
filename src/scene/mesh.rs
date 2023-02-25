@@ -1,4 +1,5 @@
 use bytemuck::{Pod, Zeroable};
+use cgmath::Vector3;
 use std::sync::Arc;
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use vulkano::memory::allocator::MemoryAllocator;
@@ -7,9 +8,10 @@ use vulkano::memory::allocator::MemoryAllocator;
 #[derive(Clone, Copy, Debug, Default, Zeroable, Pod)]
 pub struct MeshVertex {
     position: [f32; 3],
+    normal: [f32; 3],
 }
 
-vulkano::impl_vertex!(MeshVertex, position);
+vulkano::impl_vertex!(MeshVertex, position, normal);
 
 pub struct Mesh {
     pub vertices: Vec<MeshVertex>,
@@ -26,34 +28,66 @@ impl Mesh {
         depth: f32,
         allocator: &(impl MemoryAllocator + ?Sized),
     ) -> Arc<Self> {
-        let vertices = vec![
+        struct CubeFace {
+            position_indices: [usize; 4],
+            normal: Vector3<f32>,
+        }
+
+        let positions: [Vector3<f32>; 8] = [
             // front
-            MeshVertex {
-                position: [-0.5, -0.5, 0.5],
-            },
-            MeshVertex {
-                position: [0.5, -0.5, 0.5],
-            },
-            MeshVertex {
-                position: [0.5, 0.5, 0.5],
-            },
-            MeshVertex {
-                position: [-0.5, 0.5, 0.5],
+            Vector3::new(-0.5, -0.5, 0.5),
+            Vector3::new(0.5, -0.5, 0.5),
+            Vector3::new(0.5, 0.5, 0.5),
+            Vector3::new(-0.5, 0.5, 0.5),
+            // back
+            Vector3::new(-0.5, -0.5, -0.5),
+            Vector3::new(0.5, -0.5, -0.5),
+            Vector3::new(0.5, 0.5, -0.5),
+            Vector3::new(-0.5, 0.5, -0.5),
+        ];
+
+        let faces: [CubeFace; 6] = [
+            // front
+            CubeFace {
+                position_indices: [0, 1, 2, 3],
+                normal: Vector3::new(0.0, 0.0, 1.0),
             },
             // back
-            MeshVertex {
-                position: [-0.5, -0.5, -0.5],
+            CubeFace {
+                position_indices: [5, 4, 7, 6],
+                normal: Vector3::new(0.0, 0.0, -1.0),
             },
-            MeshVertex {
-                position: [0.5, -0.5, -0.5],
+            // right
+            CubeFace {
+                position_indices: [1, 5, 6, 2],
+                normal: Vector3::new(1.0, 0.0, 0.0),
             },
-            MeshVertex {
-                position: [0.5, 0.5, -0.5],
+            // left
+            CubeFace {
+                position_indices: [4, 0, 3, 7],
+                normal: Vector3::new(-1.0, 0.0, 0.0),
             },
-            MeshVertex {
-                position: [-0.5, 0.5, -0.5],
+            // up
+            CubeFace {
+                position_indices: [3, 2, 6, 7],
+                normal: Vector3::new(0.0, 1.0, 0.0),
+            },
+            // down
+            CubeFace {
+                position_indices: [1, 0, 4, 5],
+                normal: Vector3::new(0.0, -1.0, 0.0),
             },
         ];
+
+        let vertices: Vec<MeshVertex> = faces
+            .iter()
+            .flat_map(|face| {
+                face.position_indices.map(|i| MeshVertex {
+                    position: positions[i].into(),
+                    normal: face.normal.into(),
+                })
+            })
+            .collect();
 
         let vertices: Vec<MeshVertex> = vertices
             .into_iter()
@@ -66,15 +100,19 @@ impl Mesh {
             })
             .collect();
 
-        let indices = vec![
-            // front
-            0, 1, 2, 0, 2, 3, // back
-            5, 4, 7, 5, 7, 6, // right
-            1, 5, 6, 1, 6, 2, // left
-            4, 0, 3, 4, 3, 7, // up
-            3, 2, 6, 3, 6, 7, // down
-            1, 0, 4, 1, 4, 5,
+        let face_indices_schema = [
+            0, 1, 2, // bottom right
+            2, 3, 0, // top left
         ];
+
+        let indices: Vec<u32> = faces
+            .iter()
+            .enumerate()
+            .flat_map(|(face_index, _)| {
+                let offset = 4 * face_index as u32;
+                face_indices_schema.map(|i| offset + i)
+            })
+            .collect();
 
         let vertex_buffer = CpuAccessibleBuffer::from_iter(
             allocator,

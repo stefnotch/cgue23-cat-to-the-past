@@ -16,8 +16,9 @@ use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{DescriptorSet, PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
-use vulkano::image::SwapchainImage;
+use vulkano::image::{AttachmentImage, ImageViewAbstract, SwapchainImage};
 use vulkano::memory::allocator::{MemoryUsage, StandardMemoryAllocator};
+use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::vertex_input::BuffersDefinition;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
@@ -29,6 +30,7 @@ pub struct SceneRenderer {
     render_pass: Arc<RenderPass>,
     pipeline: Arc<GraphicsPipeline>,
     framebuffers: Vec<Arc<Framebuffer>>,
+    memory_allocator: Arc<StandardMemoryAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
 
     uniform_buffer: CpuBufferPool<vs::ty::Data>,
@@ -41,12 +43,11 @@ impl SceneRenderer {
         context: &Context,
         images: &[Arc<ImageView<SwapchainImage>>],
         final_output_format: Format,
+        memory_allocator: Arc<StandardMemoryAllocator>,
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
     ) -> Self {
         let vs = vs::load(context.device()).unwrap();
         let fs = fs::load(context.device()).unwrap();
-
-        let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(context.device()));
 
         // a pool of buffers, giving us more buffers as needed
         let uniform_buffer = CpuBufferPool::<vs::ty::Data>::new(
@@ -66,17 +67,24 @@ impl SceneRenderer {
                     store: Store,
                     format: final_output_format,
                     samples: 1,
+                },
+                depth: {
+                    load: Clear,
+                    store: DontCare,
+                    format: Format::D32_SFLOAT,
+                    samples: 1,
                 }
             },
             pass: {
                 color: [color],
-                depth_stencil: {}
+                depth_stencil: {depth}
             }
         )
         .unwrap();
 
         let pipeline = GraphicsPipeline::start()
             .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
+            .depth_stencil_state(DepthStencilState::simple_depth_test())
             .vertex_input_state(BuffersDefinition::new().vertex::<MeshVertex>())
             .input_assembly_state(InputAssemblyState::new())
             .vertex_shader(vs.entry_point("main").unwrap(), ())
@@ -86,13 +94,20 @@ impl SceneRenderer {
             .expect("could not create pipeline");
 
         // TODO: let the main_renderer manage those swapchain related framebuffers?
+
+        let dimensions = images[0].dimensions().width_height();
+        let depth_buffer = ImageView::new_default(
+            AttachmentImage::transient(&memory_allocator, dimensions, Format::D32_SFLOAT).unwrap(),
+        )
+        .unwrap();
+
         let framebuffers = images
             .into_iter()
             .map(|image| {
                 Framebuffer::new(
                     render_pass.clone(),
                     FramebufferCreateInfo {
-                        attachments: vec![image.clone()],
+                        attachments: vec![image.clone(), depth_buffer.clone()],
                         ..FramebufferCreateInfo::default()
                     },
                 )
@@ -107,6 +122,7 @@ impl SceneRenderer {
             render_pass,
             pipeline,
             framebuffers,
+            memory_allocator,
             command_buffer_allocator,
             uniform_buffer,
             descriptor_set_allocator,
@@ -116,13 +132,20 @@ impl SceneRenderer {
 
 impl SubRenderer for SceneRenderer {
     fn resize(&mut self, images: &[Arc<ImageView<SwapchainImage>>]) {
+        let dimensions = images[0].dimensions().width_height();
+        let depth_buffer = ImageView::new_default(
+            AttachmentImage::transient(&self.memory_allocator, dimensions, Format::D32_SFLOAT)
+                .unwrap(),
+        )
+        .unwrap();
+
         self.framebuffers = images
             .into_iter()
             .map(|image| {
                 Framebuffer::new(
                     self.render_pass.clone(),
                     FramebufferCreateInfo {
-                        attachments: vec![image.clone()],
+                        attachments: vec![image.clone(), depth_buffer.clone()],
                         ..FramebufferCreateInfo::default()
                     },
                 )
@@ -165,7 +188,7 @@ impl SubRenderer for SceneRenderer {
                     //
                     // Only attachments that have `LoadOp::Clear` are provided with clear
                     // values, any others should use `ClearValue::None` as the clear value.
-                    clear_values: vec![Some([0.2, 0.4, 0.8, 1.0].into())],
+                    clear_values: vec![Some([0.2, 0.4, 0.8, 1.0].into()), Some(1f32.into())],
                     ..RenderPassBeginInfo::framebuffer(
                         self.framebuffers[swapchain_frame_index as usize].clone(),
                     )
