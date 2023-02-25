@@ -114,17 +114,26 @@ impl Application {
         let plane = crate::scene::mesh::Mesh::plane_horizontal(5.0, 5.0, &memory_allocator);
         self.game_state
             .scene_graph
-            .add(crate::scene::scene_graph::Model {
-                mesh: cube,
-                material: std::sync::Arc::new(crate::scene::material::Material {}),
-            });
+            .add(crate::scene::scene_graph::SceneNode::new(
+                crate::scene::scene_graph::Model {
+                    mesh: cube,
+                    material: std::sync::Arc::new(crate::scene::material::Material {}),
+                },
+                crate::scene::scene_graph::Transform::new(),
+            ));
+
+        let mut plane_transform = crate::scene::scene_graph::Transform::new();
+        plane_transform.position = cgmath::Vector3::new(0.0, -0.5, 0.0);
 
         self.game_state
             .scene_graph
-            .add(crate::scene::scene_graph::Model {
-                mesh: plane,
-                material: std::sync::Arc::new(crate::scene::material::Material {}),
-            });
+            .add(crate::scene::scene_graph::SceneNode::new(
+                crate::scene::scene_graph::Model {
+                    mesh: plane,
+                    material: std::sync::Arc::new(crate::scene::material::Material {}),
+                },
+                plane_transform,
+            ));
 
         self.event_loop
             .run(move |event, _, control_flow| match event {
