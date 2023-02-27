@@ -1,4 +1,3 @@
-use crate::application::GameState;
 use crate::context::Context;
 use crate::render::scene_renderer::SceneRenderer;
 use std::sync::Arc;
@@ -40,7 +39,6 @@ pub trait SubRenderer {
     fn render<F>(
         &self,
         context: &Context,
-        game_state: &GameState,
         future: F,
         swapchain_frame_index: u32,
         viewport: &Viewport,
@@ -89,7 +87,7 @@ impl Renderer {
         self.recreate_swapchain = true;
     }
 
-    pub fn render(&mut self, context: &Context, game_state: &GameState) {
+    pub fn render(&mut self, context: &Context) {
         // On Windows, this can occur from minimizing the application.
         let surface = context.surface();
         let window = surface.object().unwrap().downcast_ref::<Window>().unwrap();
