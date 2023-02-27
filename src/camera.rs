@@ -1,7 +1,5 @@
-use crate::input::InputMap;
-use cgmath::{Deg, EuclideanSpace, InnerSpace, Matrix4, Point3, Rad, Vector2, Vector3};
-use std::f32::consts::FRAC_PI_2;
-use winit::event::{ElementState, VirtualKeyCode};
+use bevy_ecs::system::Resource;
+use cgmath::{Deg, InnerSpace, Matrix4, Point3, Rad, Vector2, Vector3};
 
 pub struct CameraSettings {
     fov: Rad<f32>,
@@ -9,6 +7,7 @@ pub struct CameraSettings {
     far: f32,
 }
 
+#[derive(Resource)]
 pub struct Camera {
     view: Matrix4<f32>,
     proj: Matrix4<f32>,
@@ -18,11 +17,6 @@ pub struct Camera {
     pub pitch: Rad<f32>,
 
     settings: CameraSettings,
-}
-
-pub struct PlayerController {
-    speed: f32,
-    sensitivity: f32,
 }
 
 impl Camera {
@@ -66,58 +60,6 @@ impl Camera {
 
     pub fn update(&mut self) {
         self.view = calculate_view(self.position, self.yaw, self.pitch);
-    }
-}
-
-impl PlayerController {
-    pub fn new(speed: f32, sensitivity: f32) -> Self {
-        PlayerController { speed, sensitivity }
-    }
-
-    pub fn update_camera(&mut self, camera: &mut Camera, input: &InputMap, delta_time: f64) {
-        let (dx, dy) = input.mouse_delta();
-
-        camera.yaw += Deg(dx as f32 * self.sensitivity).into();
-        camera.pitch += Deg(dy as f32 * self.sensitivity).into();
-
-        const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
-
-        if camera.pitch < -Rad(SAFE_FRAC_PI_2) {
-            camera.pitch = -Rad(SAFE_FRAC_PI_2);
-        } else if camera.pitch > Rad(SAFE_FRAC_PI_2) {
-            camera.pitch = Rad(SAFE_FRAC_PI_2);
-        }
-
-        let mut direction: Vector3<f32> = Vector3::new(0.0, 0.0, 0.0);
-        if input.is_pressed(VirtualKeyCode::W) {
-            direction.z += 1.0;
-        }
-        if input.is_pressed(VirtualKeyCode::S) {
-            direction.z += -1.0;
-        }
-
-        if input.is_pressed(VirtualKeyCode::A) {
-            direction.x += -1.0;
-        }
-        if input.is_pressed(VirtualKeyCode::D) {
-            direction.x += 1.0;
-        }
-
-        if input.is_pressed(VirtualKeyCode::Space) {
-            direction.y += 1.0;
-        }
-        if input.is_pressed(VirtualKeyCode::LShift) {
-            direction.y += -1.0;
-        }
-
-        let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
-        let forward = Vector3::new(yaw_sin, 0.0, yaw_cos).normalize();
-        let right = Vector3::new(yaw_cos, 0.0, -yaw_sin).normalize();
-        let up = Vector3::unit_y();
-
-        camera.position += forward * direction.z * self.speed * delta_time as f32;
-        camera.position += right * direction.x * self.speed * delta_time as f32;
-        camera.position += up * direction.y * self.speed * delta_time as f32;
     }
 }
 

@@ -1,8 +1,6 @@
-use crate::application::GameState;
 use crate::context::Context;
 use crate::render::SubRenderer;
 use crate::scene::mesh::{Mesh, MeshVertex};
-use crate::scene::scene_graph::{Model, SceneNode};
 use cgmath::{Matrix4, Point3, SquareMatrix, Vector3};
 use std::default::Default;
 use std::sync::Arc;
@@ -159,7 +157,6 @@ impl SubRenderer for SceneRenderer {
     fn render<F>(
         &self,
         context: &Context,
-        game_state: &GameState,
         future: F,
         swapchain_frame_index: u32,
         viewport: &Viewport,
