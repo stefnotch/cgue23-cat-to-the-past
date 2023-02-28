@@ -20,6 +20,9 @@ fn hello_stefan() {
 }
 
 fn main() {
+    // TODO: remove this
+    std::env::set_var("RUST_BACKTRACE", "1");
+
     // TODO: read from file
     let config = AppConfig {
         resolution: (800, 800),
