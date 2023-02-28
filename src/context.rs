@@ -1,3 +1,4 @@
+use bevy_ecs::system::Resource;
 use std::sync::Arc;
 use vulkano::device::physical::{PhysicalDevice, PhysicalDeviceType};
 use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo};
@@ -14,9 +15,11 @@ use winit::window::WindowBuilder;
 
 ///
 /// see also https://gpuopen.com/learn/understanding-vulkan-objects/
+#[derive(Resource)]
 pub struct Context {
     instance: Arc<Instance>,
-    debug_callback: Option<DebugUtilsMessenger>,
+    /// we need to keep a reference to the debug callback, otherwise it will be dropped
+    _debug_callback: Option<DebugUtilsMessenger>,
     surface: Arc<Surface>,
     physical_device: Arc<PhysicalDevice>,
     device: Arc<Device>,
@@ -48,7 +51,7 @@ impl Context {
 
         Context {
             instance,
-            debug_callback,
+            _debug_callback: debug_callback,
             surface,
             physical_device,
             queue_family_index,

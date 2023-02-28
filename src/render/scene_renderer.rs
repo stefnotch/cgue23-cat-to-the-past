@@ -1,9 +1,9 @@
-use crate::application::GameState;
+use crate::camera::Camera;
 use crate::context::Context;
-use crate::render::SubRenderer;
-use crate::scene::mesh::{Mesh, MeshVertex};
-use crate::scene::scene_graph::{Model, SceneNode};
-use cgmath::{Matrix4, Point3, SquareMatrix, Vector3};
+use crate::scene::mesh::MeshVertex;
+use crate::scene::model::Model;
+use crate::scene::transform::Transform;
+
 use std::default::Default;
 use std::sync::Arc;
 use vulkano::buffer::{BufferUsage, CpuBufferPool, TypedBufferAccess};
@@ -13,7 +13,7 @@ use vulkano::command_buffer::{
     SubpassContents,
 };
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
-use vulkano::descriptor_set::{DescriptorSet, PersistentDescriptorSet, WriteDescriptorSet};
+use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
 use vulkano::image::{AttachmentImage, ImageViewAbstract, SwapchainImage};
@@ -132,8 +132,8 @@ impl SceneRenderer {
     }
 }
 
-impl SubRenderer for SceneRenderer {
-    fn resize(&mut self, images: &[Arc<ImageView<SwapchainImage>>]) {
+impl SceneRenderer {
+    pub fn resize(&mut self, images: &Vec<Arc<ImageView<SwapchainImage>>>) {
         let dimensions = images[0].dimensions().width_height();
         let depth_buffer = ImageView::new_default(
             AttachmentImage::transient(&self.memory_allocator, dimensions, Format::D32_SFLOAT)
@@ -156,10 +156,11 @@ impl SubRenderer for SceneRenderer {
             .collect();
     }
 
-    fn render<F>(
+    pub fn render<F>(
         &self,
         context: &Context,
-        game_state: &GameState,
+        camera: &Camera,
+        models: Vec<(&Transform, &Model)>,
         future: F,
         swapchain_frame_index: u32,
         viewport: &Viewport,
@@ -173,12 +174,6 @@ impl SubRenderer for SceneRenderer {
             CommandBufferUsage::OneTimeSubmit,
         )
         .unwrap();
-
-        // read from scene
-        let camera = &game_state.camera;
-        let models = game_state
-            .scene_graph
-            .get_data_recursive::<Model, &SceneNode>(|node| node);
 
         builder
             // Before we can draw, we have to *enter a render pass*.
@@ -207,14 +202,14 @@ impl SubRenderer for SceneRenderer {
 
         // TODO: models with different pipelines
         let layout = self.pipeline.layout().set_layouts().get(0).unwrap();
-        for (model, scene_node) in models {
+        for (transform, model) in models {
             // descriptor set
             let uniform_buffer_subbuffer = {
-                let proj = game_state.camera.proj();
-                let view = game_state.camera.view();
+                let proj = camera.proj();
+                let view = camera.view();
 
                 let uniform_data = vs::ty::Data {
-                    world: scene_node.world_matrix().into(),
+                    world: transform.to_matrix().into(),
                     view: view.clone().into(),
                     proj: proj.clone().into(),
                 };

@@ -1,8 +1,10 @@
-use crate::camera::Camera;
+use crate::camera::{update_camera, Camera};
 use crate::context::Context;
-use crate::input::InputMap;
-use crate::render::Renderer;
-use crate::scene::scene_graph::SceneGraph;
+use crate::input;
+use crate::input::{InputMap, MouseMovement};
+use crate::render::{render, Renderer};
+use crate::time::Time;
+use bevy_ecs::prelude::*;
 use std::time::Instant;
 use winit::dpi;
 use winit::dpi::LogicalSize;
@@ -25,22 +27,97 @@ pub struct AppConfig {
     pub refresh_rate: u32,
 }
 
-pub struct Application {
-    context: Context,
-    event_loop: EventLoop<()>,
-    game_state: GameState,
-    renderer: Renderer,
+#[derive(StageLabel)]
+pub enum AppStartupStage {
+    Startup,
 }
 
-// these are the application thingys that the game actually needs
-pub struct GameState {
-    pub input_map: InputMap,
-    pub camera: Camera,
-    pub scene_graph: SceneGraph,
+#[derive(StageLabel)]
+pub enum AppStage {
+    EventUpdate,
+    Update,
+    PostUpdate,
+    Render,
+}
+
+pub struct ApplicationBuilder {
+    config: AppConfig,
+    startup_schedule: Schedule,
+    schedule: Schedule,
+    world: World,
+}
+
+impl ApplicationBuilder {
+    pub fn new(config: AppConfig) -> Self {
+        let startup_schedule = Schedule::default()
+            .with_stage(AppStartupStage::Startup, SystemStage::single_threaded());
+
+        let schedule = Schedule::default()
+            .with_stage(AppStage::EventUpdate, SystemStage::single_threaded())
+            .with_stage(AppStage::Update, SystemStage::single_threaded())
+            .with_stage(AppStage::PostUpdate, SystemStage::single_threaded())
+            .with_stage(AppStage::Render, SystemStage::single_threaded());
+
+        let world = World::new();
+
+        ApplicationBuilder {
+            config,
+            startup_schedule,
+            schedule,
+            world,
+        }
+    }
+
+    pub fn with_system<Params>(
+        mut self,
+        stage: AppStage,
+        system: impl IntoSystemDescriptor<Params>,
+    ) -> Self {
+        self.schedule.add_system_to_stage(stage, system);
+
+        self
+    }
+
+    pub fn with_startup_system<Params>(
+        mut self,
+        system: impl IntoSystemDescriptor<Params>,
+    ) -> Self {
+        self.startup_schedule
+            .add_system_to_stage(AppStartupStage::Startup, system);
+
+        self
+    }
+
+    pub fn with_resource<R: Resource>(mut self, res: R) -> Self {
+        self.world.insert_resource(res);
+
+        self
+    }
+
+    pub fn build(self) -> Application {
+        Application::new(
+            self.config,
+            self.startup_schedule,
+            self.schedule,
+            self.world,
+        )
+    }
+}
+
+pub struct Application {
+    event_loop: EventLoop<()>,
+
+    world: World,
+    schedule: Schedule,
 }
 
 impl Application {
-    pub fn new(config: &AppConfig) -> Application {
+    fn new(
+        config: AppConfig,
+        mut startup_schedule: Schedule,
+        mut schedule: Schedule,
+        mut world: World,
+    ) -> Application {
         let event_loop = EventLoop::new();
 
         let monitor = event_loop
@@ -71,69 +148,67 @@ impl Application {
         let surface = context.surface();
         let window = surface.object().unwrap().downcast_ref::<Window>().unwrap();
 
+        // TODO: Do that only when the user clicks on the window, and undo it when he hits the escape button
         window
             .set_cursor_grab(CursorGrabMode::Confined)
             .or_else(|_e| window.set_cursor_grab(CursorGrabMode::Locked))
             .unwrap();
-
         window.set_cursor_visible(false);
 
         let renderer = Renderer::new(&context);
 
         let aspect_ratio = config.resolution.0 as f32 / config.resolution.1 as f32;
 
-        let game_state = GameState {
-            input_map: InputMap::new(),
-            camera: Camera::new(60.0, aspect_ratio, 0.01, 100.0),
-            scene_graph: SceneGraph::new(),
-        };
+        let camera = Camera::new(60.0, aspect_ratio, 0.01, 100.0);
+        let input_map = InputMap::new();
+        let time = Time::new();
+
+        world.insert_resource(Events::<input::MouseMovement>::default());
+        schedule.add_system_to_stage(
+            AppStage::EventUpdate,
+            Events::<input::MouseMovement>::update_system,
+        );
+
+        world.insert_resource(Events::<input::MouseInput>::default());
+        schedule.add_system_to_stage(
+            AppStage::EventUpdate,
+            Events::<input::MouseInput>::update_system,
+        );
+
+        world.insert_resource(Events::<input::KeyboardInput>::default());
+        schedule.add_system_to_stage(
+            AppStage::EventUpdate,
+            Events::<input::KeyboardInput>::update_system,
+        );
+
+        schedule.add_system_to_stage(AppStage::EventUpdate, input::handle_keyboard_input);
+        schedule.add_system_to_stage(AppStage::EventUpdate, input::handle_mouse_input);
+
+        schedule.add_system_to_stage(AppStage::PostUpdate, update_camera);
+
+        world.insert_resource(camera);
+        world.insert_resource(input_map);
+        world.insert_resource(time);
+
+        world.insert_resource(context);
+        world.insert_non_send_resource(renderer);
+        schedule.add_system_to_stage(AppStage::Render, render);
+
+        startup_schedule.run(&mut world);
 
         Application {
-            context,
             event_loop,
-            game_state,
-            renderer,
+
+            world,
+            schedule,
         }
     }
 
-    pub fn run<T>(mut self, mut runner: T)
+    pub fn run(mut self)
     where
-        T: Run + 'static,
         Self: 'static,
     {
-        runner.init(&mut self.game_state);
-
         let mut last_frame = Instant::now();
-
-        // Dummy code to test the renderer
-        let memory_allocator = std::sync::Arc::new(
-            vulkano::memory::allocator::StandardMemoryAllocator::new_default(self.context.device()),
-        );
-        let cube = crate::scene::mesh::Mesh::cube(0.5, 0.5, 0.5, &memory_allocator);
-
-        let plane = crate::scene::mesh::Mesh::plane_horizontal(5.0, 5.0, &memory_allocator);
-        self.game_state
-            .scene_graph
-            .add(crate::scene::scene_graph::SceneNode::new(
-                crate::scene::scene_graph::Model {
-                    mesh: cube,
-                    material: std::sync::Arc::new(crate::scene::material::Material {}),
-                },
-                crate::scene::scene_graph::Transform::new(),
-            ));
-
-        let mut plane_transform = crate::scene::scene_graph::Transform::new();
-        plane_transform.position = cgmath::Vector3::new(0.0, -0.5, 0.0);
-
-        self.game_state
-            .scene_graph
-            .add(crate::scene::scene_graph::SceneNode::new(
-                crate::scene::scene_graph::Model {
-                    mesh: plane,
-                    material: std::sync::Arc::new(crate::scene::material::Material {}),
-                },
-                plane_transform,
-            ));
 
         self.event_loop
             .run(move |event, _, control_flow| match event {
@@ -150,8 +225,12 @@ impl Application {
                 } => {
                     let new_aspect_ratio = width as f32 / height as f32;
 
-                    self.game_state.camera.update_aspect_ratio(new_aspect_ratio);
-                    self.renderer.recreate_swapchain();
+                    self.world
+                        .get_non_send_resource_mut::<Renderer>()
+                        .unwrap()
+                        .recreate_swapchain();
+
+                    // TODO: camera.update_aspect_ratio
                 }
 
                 Event::WindowEvent { event, .. } => match event {
@@ -163,21 +242,19 @@ impl Application {
                                 ..
                             },
                         ..
-                    } => match state {
-                        ElementState::Pressed => {
-                            self.game_state.input_map.update_key_press(key_code)
-                        }
-                        ElementState::Released => {
-                            self.game_state.input_map.update_key_release(key_code)
-                        }
-                    },
-                    WindowEvent::MouseInput { button, state, .. } => {}
+                    } => {
+                        self.world
+                            .send_event(input::KeyboardInput { key_code, state });
+                    }
+                    WindowEvent::MouseInput { button, state, .. } => {
+                        self.world.send_event(input::MouseInput { button, state })
+                    }
                     _ => (),
                 },
 
                 Event::DeviceEvent { event, .. } => match event {
-                    DeviceEvent::MouseMotion { delta } => {
-                        self.game_state.input_map.update_mouse_move(delta);
+                    DeviceEvent::MouseMotion { delta: (dx, dy) } => {
+                        self.world.send_event(MouseMovement(dx, dy))
                     }
                     _ => (),
                 },
@@ -186,21 +263,13 @@ impl Application {
                     let delta_time = last_frame.elapsed().as_secs_f64();
                     last_frame = Instant::now();
 
-                    self.game_state.camera.update();
-                    runner.update(&mut self.game_state, delta_time);
-                    self.renderer.render(&self.context, &self.game_state);
-                    self.game_state.input_map.new_frame();
+                    let mut time = self.world.get_resource_mut::<Time>().unwrap();
+                    time.delta_seconds = delta_time;
+
+                    self.schedule.run(&mut self.world);
                 }
 
                 _ => (),
             });
     }
-}
-
-pub trait Run {
-    fn init(&self, state: &mut GameState);
-
-    fn input(&self, state: &mut GameState);
-
-    fn update(&mut self, state: &mut GameState, delta_time: f64);
 }
