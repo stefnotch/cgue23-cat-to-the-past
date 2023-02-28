@@ -1,6 +1,6 @@
 use crate::application::{AppStage, ApplicationBuilder};
 use crate::camera::Camera;
-use crate::input::{handle_keyboard_input, handle_mouse_input, InputMap, MouseMovement};
+use crate::input::{InputMap, MouseMovement};
 use crate::time::Time;
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::Resource;
@@ -85,8 +85,7 @@ pub fn update_camera(
 impl ApplicationBuilder {
     pub fn with_player_controller(self, settings: PlayerSettings) -> Self {
         self.with_resource(settings)
-            .with_system(AppStage::Update, handle_keyboard_input)
-            .with_system(AppStage::EventUpdate, handle_mouse_input)
+            .with_system(AppStage::Update, handle_mouse_movement)
             .with_system(AppStage::Update, update_camera)
     }
 }

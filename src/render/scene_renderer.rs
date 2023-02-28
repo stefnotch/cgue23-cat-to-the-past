@@ -160,7 +160,7 @@ impl SceneRenderer {
         &self,
         context: &Context,
         camera: &Camera,
-        models: Vec<(Transform, Model)>,
+        models: Vec<(&Transform, &Model)>,
         future: F,
         swapchain_frame_index: u32,
         viewport: &Viewport,

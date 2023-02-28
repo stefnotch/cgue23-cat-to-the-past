@@ -1,4 +1,4 @@
-use bevy_ecs::system::Resource;
+use bevy_ecs::system::{ResMut, Resource};
 use cgmath::{Deg, InnerSpace, Matrix4, Point3, Rad, Vector3};
 
 pub struct CameraSettings {
@@ -61,6 +61,10 @@ impl Camera {
     pub fn update(&mut self) {
         self.view = calculate_view(self.position, self.yaw, self.pitch);
     }
+}
+
+pub fn update_camera(mut camera: ResMut<Camera>) {
+    camera.update();
 }
 
 fn calculate_view(position: Point3<f32>, yaw: Rad<f32>, pitch: Rad<f32>) -> Matrix4<f32> {

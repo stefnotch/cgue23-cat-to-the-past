@@ -1,4 +1,4 @@
-use crate::camera::Camera;
+use crate::camera::{update_camera, Camera};
 use crate::context::Context;
 use crate::input;
 use crate::input::{InputMap, MouseMovement};
@@ -182,6 +182,9 @@ impl Application {
         );
 
         schedule.add_system_to_stage(AppStage::EventUpdate, input::handle_keyboard_input);
+        schedule.add_system_to_stage(AppStage::EventUpdate, input::handle_mouse_input);
+
+        schedule.add_system_to_stage(AppStage::PostUpdate, update_camera);
 
         world.insert_resource(camera);
         world.insert_resource(input_map);
@@ -226,6 +229,8 @@ impl Application {
                         .get_non_send_resource_mut::<Renderer>()
                         .unwrap()
                         .recreate_swapchain();
+
+                    // TODO: camera.update_aspect_ratio
                 }
 
                 Event::WindowEvent { event, .. } => match event {

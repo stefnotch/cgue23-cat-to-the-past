@@ -1,7 +1,9 @@
 use crate::camera::Camera;
 use crate::context::Context;
 use crate::render::scene_renderer::SceneRenderer;
-use bevy_ecs::system::{NonSendMut, Res, Resource};
+use crate::scene::model::Model;
+use crate::scene::transform::Transform;
+use bevy_ecs::system::{NonSendMut, Query, Res, Resource};
 use std::sync::Arc;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::CommandBufferExecFuture;
@@ -90,7 +92,12 @@ impl Renderer {
     }
 }
 
-pub fn render(mut renderer: NonSendMut<Renderer>, context: Res<Context>, camera: Res<Camera>) {
+pub fn render(
+    mut renderer: NonSendMut<Renderer>,
+    context: Res<Context>,
+    camera: Res<Camera>,
+    query: Query<(&Transform, &Model)>,
+) {
     // On Windows, this can occur from minimizing the application.
     let surface = context.surface();
     let window = surface.object().unwrap().downcast_ref::<Window>().unwrap();
@@ -163,8 +170,7 @@ pub fn render(mut renderer: NonSendMut<Renderer>, context: Res<Context>, camera:
         .unwrap()
         .join(acquire_future);
 
-    let models = Vec::new();
-    // TODO: Get models from world
+    let models = query.iter().collect();
 
     let future = renderer.scene_renderer.render(
         &context,

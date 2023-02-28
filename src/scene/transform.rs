@@ -1,5 +1,7 @@
+use bevy_ecs::prelude::*;
 use cgmath::{Matrix4, Quaternion, Vector3, Zero};
 
+#[derive(Component)]
 pub struct Transform {
     pub position: Vector3<f32>,
     pub rotation: Quaternion<f32>,
