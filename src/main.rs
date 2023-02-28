@@ -1,47 +1,57 @@
-use crate::application::{AppConfig, Application, GameState, Run};
-use crate::camera::PlayerController;
-use cgmath::Rad;
+use std::sync::Arc;
+
+use bevy_ecs::system::{Commands, Res};
+use context::Context;
+use scene::material::Material;
+use scene::mesh::Mesh;
+use scene::model::Model;
+use scene::transform::Transform;
+
+use crate::application::{AppConfig, AppStage, ApplicationBuilder};
+use crate::player::PlayerSettings;
 
 mod application;
 mod camera;
 mod context;
 mod input;
 mod physics;
+mod player;
 mod render;
 mod scene;
+mod time;
 
-struct Game {
-    player_controller: PlayerController,
-}
+fn spawn_world(mut commands: Commands, context: Res<Context>) {
+    let memory_allocator = Arc::new(
+        vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
+    );
 
-impl Run for Game {
-    fn init(&self, state: &mut GameState) {
-        // setup scene
+    let cube = Mesh::cube(0.5, 0.5, 0.5, &memory_allocator);
 
-        /*let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(context.device()));
-        let cube = Mesh::cube(0.5, 0.5, 0.5, &memory_allocator);
+    let plane = Mesh::plane_horizontal(5.0, 5.0, &memory_allocator);
+    commands.spawn((
+        Model {
+            mesh: cube,
+            material: Arc::new(Material {}),
+        },
+        Transform::new(),
+    ));
 
-        state.scene_graph.add(cube);*/
-    }
+    let mut plane_transform = Transform::new();
+    plane_transform.position = cgmath::Vector3::new(0.0, -0.5, 0.0);
 
-    fn input(&self, _state: &mut GameState) {}
-
-    fn update(&mut self, state: &mut GameState, delta_time: f64) {
-        self.player_controller
-            .update_camera(&mut state.camera, &state.input_map, delta_time);
-    }
-}
-
-impl Game {
-    pub fn new() -> Game {
-        let controller = PlayerController::new(5.0, 0.5);
-        Game {
-            player_controller: controller,
-        }
-    }
+    commands.spawn((
+        Model {
+            mesh: plane,
+            material: Arc::new(Material {}),
+        },
+        plane_transform,
+    ));
 }
 
 fn main() {
+    // TODO: remove this
+    std::env::set_var("RUST_BACKTRACE", "1");
+
     // TODO: read from file
     let config = AppConfig {
         resolution: (800, 800),
@@ -50,8 +60,12 @@ fn main() {
         refresh_rate: 60,
     };
 
-    let application = Application::new(&config);
+    let player_settings = PlayerSettings::new(5.0, 0.5);
 
-    let game = Game::new();
-    application.run(game);
+    let application = ApplicationBuilder::new(config)
+        .with_startup_system(spawn_world)
+        .with_player_controller(player_settings)
+        .build();
+
+    application.run();
 }
