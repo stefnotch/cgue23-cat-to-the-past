@@ -1,7 +1,9 @@
 use crate::camera::Camera;
 use crate::context::Context;
-use crate::input::InputMap;
+use crate::input;
+use crate::input::{InputMap, MouseMovement};
 use crate::render::Renderer;
+use crate::time::Time;
 use bevy_ecs::prelude::*;
 use std::time::Instant;
 use winit::dpi;
@@ -42,6 +44,7 @@ pub struct ApplicationBuilder {
     config: AppConfig,
     startup_schedule: Schedule,
     schedule: Schedule,
+    world: World,
 }
 
 impl ApplicationBuilder {
@@ -55,10 +58,13 @@ impl ApplicationBuilder {
             .with_stage(AppStage::PostUpdate, SystemStage::single_threaded())
             .with_stage(AppStage::Render, SystemStage::single_threaded());
 
+        let world = World::new();
+
         ApplicationBuilder {
             config,
             startup_schedule,
             schedule,
+            world,
         }
     }
 
@@ -82,8 +88,19 @@ impl ApplicationBuilder {
         self
     }
 
+    pub fn with_resource<R: Resource>(mut self, res: R) -> Self {
+        self.world.insert_resource(res);
+
+        self
+    }
+
     pub fn build(self) -> Application {
-        Application::new(self.config, self.startup_schedule, self.schedule)
+        Application::new(
+            self.config,
+            self.startup_schedule,
+            self.schedule,
+            self.world,
+        )
     }
 }
 
@@ -97,9 +114,12 @@ pub struct Application {
 }
 
 impl Application {
-    fn new(config: AppConfig, mut startup_schedule: Schedule, schedule: Schedule) -> Application {
-        let mut world = World::new();
-
+    fn new(
+        config: AppConfig,
+        mut startup_schedule: Schedule,
+        mut schedule: Schedule,
+        mut world: World,
+    ) -> Application {
         let event_loop = EventLoop::new();
 
         let monitor = event_loop
@@ -143,9 +163,23 @@ impl Application {
 
         let camera = Camera::new(60.0, aspect_ratio, 0.01, 100.0);
         let input_map = InputMap::new();
+        let time = Time::new();
+
+        schedule.add_system_to_stage(
+            AppStage::EventUpdate,
+            Events::<MouseMovement>::update_system,
+        );
+
+        schedule.add_system_to_stage(
+            AppStage::EventUpdate,
+            Events::<input::KeyboardInput>::update_system,
+        );
+
+        schedule.add_system_to_stage(AppStage::EventUpdate, input::handle_keyboard_input);
 
         world.insert_resource(camera);
         world.insert_resource(input_map);
+        world.insert_resource(time);
 
         startup_schedule.run(&mut world);
 
@@ -192,20 +226,26 @@ impl Application {
                                 ..
                             },
                         ..
-                    } => match state {
-                        ElementState::Pressed => {
-                            // self.game_state.input_map.update_key_press(key_code)
+                    } => {
+                        self.world
+                            .send_event(input::KeyboardInput { key_code, state });
+
+                        match state {
+                            ElementState::Pressed => {
+                                // self.game_state.input_map.update_key_press(key_code)
+                            }
+                            ElementState::Released => {
+                                // self.game_state.input_map.update_key_release(key_code)
+                            }
                         }
-                        ElementState::Released => {
-                            // self.game_state.input_map.update_key_release(key_code)
-                        }
-                    },
+                    }
                     WindowEvent::MouseInput { button, state, .. } => {}
                     _ => (),
                 },
 
                 Event::DeviceEvent { event, .. } => match event {
-                    DeviceEvent::MouseMotion { delta } => {
+                    DeviceEvent::MouseMotion { delta: (dx, dy) } => {
+                        self.world.send_event(MouseMovement(dx, dy))
                         // self.game_state.input_map.update_mouse_move(delta);
                     }
                     _ => (),
@@ -214,6 +254,9 @@ impl Application {
                 Event::RedrawEventsCleared => {
                     let delta_time = last_frame.elapsed().as_secs_f64();
                     last_frame = Instant::now();
+
+                    let time = self.world.get_resource_mut::<Time>().unwrap();
+                    time.delta_seconds = delta_time;
 
                     self.schedule.run(&mut self.world);
                 }
