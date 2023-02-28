@@ -1,5 +1,5 @@
 use bevy_ecs::system::Resource;
-use cgmath::{Deg, InnerSpace, Matrix4, Point3, Rad, Vector2, Vector3};
+use cgmath::{Deg, InnerSpace, Matrix4, Point3, Rad, Vector3};
 
 pub struct CameraSettings {
     fov: Rad<f32>,
@@ -12,7 +12,7 @@ pub struct Camera {
     view: Matrix4<f32>,
     proj: Matrix4<f32>,
 
-    position: Point3<f32>,
+    pub position: Point3<f32>,
     pub yaw: Rad<f32>,
     pub pitch: Rad<f32>,
 
