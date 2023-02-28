@@ -2,7 +2,7 @@ use crate::camera::Camera;
 use crate::context::Context;
 use crate::input;
 use crate::input::{InputMap, MouseMovement};
-use crate::render::Renderer;
+use crate::render::{render, Renderer};
 use crate::time::Time;
 use bevy_ecs::prelude::*;
 use std::time::Instant;
@@ -105,9 +105,7 @@ impl ApplicationBuilder {
 }
 
 pub struct Application {
-    context: Context,
     event_loop: EventLoop<()>,
-    renderer: Renderer,
 
     world: World,
     schedule: Schedule,
@@ -150,11 +148,11 @@ impl Application {
         let surface = context.surface();
         let window = surface.object().unwrap().downcast_ref::<Window>().unwrap();
 
+        // TODO: Do that only when the user clicks on the window, and undo it when he hits the escape button
         window
             .set_cursor_grab(CursorGrabMode::Confined)
             .or_else(|_e| window.set_cursor_grab(CursorGrabMode::Locked))
             .unwrap();
-
         window.set_cursor_visible(false);
 
         let renderer = Renderer::new(&context);
@@ -165,11 +163,19 @@ impl Application {
         let input_map = InputMap::new();
         let time = Time::new();
 
+        world.insert_resource(Events::<input::MouseMovement>::default());
         schedule.add_system_to_stage(
             AppStage::EventUpdate,
-            Events::<MouseMovement>::update_system,
+            Events::<input::MouseMovement>::update_system,
         );
 
+        world.insert_resource(Events::<input::MouseInput>::default());
+        schedule.add_system_to_stage(
+            AppStage::EventUpdate,
+            Events::<input::MouseInput>::update_system,
+        );
+
+        world.insert_resource(Events::<input::KeyboardInput>::default());
         schedule.add_system_to_stage(
             AppStage::EventUpdate,
             Events::<input::KeyboardInput>::update_system,
@@ -181,12 +187,14 @@ impl Application {
         world.insert_resource(input_map);
         world.insert_resource(time);
 
+        world.insert_resource(context);
+        world.insert_non_send_resource(renderer);
+        schedule.add_system_to_stage(AppStage::Render, render);
+
         startup_schedule.run(&mut world);
 
         Application {
-            context,
             event_loop,
-            renderer,
 
             world,
             schedule,
@@ -214,7 +222,10 @@ impl Application {
                 } => {
                     let new_aspect_ratio = width as f32 / height as f32;
 
-                    self.renderer.recreate_swapchain();
+                    self.world
+                        .get_non_send_resource_mut::<Renderer>()
+                        .unwrap()
+                        .recreate_swapchain();
                 }
 
                 Event::WindowEvent { event, .. } => match event {
@@ -229,24 +240,16 @@ impl Application {
                     } => {
                         self.world
                             .send_event(input::KeyboardInput { key_code, state });
-
-                        match state {
-                            ElementState::Pressed => {
-                                // self.game_state.input_map.update_key_press(key_code)
-                            }
-                            ElementState::Released => {
-                                // self.game_state.input_map.update_key_release(key_code)
-                            }
-                        }
                     }
-                    WindowEvent::MouseInput { button, state, .. } => {}
+                    WindowEvent::MouseInput { button, state, .. } => {
+                        self.world.send_event(input::MouseInput { button, state })
+                    }
                     _ => (),
                 },
 
                 Event::DeviceEvent { event, .. } => match event {
                     DeviceEvent::MouseMotion { delta: (dx, dy) } => {
                         self.world.send_event(MouseMovement(dx, dy))
-                        // self.game_state.input_map.update_mouse_move(delta);
                     }
                     _ => (),
                 },
@@ -255,7 +258,7 @@ impl Application {
                     let delta_time = last_frame.elapsed().as_secs_f64();
                     last_frame = Instant::now();
 
-                    let time = self.world.get_resource_mut::<Time>().unwrap();
+                    let mut time = self.world.get_resource_mut::<Time>().unwrap();
                     time.delta_seconds = delta_time;
 
                     self.schedule.run(&mut self.world);

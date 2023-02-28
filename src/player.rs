@@ -1,6 +1,6 @@
 use crate::application::{AppStage, ApplicationBuilder};
 use crate::camera::Camera;
-use crate::input::{handle_keyboard_input, InputMap, MouseMovement};
+use crate::input::{handle_keyboard_input, handle_mouse_input, InputMap, MouseMovement};
 use crate::time::Time;
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::Resource;
@@ -23,7 +23,7 @@ impl PlayerSettings {
 
 pub fn handle_mouse_movement(
     mut reader: EventReader<MouseMovement>,
-    camera: ResMut<Camera>,
+    mut camera: ResMut<Camera>,
     settings: Res<PlayerSettings>,
 ) {
     for event in reader.iter() {
@@ -43,7 +43,7 @@ pub fn handle_mouse_movement(
 }
 
 pub fn update_camera(
-    camera: ResMut<Camera>,
+    mut camera: ResMut<Camera>,
     input: Res<InputMap>,
     time: Res<Time>,
     settings: Res<PlayerSettings>,
@@ -83,9 +83,10 @@ pub fn update_camera(
 }
 
 impl ApplicationBuilder {
-    pub fn with_player_controller(mut self, settings: PlayerSettings) -> Self {
+    pub fn with_player_controller(self, settings: PlayerSettings) -> Self {
         self.with_resource(settings)
             .with_system(AppStage::Update, handle_keyboard_input)
+            .with_system(AppStage::EventUpdate, handle_mouse_input)
             .with_system(AppStage::Update, update_camera)
     }
 }

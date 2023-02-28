@@ -1,5 +1,7 @@
+use crate::camera::Camera;
 use crate::context::Context;
 use crate::render::scene_renderer::SceneRenderer;
+use bevy_ecs::system::{NonSendMut, Res, Resource};
 use std::sync::Arc;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::CommandBufferExecFuture;
@@ -86,96 +88,114 @@ impl Renderer {
     pub fn recreate_swapchain(&mut self) {
         self.recreate_swapchain = true;
     }
+}
 
-    pub fn render(&mut self, context: &Context) {
-        // On Windows, this can occur from minimizing the application.
-        let surface = context.surface();
-        let window = surface.object().unwrap().downcast_ref::<Window>().unwrap();
-        let dimensions = window.inner_size();
-        if dimensions.width == 0 || dimensions.height == 0 {
-            return;
+pub fn render(mut renderer: NonSendMut<Renderer>, context: Res<Context>, camera: Res<Camera>) {
+    // On Windows, this can occur from minimizing the application.
+    let surface = context.surface();
+    let window = surface.object().unwrap().downcast_ref::<Window>().unwrap();
+    let dimensions = window.inner_size();
+    if dimensions.width == 0 || dimensions.height == 0 {
+        return;
+    }
+
+    // It is important to call this function from time to time, otherwise resources will keep
+    // accumulating and you will eventually reach an out of memory error.
+    // Calling this function polls various fences in order to determine what the GPU has
+    // already processed, and frees the resources that are no longer needed.
+    renderer
+        .previous_frame_end
+        .as_mut()
+        .unwrap()
+        .cleanup_finished();
+
+    // Whenever the window resizes we need to recreate everything dependent on the window size.
+    // In this example that includes the swapchain, the framebuffers and the dynamic state viewport.
+    if renderer.recreate_swapchain {
+        // Use the new dimensions of the window.
+        match renderer.swapchain.recreate(dimensions.into()) {
+            Ok(r) => r,
+            // This error tends to happen when the user is manually resizing the window.
+            // Simply restarting the loop is the easiest way to fix this issue.
+            Err(SwapchainCreationError::ImageExtentNotSupported { .. }) => {
+                println!("ImageExtentNotSupported");
+                return;
+            }
+            Err(e) => panic!("Failed to recreate swapchain: {e:?}"),
         }
 
-        // It is important to call this function from time to time, otherwise resources will keep
-        // accumulating and you will eventually reach an out of memory error.
-        // Calling this function polls various fences in order to determine what the GPU has
-        // already processed, and frees the resources that are no longer needed.
-        self.previous_frame_end.as_mut().unwrap().cleanup_finished();
+        renderer.viewport.dimensions = renderer.swapchain.dimensions.map(|i| i as f32);
 
-        // Whenever the window resizes we need to recreate everything dependent on the window size.
-        // In this example that includes the swapchain, the framebuffers and the dynamic state viewport.
-        if self.recreate_swapchain {
-            // Use the new dimensions of the window.
-            match self.swapchain.recreate(dimensions.into()) {
-                Ok(r) => r,
-                // This error tends to happen when the user is manually resizing the window.
-                // Simply restarting the loop is the easiest way to fix this issue.
-                Err(SwapchainCreationError::ImageExtentNotSupported { .. }) => {
-                    println!("ImageExtentNotSupported");
-                    return;
-                }
-                Err(e) => panic!("Failed to recreate swapchain: {e:?}"),
+        // https://doc.rust-lang.org/nomicon/borrow-splitting.html
+        let renderer = renderer.as_mut();
+        renderer.scene_renderer.resize(&renderer.swapchain.images);
+
+        renderer.recreate_swapchain = false;
+    }
+
+    // Before we can draw on the output, we have to *acquire* an image from the swapchain. If
+    // no image is available (which happens if you submit draw commands too quickly), then the
+    // function will block.
+    // This operation returns the index of the image that we are allowed to draw upon.
+    //
+    // This function can block if no image is available. The parameter is an optional timeout
+    // after which the function call will return an error.
+    let (image_index, suboptimal, acquire_future) =
+        match acquire_next_image(renderer.swapchain.swapchain.clone(), None) {
+            Ok(r) => r,
+            Err(AcquireError::OutOfDate) => {
+                renderer.recreate_swapchain = true;
+                return;
             }
+            Err(e) => panic!("Failed to acquire next image: {e:?}"),
+        };
 
-            self.viewport.dimensions = self.swapchain.dimensions.map(|i| i as f32);
+    // acquire_next_image can be successful, but suboptimal. This means that the swapchain image
+    // will still work, but it may not display correctly. With some drivers this can be when
+    // the window resizes, but it may not cause the swapchain to become out of date.
+    if suboptimal {
+        renderer.recreate_swapchain = true;
+    }
 
-            self.scene_renderer.resize(&self.swapchain.images);
+    let future = renderer
+        .previous_frame_end
+        .take()
+        .unwrap()
+        .join(acquire_future);
 
-            self.recreate_swapchain = false;
+    let models = Vec::new();
+    // TODO: Get models from world
+
+    let future = renderer.scene_renderer.render(
+        &context,
+        camera.as_ref(),
+        models,
+        future,
+        image_index,
+        &renderer.viewport,
+    );
+
+    let future = future
+        .then_swapchain_present(
+            context.queue(),
+            SwapchainPresentInfo::swapchain_image_index(
+                renderer.swapchain.swapchain.clone(),
+                image_index,
+            ),
+        )
+        .then_signal_fence_and_flush();
+
+    match future {
+        Ok(future) => {
+            renderer.previous_frame_end = Some(future.boxed());
         }
-
-        // Before we can draw on the output, we have to *acquire* an image from the swapchain. If
-        // no image is available (which happens if you submit draw commands too quickly), then the
-        // function will block.
-        // This operation returns the index of the image that we are allowed to draw upon.
-        //
-        // This function can block if no image is available. The parameter is an optional timeout
-        // after which the function call will return an error.
-        let (image_index, suboptimal, acquire_future) =
-            match acquire_next_image(self.swapchain.swapchain.clone(), None) {
-                Ok(r) => r,
-                Err(AcquireError::OutOfDate) => {
-                    self.recreate_swapchain = true;
-                    return;
-                }
-                Err(e) => panic!("Failed to acquire next image: {e:?}"),
-            };
-
-        // acquire_next_image can be successful, but suboptimal. This means that the swapchain image
-        // will still work, but it may not display correctly. With some drivers this can be when
-        // the window resizes, but it may not cause the swapchain to become out of date.
-        if suboptimal {
-            self.recreate_swapchain = true;
+        Err(FlushError::OutOfDate) => {
+            renderer.recreate_swapchain = true;
+            renderer.previous_frame_end = Some(sync::now(context.device().clone()).boxed());
         }
-
-        let future = self.previous_frame_end.take().unwrap().join(acquire_future);
-
-        let future =
-            self.scene_renderer
-                .render(&context, &game_state, future, image_index, &self.viewport);
-
-        let future = future
-            .then_swapchain_present(
-                context.queue(),
-                SwapchainPresentInfo::swapchain_image_index(
-                    self.swapchain.swapchain.clone(),
-                    image_index,
-                ),
-            )
-            .then_signal_fence_and_flush();
-
-        match future {
-            Ok(future) => {
-                self.previous_frame_end = Some(future.boxed());
-            }
-            Err(FlushError::OutOfDate) => {
-                self.recreate_swapchain = true;
-                self.previous_frame_end = Some(sync::now(context.device().clone()).boxed());
-            }
-            Err(e) => {
-                println!("Failed to flush future: {e:?}");
-                self.previous_frame_end = Some(sync::now(context.device()).boxed());
-            }
+        Err(e) => {
+            println!("Failed to flush future: {e:?}");
+            renderer.previous_frame_end = Some(sync::now(context.device()).boxed());
         }
     }
 }
