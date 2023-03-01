@@ -178,6 +178,9 @@ pub fn render(
 
     match future {
         Ok(future) => {
+            // NOTE: one solution to remove the massive input delay with fullscreen-mode enabled
+            future.wait(None).unwrap();
+
             renderer.previous_frame_end = Some(future.boxed());
         }
         Err(FlushError::OutOfDate) => {
