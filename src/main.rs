@@ -7,7 +7,7 @@ use scene::mesh::Mesh;
 use scene::model::Model;
 use scene::transform::Transform;
 
-use crate::application::{AppConfig, AppStage, ApplicationBuilder};
+use crate::application::{AppConfig, ApplicationBuilder};
 use crate::player::PlayerSettings;
 
 mod application;
@@ -27,7 +27,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
 
     let cube = Mesh::cube(0.5, 0.5, 0.5, &memory_allocator);
 
-    let plane = Mesh::plane_horizontal(5.0, 5.0, &memory_allocator);
+    let platform = Mesh::cube(5.0, 0.1, 5.0, &memory_allocator);
     commands.spawn((
         Model {
             mesh: cube,
@@ -41,7 +41,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
 
     commands.spawn((
         Model {
-            mesh: plane,
+            mesh: platform,
             material: Arc::new(Material {}),
         },
         plane_transform,
@@ -54,7 +54,7 @@ fn main() {
 
     // TODO: read from file
     let config = AppConfig {
-        resolution: (800, 800),
+        resolution: (1280, 720),
         fullscreen: false,
         brightness: 1.0,
         refresh_rate: 60,
