@@ -1,3 +1,5 @@
+use crate::input::WindowResize;
+use bevy_ecs::event::EventReader;
 use bevy_ecs::system::{ResMut, Resource};
 use cgmath::{Deg, InnerSpace, Matrix4, Point3, Rad, Vector3};
 
@@ -65,6 +67,15 @@ impl Camera {
 
 pub fn update_camera(mut camera: ResMut<Camera>) {
     camera.update();
+}
+
+pub fn update_camera_aspect_ratio(
+    mut camera: ResMut<Camera>,
+    mut reader: EventReader<WindowResize>,
+) {
+    for event in reader.iter() {
+        camera.update_aspect_ratio(event.width as f32 / event.height as f32);
+    }
 }
 
 fn calculate_view(position: Point3<f32>, yaw: Rad<f32>, pitch: Rad<f32>) -> Matrix4<f32> {

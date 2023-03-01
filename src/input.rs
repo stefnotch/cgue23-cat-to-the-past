@@ -11,15 +11,11 @@ pub struct MouseInput {
     pub button: MouseButton,
     pub state: ElementState,
 }
-// pub struct KeyboardUp;
 
-// pub enum InputEvent {
-//     KeyboardUp(),
-//     KeyboardDown(),
-//     MouseDown(),
-//     MouseUp(),
-//     MouseMovement((f64, f64)),
-// }
+pub struct WindowResize {
+    pub width: u32,
+    pub height: u32,
+}
 
 const NUM_KEYS: usize = VirtualKeyCode::Cut as usize + 1;
 const NUM_MOUSE_BUTTONS: usize = 2;

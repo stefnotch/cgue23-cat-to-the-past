@@ -1,4 +1,4 @@
-use crate::camera::{update_camera, Camera};
+use crate::camera::{update_camera, update_camera_aspect_ratio, Camera};
 use crate::context::Context;
 use crate::input;
 use crate::input::{InputMap, MouseMovement};
@@ -7,8 +7,8 @@ use crate::time::Time;
 use bevy_ecs::prelude::*;
 use std::time::Instant;
 use winit::dpi;
-use winit::dpi::LogicalSize;
-use winit::event::{DeviceEvent, ElementState, Event, KeyboardInput, WindowEvent};
+use winit::dpi::{LogicalSize, PhysicalSize};
+use winit::event::{DeviceEvent, Event, KeyboardInput, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Fullscreen::Exclusive;
 use winit::window::{CursorGrabMode, Window, WindowBuilder};
@@ -135,7 +135,12 @@ impl Application {
         if config.fullscreen {
             if let Some(video_mode) = monitor
                 .video_modes()
-                .filter(|v| v.refresh_rate_millihertz() == config.refresh_rate * 1000)
+                .filter(|v| {
+                    let PhysicalSize { width, height } = v.size();
+
+                    v.refresh_rate_millihertz() == config.refresh_rate * 1000
+                        && (width, height) == config.resolution
+                })
                 .next()
             {
                 window_builder = window_builder.with_fullscreen(Some(Exclusive(video_mode)))
@@ -181,9 +186,16 @@ impl Application {
             Events::<input::KeyboardInput>::update_system,
         );
 
+        world.insert_resource(Events::<input::WindowResize>::default());
+        schedule.add_system_to_stage(
+            AppStage::EventUpdate,
+            Events::<input::WindowResize>::update_system,
+        );
+
         schedule.add_system_to_stage(AppStage::EventUpdate, input::handle_keyboard_input);
         schedule.add_system_to_stage(AppStage::EventUpdate, input::handle_mouse_input);
 
+        schedule.add_system_to_stage(AppStage::EventUpdate, update_camera_aspect_ratio);
         schedule.add_system_to_stage(AppStage::PostUpdate, update_camera);
 
         world.insert_resource(camera);
@@ -223,7 +235,7 @@ impl Application {
                     event: WindowEvent::Resized(dpi::PhysicalSize { width, height }),
                     ..
                 } => {
-                    let new_aspect_ratio = width as f32 / height as f32;
+                    self.world.send_event(input::WindowResize { width, height });
 
                     self.world
                         .get_non_send_resource_mut::<Renderer>()
