@@ -15,6 +15,7 @@ mod camera;
 mod context;
 mod input;
 mod physics;
+mod physics_context;
 mod player;
 mod render;
 mod scene;
@@ -27,7 +28,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
 
     let cube = Mesh::cube(0.5, 0.5, 0.5, &memory_allocator);
 
-    let platform = Mesh::cube(5.0, 0.1, 5.0, &memory_allocator);
+    let platform = Mesh::cube(20.0, 0.1, 20.0, &memory_allocator);
     commands.spawn((
         Model {
             mesh: cube,

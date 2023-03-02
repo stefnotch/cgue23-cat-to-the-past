@@ -2,6 +2,7 @@ use crate::camera::{update_camera, update_camera_aspect_ratio, Camera};
 use crate::context::Context;
 use crate::input;
 use crate::input::{InputMap, MouseMovement};
+use crate::physics_context::PhysicsContext;
 use crate::render::{render, Renderer};
 use crate::time::Time;
 use bevy_ecs::prelude::*;
@@ -167,6 +168,10 @@ impl Application {
         let camera = Camera::new(60.0, aspect_ratio, 0.01, 100.0);
         let input_map = InputMap::new();
         let time = Time::new();
+
+        let physics_context = PhysicsContext::new();
+
+        world.insert_resource(physics_context);
 
         world.insert_resource(Events::<input::MouseMovement>::default());
         schedule.add_system_to_stage(
