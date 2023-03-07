@@ -1,11 +1,12 @@
 use crate::scene::transform::Transform;
 use crate::time::Time;
 use bevy_ecs::prelude::{Added, Component, Query, Res, ResMut, Resource};
-use rapier3d::na::Vector3;
+use bevy_ecs::query::Without;
+use rapier3d::na::{Isometry3, Quaternion, Translation3, UnitQuaternion, Vector3};
 use rapier3d::prelude::{
-    BroadPhase, CCDSolver, ColliderBuilder, ColliderSet, ImpulseJointSet, IntegrationParameters,
-    IslandManager, MultibodyJointSet, NarrowPhase, PhysicsPipeline, QueryPipeline, Real,
-    RigidBodyHandle, RigidBodySet,
+    BroadPhase, CCDSolver, Collider, ColliderBuilder, ColliderHandle, ColliderSet, ImpulseJointSet,
+    IntegrationParameters, IslandManager, Isometry, MultibodyJointSet, NarrowPhase,
+    PhysicsPipeline, QueryPipeline, Real, RigidBodyBuilder, RigidBodyHandle, RigidBodySet,
 };
 
 #[derive(Resource)]
@@ -104,7 +105,8 @@ pub fn step_physics_simulation(mut physics_context: ResMut<PhysicsContext>, time
 
 #[derive(Component)]
 pub struct RapierRigidBody {
-    handle: RigidBodyHandle,
+    // We could refactor that to use two separate components, but this will do for now
+    pub handle: Option<RigidBodyHandle>,
 }
 
 // for now colliders are created once and never changed or deleted
@@ -115,14 +117,41 @@ pub struct BoxCollider {
 
 pub fn insert_collider_component(
     mut physics_context: ResMut<PhysicsContext>,
-    query: Query<&BoxCollider, Added<BoxCollider>>,
+    box_collider_query: Query<
+        (&BoxCollider, &Transform),
+        (Added<BoxCollider>, Without<RapierRigidBody>),
+    >,
+    mut rigid_body_query: Query<
+        (&mut RapierRigidBody, &BoxCollider, &Transform),
+        Added<RapierRigidBody>,
+    >,
 ) {
-    for collider in &query {
+    for (collider, transform) in &box_collider_query {
+        let half_size: Vector3<f32> = collider.size * 0.5;
+        let physics_collider = ColliderBuilder::cuboid(half_size.x, half_size.y, half_size.z)
+            .position(transform.to_isometry())
+            .build();
+
+        physics_context.colliders.insert(physics_collider);
+    }
+
+    for (mut rigid_body, collider, transform) in rigid_body_query.iter_mut() {
+        let physics_rigid_body = RigidBodyBuilder::dynamic()
+            .position(transform.to_isometry())
+            .build();
+
+        let context = physics_context.as_mut();
+        let handle = context.rigid_bodies.insert(physics_rigid_body);
+
         let half_size: Vector3<f32> = collider.size * 0.5;
         let physics_collider =
             ColliderBuilder::cuboid(half_size.x, half_size.y, half_size.z).build();
 
-        physics_context.colliders.insert(physics_collider);
+        context
+            .colliders
+            .insert_with_parent(physics_collider, handle, &mut context.rigid_bodies);
+
+        rigid_body.handle = Some(handle);
     }
 }
 
@@ -131,11 +160,13 @@ pub fn update_transform_system(
     mut query: Query<(&mut Transform, &RapierRigidBody)>,
 ) {
     for (mut transform, body_handle) in query.iter_mut() {
-        let body = physics_context
-            .rigid_bodies
-            .get(body_handle.handle)
-            .expect("Rigid body not found");
-
+        let body = match body_handle.handle {
+            Some(handle) => physics_context
+                .rigid_bodies
+                .get(handle)
+                .expect("Rigid body not found"),
+            None => continue,
+        };
         // TODO: change to nalgebra
         let position = body.position().translation.vector;
         let position: cgmath::Vector3<f32> =

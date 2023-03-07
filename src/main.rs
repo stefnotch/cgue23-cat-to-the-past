@@ -3,7 +3,6 @@ use std::sync::Arc;
 use bevy_ecs::system::{Commands, Res};
 use context::Context;
 use rapier3d::na::Vector3;
-use rapier3d::prelude::{ColliderBuilder, ColliderSet, RigidBodyBuilder};
 use scene::material::Material;
 use scene::mesh::Mesh;
 use scene::model::Model;
@@ -17,7 +16,6 @@ mod application;
 mod camera;
 mod context;
 mod input;
-mod physics;
 mod physics_context;
 mod player;
 mod render;
@@ -42,9 +40,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
         BoxCollider {
             size: Vector3::new(0.5, 0.5, 0.5),
         },
-        RapierRigidBody {
-            handle: ,
-        }
+        RapierRigidBody { handle: None },
     ));
 
     let platform = Mesh::cube(20.0, 0.1, 20.0, &memory_allocator);
