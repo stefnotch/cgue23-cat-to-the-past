@@ -2,7 +2,7 @@ use crate::camera::{update_camera, update_camera_aspect_ratio, Camera};
 use crate::context::Context;
 use crate::input;
 use crate::input::{InputMap, MouseMovement};
-use crate::physics_context::PhysicsContext;
+use crate::physics_context::{step_physics_simulation, PhysicsContext};
 use crate::render::{render, Renderer};
 use crate::time::Time;
 use bevy_ecs::prelude::*;
@@ -37,6 +37,7 @@ pub enum AppStartupStage {
 pub enum AppStage {
     EventUpdate,
     Update,
+    UpdatePhysics,
     PostUpdate,
     Render,
 }
@@ -56,6 +57,7 @@ impl ApplicationBuilder {
         let schedule = Schedule::default()
             .with_stage(AppStage::EventUpdate, SystemStage::single_threaded())
             .with_stage(AppStage::Update, SystemStage::single_threaded())
+            .with_stage(AppStage::UpdatePhysics, SystemStage::single_threaded())
             .with_stage(AppStage::PostUpdate, SystemStage::single_threaded())
             .with_stage(AppStage::Render, SystemStage::single_threaded());
 
@@ -172,6 +174,7 @@ impl Application {
         let physics_context = PhysicsContext::new();
 
         world.insert_resource(physics_context);
+        schedule.add_system_to_stage(AppStage::UpdatePhysics, step_physics_simulation);
 
         world.insert_resource(Events::<input::MouseMovement>::default());
         schedule.add_system_to_stage(
