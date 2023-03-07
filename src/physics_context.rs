@@ -1,11 +1,11 @@
 use crate::scene::transform::Transform;
 use crate::time::Time;
-use bevy_ecs::prelude::{Component, Query, Res, ResMut, Resource};
+use bevy_ecs::prelude::{Added, Component, Query, Res, ResMut, Resource};
 use rapier3d::na::Vector3;
 use rapier3d::prelude::{
-    BroadPhase, CCDSolver, ColliderSet, ImpulseJointSet, IntegrationParameters, IslandManager,
-    MultibodyJointSet, NarrowPhase, PhysicsPipeline, QueryPipeline, Real, RigidBodyHandle,
-    RigidBodySet,
+    BroadPhase, CCDSolver, ColliderBuilder, ColliderSet, ImpulseJointSet, IntegrationParameters,
+    IslandManager, MultibodyJointSet, NarrowPhase, PhysicsPipeline, QueryPipeline, Real,
+    RigidBodyHandle, RigidBodySet,
 };
 
 #[derive(Resource)]
@@ -103,16 +103,32 @@ pub fn step_physics_simulation(mut physics_context: ResMut<PhysicsContext>, time
 }
 
 #[derive(Component)]
-pub struct RapierRigidBodyHandle {
+pub struct RapierRigidBody {
     handle: RigidBodyHandle,
 }
 
+// for now colliders are created once and never changed or deleted
 #[derive(Component)]
-pub struct Collider {}
+pub struct BoxCollider {
+    pub size: Vector3<f32>,
+}
+
+pub fn insert_collider_component(
+    mut physics_context: ResMut<PhysicsContext>,
+    query: Query<&BoxCollider, Added<BoxCollider>>,
+) {
+    for collider in &query {
+        let half_size: Vector3<f32> = collider.size * 0.5;
+        let physics_collider =
+            ColliderBuilder::cuboid(half_size.x, half_size.y, half_size.z).build();
+
+        physics_context.colliders.insert(physics_collider);
+    }
+}
 
 pub fn update_transform_system(
     physics_context: Res<PhysicsContext>,
-    mut query: Query<(&mut Transform, &RapierRigidBodyHandle)>,
+    mut query: Query<(&mut Transform, &RapierRigidBody)>,
 ) {
     for (mut transform, body_handle) in query.iter_mut() {
         let body = physics_context
@@ -120,9 +136,12 @@ pub fn update_transform_system(
             .get(body_handle.handle)
             .expect("Rigid body not found");
 
-        // let position = body.position().translation.vector.into();
+        // TODO: change to nalgebra
+        let position = body.position().translation.vector;
+        let position: cgmath::Vector3<f32> =
+            cgmath::Vector3::new(position.x, position.y, position.z);
+        transform.position = position;
         // let rotation = body.rotation()
-        // transform.position = position;
-        // TODO: update position and rotation
+        // TODO: updaterotation
     }
 }
