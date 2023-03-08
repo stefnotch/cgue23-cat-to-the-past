@@ -7,6 +7,7 @@ use crate::physics_context::{
 };
 use crate::render::{render, Renderer};
 use crate::time::Time;
+use angle::Deg;
 use bevy_ecs::prelude::*;
 use std::time::Instant;
 use winit::dpi;
@@ -169,7 +170,7 @@ impl Application {
 
         let aspect_ratio = config.resolution.0 as f32 / config.resolution.1 as f32;
 
-        let camera = Camera::new(60.0, aspect_ratio, 0.01, 100.0);
+        let camera = Camera::new(Deg(60.0), aspect_ratio, 0.01, 100.0);
         let input_map = InputMap::new();
         let time = Time::new();
 

@@ -2,10 +2,11 @@ use crate::application::{AppStage, ApplicationBuilder};
 use crate::camera::Camera;
 use crate::input::{InputMap, MouseMovement};
 use crate::time::Time;
+use angle::{Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::Resource;
 use bevy_ecs::system::{Res, ResMut};
-use cgmath::{Deg, InnerSpace, Rad, Vector3};
+use nalgebra::Vector3;
 use std::f32::consts::FRAC_PI_2;
 use winit::event::VirtualKeyCode;
 
@@ -73,7 +74,7 @@ pub fn update_camera(
     let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
     let forward = Vector3::new(yaw_sin, 0.0, yaw_cos).normalize();
     let right = Vector3::new(yaw_cos, 0.0, -yaw_sin).normalize();
-    let up = Vector3::unit_y();
+    let up = Vector3::new(0.0, 1.0, 0.0);
 
     let delta_time = time.delta_seconds as f32;
 

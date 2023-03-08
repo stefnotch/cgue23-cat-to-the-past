@@ -41,12 +41,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "approx"
-version = "0.4.0"
+name = "angle"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f2a05fd1bd10b2527e20a2cd32d8873d115b8b39fe219ee25f42a8aca6ba278"
+checksum = "0bf965b6b142c8c68150e815ef527d17f0fe74e622b2c5287fd8626cb7c4a5fa"
 dependencies = [
  "num-traits",
+ "serde",
+ "serde_derive",
 ]
 
 [[package]]
@@ -323,9 +325,10 @@ dependencies = [
 name = "cat-cg-project"
 version = "0.1.0"
 dependencies = [
+ "angle",
  "bevy_ecs",
  "bytemuck",
- "cgmath",
+ "nalgebra",
  "rapier3d",
  "vulkano",
  "vulkano-shaders",
@@ -344,16 +347,6 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
-
-[[package]]
-name = "cgmath"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a98d30140e3296250832bbaaff83b27dcd6fa3cc70fb6f1f3e5c9c0023b5317"
-dependencies = [
- "approx 0.4.0",
- "num-traits",
-]
 
 [[package]]
 name = "cmake"
@@ -1027,7 +1020,7 @@ version = "0.32.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6515c882ebfddccaa73ead7320ca28036c4bc84c9bcca3cc0cbba8efe89223a"
 dependencies = [
- "approx 0.5.1",
+ "approx",
  "matrixmultiply",
  "nalgebra-macros",
  "num-complex",
@@ -1278,7 +1271,7 @@ version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2852a4cf8f65177e6f3755a725fdc0a433cca4fa6a97a07ae8c8abd7a4b52ea"
 dependencies = [
- "approx 0.5.1",
+ "approx",
  "arrayvec 0.7.2",
  "bitflags",
  "downcast-rs",
@@ -1363,7 +1356,7 @@ version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33c3a4adb69feadac44d74be058aaaec4502f9c193ec20c0e629b07387ee61a2"
 dependencies = [
- "approx 0.5.1",
+ "approx",
  "arrayvec 0.7.2",
  "bit-vec",
  "bitflags",
@@ -1576,7 +1569,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50582927ed6f77e4ac020c057f37a268fc6aebc29225050365aacbb9deeeddc4"
 dependencies = [
- "approx 0.5.1",
+ "approx",
  "num-complex",
  "num-traits",
  "paste",

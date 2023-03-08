@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use cgmath::Vector3;
+use nalgebra::Vector3;
 use std::sync::Arc;
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use vulkano::memory::allocator::MemoryAllocator;
@@ -130,22 +130,24 @@ impl Mesh {
         height: f32,
         allocator: &(impl MemoryAllocator + ?Sized),
     ) -> Arc<Self> {
+        let unit_y = Vector3::new(0.0, 1.0, 0.0);
+
         let vertices = vec![
             MeshVertex {
                 position: Vector3::new(-0.5 * width, 0.0, -0.5 * height).into(),
-                normal: Vector3::unit_y().into(),
+                normal: unit_y.into(),
             },
             MeshVertex {
                 position: Vector3::new(0.5 * width, 0.0, -0.5 * height).into(),
-                normal: Vector3::unit_y().into(),
+                normal: unit_y.into(),
             },
             MeshVertex {
                 position: Vector3::new(0.5 * width, 0.0, 0.5 * height).into(),
-                normal: Vector3::unit_y().into(),
+                normal: unit_y.into(),
             },
             MeshVertex {
                 position: Vector3::new(-0.5 * width, 0.0, 0.5 * height).into(),
-                normal: Vector3::unit_y().into(),
+                normal: unit_y.into(),
             },
         ];
 

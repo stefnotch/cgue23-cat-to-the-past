@@ -2,15 +2,16 @@ use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Res};
 use context::Context;
+use nalgebra::Point3;
 use rapier3d::na::Vector3;
 use scene::material::Material;
 use scene::mesh::Mesh;
 use scene::model::Model;
-use scene::transform::Transform;
 
 use crate::application::{AppConfig, ApplicationBuilder};
 use crate::physics_context::{BoxCollider, RapierRigidBody};
 use crate::player::PlayerSettings;
+use crate::scene::transform::TransformBuilder;
 
 mod application;
 mod camera;
@@ -28,15 +29,15 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
     );
 
     let cube = Mesh::cube(0.5, 0.5, 0.5, &memory_allocator);
-    let mut cube_transform = Transform::new();
-    cube_transform.position = cgmath::Vector3::new(0.0, 3.5, 0.0);
 
     commands.spawn((
         Model {
             mesh: cube,
             material: Arc::new(Material {}),
         },
-        cube_transform,
+        TransformBuilder::new()
+            .position(Point3::from(Vector3::new(0.0, 10.0, 0.0)))
+            .build(),
         BoxCollider {
             size: Vector3::new(0.5, 0.5, 0.5),
         },
@@ -44,15 +45,15 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
     ));
 
     let platform = Mesh::cube(20.0, 0.1, 20.0, &memory_allocator);
-    let mut plane_transform = Transform::new();
-    plane_transform.position = cgmath::Vector3::new(0.0, -0.5, 0.0);
 
     commands.spawn((
         Model {
             mesh: platform,
             material: Arc::new(Material {}),
         },
-        plane_transform,
+        TransformBuilder::new()
+            .position(Point3::from(Vector3::new(0.0, -0.5, 0.0)))
+            .build(),
         BoxCollider {
             size: Vector3::new(20.0, 0.1, 20.0),
         },
