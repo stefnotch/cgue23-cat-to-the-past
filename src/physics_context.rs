@@ -2,11 +2,12 @@ use crate::scene::transform::Transform;
 use crate::time::Time;
 use bevy_ecs::prelude::{Added, Component, Query, Res, ResMut, Resource};
 use bevy_ecs::query::Without;
-use rapier3d::na::{Isometry3, Quaternion, Translation3, UnitQuaternion, Vector3};
+use nalgebra::UnitQuaternion;
+use rapier3d::na::Vector3;
 use rapier3d::prelude::{
-    BroadPhase, CCDSolver, Collider, ColliderBuilder, ColliderHandle, ColliderSet, ImpulseJointSet,
-    IntegrationParameters, IslandManager, Isometry, MultibodyJointSet, NarrowPhase,
-    PhysicsPipeline, QueryPipeline, Real, RigidBodyBuilder, RigidBodyHandle, RigidBodySet,
+    BroadPhase, CCDSolver, ColliderBuilder, ColliderSet, ImpulseJointSet, IntegrationParameters,
+    IslandManager, MultibodyJointSet, NarrowPhase, PhysicsPipeline, QueryPipeline, Real,
+    RigidBodyBuilder, RigidBodyHandle, RigidBodySet,
 };
 
 #[derive(Resource)]
@@ -167,12 +168,10 @@ pub fn update_transform_system(
                 .expect("Rigid body not found"),
             None => continue,
         };
-        // TODO: change to nalgebra
-        let position = body.position().translation.vector;
-        let position: cgmath::Vector3<f32> =
-            cgmath::Vector3::new(position.x, position.y, position.z);
+        let position = body.position().translation.vector.into();
+        let rotation = body.rotation().into_inner();
+
         transform.position = position;
-        // let rotation = body.rotation()
-        // TODO: updaterotation
+        transform.rotation = UnitQuaternion::from_quaternion(rotation);
     }
 }
