@@ -1,24 +1,37 @@
 use crate::application::{AppStage, ApplicationBuilder};
 use crate::camera::Camera;
 use crate::input::{InputMap, MouseMovement};
+use crate::physics_context::CharacterController;
+use crate::scene::transform::{Transform, TransformBuilder};
 use crate::time::Time;
 use angle::{Deg, Rad};
 use bevy_ecs::event::EventReader;
-use bevy_ecs::prelude::Resource;
+use bevy_ecs::prelude::*;
 use bevy_ecs::system::{Res, ResMut};
-use nalgebra::Vector3;
+use nalgebra::{Point3, UnitQuaternion, Vector3};
 use std::f32::consts::FRAC_PI_2;
 use winit::event::VirtualKeyCode;
 
 #[derive(Resource)]
 pub struct PlayerSettings {
     speed: f32,
+    /// players use a different gravity
+    gravity: f32,
     sensitivity: f32,
 }
 
+#[derive(Resource)]
+pub struct Player {
+    pub desired_movement: Vector3<f32>,
+}
+
 impl PlayerSettings {
-    pub fn new(speed: f32, sensitivity: f32) -> Self {
-        PlayerSettings { speed, sensitivity }
+    pub fn new(speed: f32, sensitivity: f32, gravity: f32) -> Self {
+        PlayerSettings {
+            speed,
+            sensitivity,
+            gravity,
+        }
     }
 }
 
@@ -43,12 +56,27 @@ pub fn handle_mouse_movement(
     }
 }
 
-pub fn update_camera(
+pub fn update_camera_position(
     mut camera: ResMut<Camera>,
     input: Res<InputMap>,
     time: Res<Time>,
     settings: Res<PlayerSettings>,
 ) {
+    let direction = input_to_direction(&input);
+
+    let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
+    let forward = Vector3::new(yaw_sin, 0.0, yaw_cos).normalize();
+    let right = Vector3::new(yaw_cos, 0.0, -yaw_sin).normalize();
+    let up = Vector3::new(0.0, 1.0, 0.0);
+
+    let delta_time = time.delta_seconds as f32;
+
+    camera.position += forward * direction.z * settings.speed * delta_time;
+    camera.position += right * direction.x * settings.speed * delta_time;
+    camera.position += up * direction.y * settings.speed * delta_time;
+}
+
+fn input_to_direction(input: &InputMap) -> Vector3<f32> {
     let mut direction: Vector3<f32> = Vector3::new(0.0, 0.0, 0.0);
     if input.is_pressed(VirtualKeyCode::W) {
         direction.z += 1.0;
@@ -64,29 +92,47 @@ pub fn update_camera(
         direction.x += 1.0;
     }
 
+    // TODO: Only jump on floors
     if input.is_pressed(VirtualKeyCode::Space) {
         direction.y += 1.0;
     }
     if input.is_pressed(VirtualKeyCode::LShift) {
         direction.y += -1.0;
     }
+    direction
+}
 
-    let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
-    let forward = Vector3::new(yaw_sin, 0.0, yaw_cos).normalize();
-    let right = Vector3::new(yaw_cos, 0.0, -yaw_sin).normalize();
-    let up = Vector3::new(0.0, 1.0, 0.0);
+pub fn update_player(
+    camera: Res<Camera>,
+    input: Res<InputMap>,
+    settings: Res<PlayerSettings>,
+    mut player: ResMut<Player>,
+) {
+    let rot = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), camera.yaw.0);
 
-    let delta_time = time.delta_seconds as f32;
+    let mut desired_movement = rot * input_to_direction(&input);
 
-    camera.position += forward * direction.z * settings.speed * delta_time;
-    camera.position += right * direction.x * settings.speed * delta_time;
-    camera.position += up * direction.y * settings.speed * delta_time;
+    desired_movement *= settings.speed;
+
+    desired_movement += Vector3::new(0.0, -1.0, 0.0) * settings.gravity;
+
+    player.desired_movement = desired_movement;
 }
 
 impl ApplicationBuilder {
     pub fn with_player_controller(self, settings: PlayerSettings) -> Self {
         self.with_resource(settings)
+            .with_resource(Player {
+                desired_movement: Vector3::new(0.0, 0.0, 0.0),
+            })
+            .with_startup_system(setup_player)
             .with_system(AppStage::Update, handle_mouse_movement)
-            .with_system(AppStage::Update, update_camera)
+            .with_system(AppStage::Update, update_player)
+        // Freecam mode, make sure to disable the character controller
+        //.with_system(AppStage::Update, update_camera_position)
     }
+}
+
+fn setup_player(mut commands: Commands) {
+    commands.spawn(CharacterController { handle: None });
 }
