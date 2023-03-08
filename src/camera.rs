@@ -10,7 +10,9 @@ pub struct Camera {
     proj: Perspective3<f32>,
 
     pub position: Point3<f32>,
+    /// Circles, in circles, I go around
     pub yaw: Rad<f32>,
+    /// up and down
     pub pitch: Rad<f32>,
 }
 

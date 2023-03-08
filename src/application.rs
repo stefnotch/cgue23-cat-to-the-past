@@ -3,7 +3,8 @@ use crate::context::Context;
 use crate::input;
 use crate::input::{InputMap, MouseMovement};
 use crate::physics_context::{
-    insert_collider_component, step_physics_simulation, update_transform_system, PhysicsContext,
+    insert_collider_component, step_character_controller, step_physics_simulation,
+    update_transform_system, PhysicsContext,
 };
 use crate::render::{render, Renderer};
 use crate::time::Time;
@@ -179,6 +180,7 @@ impl Application {
         world.insert_resource(physics_context);
         schedule.add_system_to_stage(AppStage::Update, insert_collider_component);
         schedule.add_system_to_stage(AppStage::UpdatePhysics, step_physics_simulation);
+        schedule.add_system_to_stage(AppStage::PostUpdate, step_character_controller);
         schedule.add_system_to_stage(AppStage::PostUpdate, update_transform_system);
 
         world.insert_resource(Events::<input::MouseMovement>::default());

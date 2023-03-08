@@ -1,14 +1,13 @@
+use crate::camera::Camera;
+use crate::player::Player;
 use crate::scene::transform::Transform;
 use crate::time::Time;
 use bevy_ecs::prelude::{Added, Component, Query, Res, ResMut, Resource};
 use bevy_ecs::query::Without;
 use nalgebra::UnitQuaternion;
+use rapier3d::control::KinematicCharacterController;
 use rapier3d::na::Vector3;
-use rapier3d::prelude::{
-    BroadPhase, CCDSolver, ColliderBuilder, ColliderSet, ImpulseJointSet, IntegrationParameters,
-    IslandManager, MultibodyJointSet, NarrowPhase, PhysicsPipeline, QueryPipeline, Real,
-    RigidBodyBuilder, RigidBodyHandle, RigidBodySet,
-};
+use rapier3d::prelude::*;
 
 #[derive(Resource)]
 pub struct PhysicsContext {
@@ -116,7 +115,13 @@ pub struct BoxCollider {
     pub size: Vector3<f32>,
 }
 
+#[derive(Component)]
+pub struct CharacterController {
+    pub handle: Option<RigidBodyHandle>,
+}
+
 pub fn insert_collider_component(
+    camera: Res<Camera>,
     mut physics_context: ResMut<PhysicsContext>,
     box_collider_query: Query<
         (&BoxCollider, &Transform),
@@ -126,6 +131,7 @@ pub fn insert_collider_component(
         (&mut RapierRigidBody, &BoxCollider, &Transform),
         Added<RapierRigidBody>,
     >,
+    mut character_controller_query: Query<&mut CharacterController, Added<CharacterController>>,
 ) {
     for (collider, transform) in &box_collider_query {
         let half_size: Vector3<f32> = collider.size * 0.5;
@@ -153,6 +159,81 @@ pub fn insert_collider_component(
             .insert_with_parent(physics_collider, handle, &mut context.rigid_bodies);
 
         rigid_body.handle = Some(handle);
+    }
+
+    for mut character_controller in character_controller_query.iter_mut() {
+        let physics_rigid_body = RigidBodyBuilder::kinematic_position_based()
+            .translation(camera.position.coords)
+            .build();
+
+        let context = physics_context.as_mut();
+        let handle = context.rigid_bodies.insert(physics_rigid_body);
+        let collider = ColliderBuilder::capsule_y(0.3, 0.15);
+
+        context
+            .colliders
+            .insert_with_parent(collider, handle, &mut context.rigid_bodies);
+        character_controller.handle = Some(handle);
+    }
+}
+
+pub fn step_character_controller(
+    // TODO: Referencing the camera in the physics part is a bit odd
+    mut camera: ResMut<Camera>,
+    player: Res<Player>,
+    mut physics_context: ResMut<PhysicsContext>,
+    // TODO: No transform, hmm
+    query: Query<&CharacterController>,
+) {
+    for character_controller in &query {
+        let controller = KinematicCharacterController::default();
+        let context = physics_context.as_mut();
+
+        let character_body = context
+            .rigid_bodies
+            .get(character_controller.handle.unwrap())
+            .unwrap();
+        let character_collider = &context
+            .colliders
+            .get(character_body.colliders()[0])
+            .unwrap();
+        let character_mass = character_body.mass();
+
+        let mut collisions = vec![];
+        let effective_movement = controller.move_shape(
+            context.integration_parameters.dt,
+            &context.rigid_bodies,
+            &context.colliders,
+            &context.query_pipeline,
+            character_collider.shape(),
+            character_collider.position(),
+            player.desired_movement,
+            QueryFilter::new().exclude_rigid_body(character_controller.handle.unwrap()),
+            |c| collisions.push(c),
+        );
+
+        for collision in &collisions {
+            controller.solve_character_collision_impulses(
+                context.integration_parameters.dt,
+                &mut context.rigid_bodies,
+                &context.colliders,
+                &context.query_pipeline,
+                character_collider.shape(),
+                character_mass,
+                collision,
+                QueryFilter::new().exclude_rigid_body(character_controller.handle.unwrap()),
+            )
+        }
+
+        let character_body = context
+            .rigid_bodies
+            .get_mut(character_controller.handle.unwrap())
+            .unwrap();
+        let position = character_body.position();
+        let new_position = position.translation.vector + effective_movement.translation;
+        character_body.set_next_kinematic_translation(new_position);
+
+        camera.position = new_position.into();
     }
 }
 
