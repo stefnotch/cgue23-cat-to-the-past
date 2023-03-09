@@ -10,6 +10,7 @@ use crate::render::{render, Renderer};
 use crate::time::Time;
 use angle::Deg;
 use bevy_ecs::prelude::*;
+use bevy_ecs::schedule::ExecutorKind;
 use std::time::Instant;
 use winit::dpi;
 use winit::dpi::{LogicalSize, PhysicalSize};
@@ -55,8 +56,21 @@ pub struct ApplicationBuilder {
 
 impl ApplicationBuilder {
     pub fn new(config: AppConfig) -> Self {
-        let startup_schedule = Schedule::default();
-        let schedule = Schedule::default();
+        let mut startup_schedule = Schedule::default();
+        startup_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
+        let mut schedule = Schedule::default();
+        schedule.configure_sets(
+            (
+                AppStage::EventUpdate,
+                AppStage::Update,
+                AppStage::UpdatePhysics,
+                AppStage::PostUpdate,
+                AppStage::Render,
+            )
+                .chain(),
+        );
+
+        schedule.set_executor_kind(ExecutorKind::SingleThreaded);
         let world = World::new();
 
         ApplicationBuilder {
