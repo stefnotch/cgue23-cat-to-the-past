@@ -32,12 +32,12 @@ pub struct AppConfig {
     pub refresh_rate: u32,
 }
 
-#[derive(StageLabel)]
+#[derive(SystemSet, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum AppStartupStage {
     Startup,
 }
 
-#[derive(StageLabel)]
+#[derive(SystemSet, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum AppStage {
     EventUpdate,
     Update,
@@ -55,16 +55,8 @@ pub struct ApplicationBuilder {
 
 impl ApplicationBuilder {
     pub fn new(config: AppConfig) -> Self {
-        let startup_schedule = Schedule::default()
-            .with_stage(AppStartupStage::Startup, SystemStage::single_threaded());
-
-        let schedule = Schedule::default()
-            .with_stage(AppStage::EventUpdate, SystemStage::single_threaded())
-            .with_stage(AppStage::Update, SystemStage::single_threaded())
-            .with_stage(AppStage::UpdatePhysics, SystemStage::single_threaded())
-            .with_stage(AppStage::PostUpdate, SystemStage::single_threaded())
-            .with_stage(AppStage::Render, SystemStage::single_threaded());
-
+        let startup_schedule = Schedule::default();
+        let schedule = Schedule::default();
         let world = World::new();
 
         ApplicationBuilder {
@@ -75,29 +67,20 @@ impl ApplicationBuilder {
         }
     }
 
-    pub fn with_system<Params>(
-        mut self,
-        stage: AppStage,
-        system: impl IntoSystemDescriptor<Params>,
-    ) -> Self {
-        self.schedule.add_system_to_stage(stage, system);
-
+    /// call this with system.in_set(AppStage::...)
+    pub fn with_system<Params>(mut self, system: impl IntoSystemConfig<Params>) -> Self {
+        self.schedule.add_system(system);
         self
     }
 
-    pub fn with_startup_system<Params>(
-        mut self,
-        system: impl IntoSystemDescriptor<Params>,
-    ) -> Self {
-        self.startup_schedule
-            .add_system_to_stage(AppStartupStage::Startup, system);
-
+    /// call this with system.in_set(AppStartupStage::...)
+    pub fn with_startup_system<Params>(mut self, system: impl IntoSystemConfig<Params>) -> Self {
+        self.startup_schedule.add_system(system);
         self
     }
 
     pub fn with_resource<R: Resource>(mut self, res: R) -> Self {
         self.world.insert_resource(res);
-
         self
     }
 
@@ -178,40 +161,34 @@ impl Application {
         let physics_context = PhysicsContext::new();
 
         world.insert_resource(physics_context);
-        schedule.add_system_to_stage(AppStage::Update, insert_collider_component);
-        schedule.add_system_to_stage(AppStage::UpdatePhysics, step_physics_simulation);
-        schedule.add_system_to_stage(AppStage::PostUpdate, step_character_controller);
-        schedule.add_system_to_stage(AppStage::PostUpdate, update_transform_system);
+        schedule.add_system(insert_collider_component.in_set(AppStage::Update));
+        schedule.add_system(step_physics_simulation.in_set(AppStage::UpdatePhysics));
+        schedule.add_system(step_character_controller.in_set(AppStage::PostUpdate));
+        schedule.add_system(update_transform_system.in_set(AppStage::PostUpdate));
 
         world.insert_resource(Events::<input::MouseMovement>::default());
-        schedule.add_system_to_stage(
-            AppStage::EventUpdate,
-            Events::<input::MouseMovement>::update_system,
+        schedule.add_system(
+            Events::<input::MouseMovement>::update_system.in_set(AppStage::EventUpdate),
         );
 
         world.insert_resource(Events::<input::MouseInput>::default());
-        schedule.add_system_to_stage(
-            AppStage::EventUpdate,
-            Events::<input::MouseInput>::update_system,
-        );
+        schedule
+            .add_system(Events::<input::MouseInput>::update_system.in_set(AppStage::EventUpdate));
 
         world.insert_resource(Events::<input::KeyboardInput>::default());
-        schedule.add_system_to_stage(
-            AppStage::EventUpdate,
-            Events::<input::KeyboardInput>::update_system,
+        schedule.add_system(
+            Events::<input::KeyboardInput>::update_system.in_set(AppStage::EventUpdate),
         );
 
         world.insert_resource(Events::<input::WindowResize>::default());
-        schedule.add_system_to_stage(
-            AppStage::EventUpdate,
-            Events::<input::WindowResize>::update_system,
-        );
+        schedule
+            .add_system(Events::<input::WindowResize>::update_system.in_set(AppStage::EventUpdate));
 
-        schedule.add_system_to_stage(AppStage::EventUpdate, input::handle_keyboard_input);
-        schedule.add_system_to_stage(AppStage::EventUpdate, input::handle_mouse_input);
+        schedule.add_system(input::handle_keyboard_input.in_set(AppStage::EventUpdate));
+        schedule.add_system(input::handle_mouse_input.in_set(AppStage::EventUpdate));
 
-        schedule.add_system_to_stage(AppStage::EventUpdate, update_camera_aspect_ratio);
-        schedule.add_system_to_stage(AppStage::PostUpdate, update_camera);
+        schedule.add_system(update_camera_aspect_ratio.in_set(AppStage::EventUpdate));
+        schedule.add_system(update_camera.in_set(AppStage::PostUpdate));
 
         world.insert_resource(camera);
         world.insert_resource(input_map);
@@ -219,7 +196,7 @@ impl Application {
 
         world.insert_resource(context);
         world.insert_non_send_resource(renderer);
-        schedule.add_system_to_stage(AppStage::Render, render);
+        schedule.add_system(render.in_set(AppStage::Render));
 
         startup_schedule.run(&mut world);
 
