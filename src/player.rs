@@ -126,10 +126,10 @@ impl ApplicationBuilder {
                 desired_movement: Vector3::new(0.0, 0.0, 0.0),
             })
             .with_startup_system(setup_player)
-            .with_system(AppStage::Update, handle_mouse_movement)
-            .with_system(AppStage::Update, update_player)
+            .with_system(handle_mouse_movement.in_set(AppStage::Update))
+            .with_system(update_player.in_set(AppStage::Update))
         // Freecam mode, make sure to disable the character controller
-        //.with_system(AppStage::Update, update_camera_position)
+        //.with_system(update_camera_position.in_set(AppStage::Update))
     }
 }
 
