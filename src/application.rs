@@ -238,7 +238,7 @@ impl Application {
                 }
 
                 Event::WindowEvent {
-                    event: WindowEvent::Resized(dpi::PhysicalSize { width, height }),
+                    event: WindowEvent::Resized(PhysicalSize { width, height }),
                     ..
                 } => {
                     self.world.send_event(input::WindowResize { width, height });
@@ -247,8 +247,6 @@ impl Application {
                         .get_non_send_resource_mut::<Renderer>()
                         .unwrap()
                         .recreate_swapchain();
-
-                    // TODO: camera.update_aspect_ratio
                 }
 
                 Event::WindowEvent { event, .. } => match event {
