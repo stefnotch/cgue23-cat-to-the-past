@@ -180,7 +180,7 @@ pub fn insert_collider_component(
 pub fn step_character_controller(
     // TODO: Referencing the camera in the physics part is a bit odd
     mut camera: ResMut<Camera>,
-    player: Res<Player>,
+    mut player: ResMut<Player>,
     mut physics_context: ResMut<PhysicsContext>,
     // TODO: No transform, hmm
     query: Query<&CharacterController>,
@@ -207,10 +207,15 @@ pub fn step_character_controller(
             &context.query_pipeline,
             character_collider.shape(),
             character_collider.position(),
-            player.desired_movement,
+            player.desired_movement * context.integration_parameters.dt,
             QueryFilter::new().exclude_rigid_body(character_controller.handle.unwrap()),
             |c| collisions.push(c),
         );
+
+        if effective_movement.grounded {
+            player.jump_available = true;
+            // player.velocity.y = 0.0;
+        }
 
         for collision in &collisions {
             controller.solve_character_collision_impulses(

@@ -4,33 +4,57 @@ use crate::input::{InputMap, MouseMovement};
 use crate::physics_context::CharacterController;
 use crate::scene::transform::{Transform, TransformBuilder};
 use crate::time::Time;
-use angle::{Deg, Rad};
+use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::{Res, ResMut};
-use nalgebra::{Point3, UnitQuaternion, Vector3};
+use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector, Vector3};
 use std::f32::consts::FRAC_PI_2;
+use winit::dpi::Position;
 use winit::event::VirtualKeyCode;
 
 #[derive(Resource)]
 pub struct PlayerSettings {
-    speed: f32,
+    freecam_speed: f32,
     /// players use a different gravity
     gravity: f32,
     sensitivity: f32,
+
+    friction: f32,
+    ground_accelerate: f32,
+    air_accelerate: f32,
+    max_velocity_ground: f32,
+    max_velocity_air: f32,
+    camera_smoothing: f32,
+    jump_force: f32,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Debug)]
 pub struct Player {
     pub desired_movement: Vector3<f32>,
+
+    pub velocity: Vector3<f32>,
+
+    pub jump_available: bool,
+
+    pub yaw: Rad<f32>,
+    pub pitch: Rad<f32>,
 }
 
 impl PlayerSettings {
     pub fn new(speed: f32, sensitivity: f32, gravity: f32) -> Self {
         PlayerSettings {
-            speed,
+            freecam_speed: speed,
             sensitivity,
             gravity,
+
+            friction: 8.0,
+            ground_accelerate: 50.0,
+            air_accelerate: 100.0,
+            max_velocity_ground: 4.0,
+            max_velocity_air: 2.0,
+            jump_force: 8.0,
+            camera_smoothing: 20.0,
         }
     }
 }
@@ -38,22 +62,36 @@ impl PlayerSettings {
 pub fn handle_mouse_movement(
     mut reader: EventReader<MouseMovement>,
     mut camera: ResMut<Camera>,
+    mut player: ResMut<Player>,
+    time: Res<Time>,
     settings: Res<PlayerSettings>,
 ) {
+    let mut pitch: Deg<f32> = player.pitch.into();
+    let mut yaw: Deg<f32> = player.yaw.into();
+
     for event in reader.iter() {
         let MouseMovement(dx, dy) = *event;
 
-        camera.yaw += Deg(dx as f32 * settings.sensitivity).into();
-        camera.pitch += Deg(dy as f32 * settings.sensitivity).into();
-
-        const SAFE_FRAC_PI_2: f32 = FRAC_PI_2 - 0.0001;
-
-        if camera.pitch < -Rad(SAFE_FRAC_PI_2) {
-            camera.pitch = -Rad(SAFE_FRAC_PI_2);
-        } else if camera.pitch > Rad(SAFE_FRAC_PI_2) {
-            camera.pitch = Rad(SAFE_FRAC_PI_2);
-        }
+        yaw += Deg(dx as f32 * settings.sensitivity).into();
+        pitch += Deg(dy as f32 * settings.sensitivity).into();
     }
+
+    let SAFE_FRAC_PI_2: Deg<f32> = Rad(FRAC_PI_2 - 0.0001).to_deg();
+
+    if pitch < -SAFE_FRAC_PI_2 {
+        pitch = -SAFE_FRAC_PI_2;
+    } else if pitch > SAFE_FRAC_PI_2 {
+        pitch = SAFE_FRAC_PI_2;
+    }
+    let camera_factor = settings.camera_smoothing * time.delta_seconds as f32;
+
+    // TODO: validate from_euler_angle usage
+    let target_orientation = UnitQuaternion::from_axis_angle(&Vector::y_axis(), yaw.0)
+        * UnitQuaternion::from_axis_angle(&Vector::x_axis(), pitch.0);
+
+    camera.orientation = camera.orientation.slerp(&target_orientation, camera_factor);
+    player.pitch = pitch.into();
+    player.yaw = yaw.into();
 }
 
 pub fn update_camera_position(
@@ -64,16 +102,15 @@ pub fn update_camera_position(
 ) {
     let direction = input_to_direction(&input);
 
-    let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
-    let forward = Vector3::new(yaw_sin, 0.0, yaw_cos).normalize();
-    let right = Vector3::new(yaw_cos, 0.0, -yaw_sin).normalize();
+    let forward = camera.orientation * Vector::z_axis();
+    let right = camera.orientation * Vector::x_axis();
     let up = Vector3::new(0.0, 1.0, 0.0);
 
     let delta_time = time.delta_seconds as f32;
 
-    camera.position += forward * direction.z * settings.speed * delta_time;
-    camera.position += right * direction.x * settings.speed * delta_time;
-    camera.position += up * direction.y * settings.speed * delta_time;
+    camera.position += forward.into_inner() * direction.z * settings.freecam_speed * delta_time;
+    camera.position += right.into_inner() * direction.x * settings.freecam_speed * delta_time;
+    camera.position += up * direction.y * settings.freecam_speed * delta_time;
 }
 
 fn input_to_direction(input: &InputMap) -> Vector3<f32> {
@@ -92,7 +129,6 @@ fn input_to_direction(input: &InputMap) -> Vector3<f32> {
         direction.x += 1.0;
     }
 
-    // TODO: Only jump on floors
     if input.is_pressed(VirtualKeyCode::Space) {
         direction.y += 1.0;
     }
@@ -102,21 +138,104 @@ fn input_to_direction(input: &InputMap) -> Vector3<f32> {
     direction
 }
 
+fn get_horizontal(input_direction: &Vector3<f32>) -> Vector3<f32> {
+    Vector3::new(input_direction.x, 0.0, input_direction.z)
+}
+
 pub fn update_player(
     camera: Res<Camera>,
     input: Res<InputMap>,
+    time: Res<Time>,
     settings: Res<PlayerSettings>,
     mut player: ResMut<Player>,
 ) {
-    let rot = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), camera.yaw.0);
+    let input_direction = input_to_direction(&input);
+    let last_velocity = player.velocity;
 
-    let mut desired_movement = rot * input_to_direction(&input);
+    let (_, _, yaw) = camera.orientation.euler_angles();
 
-    desired_movement *= settings.speed;
+    let horizontal_input: Vector3<f32> = get_horizontal(&input_direction);
+    let vertical_input = input_direction.y;
 
-    desired_movement += Vector3::new(0.0, -1.0, 0.0) * settings.gravity;
+    let mut velocity = UnitQuaternion::from_axis_angle(&Vector::y_axis(), yaw) * horizontal_input;
 
-    player.desired_movement = desired_movement;
+    if player.jump_available {
+        velocity = move_ground(&velocity, get_horizontal(&last_velocity), &settings, &time);
+        velocity.y = -settings.gravity.abs() * 0.5;
+    } else {
+        velocity = move_air(&velocity, get_horizontal(&last_velocity), &settings, &time);
+        velocity.y = last_velocity.y;
+    }
+
+    if velocity.norm() < 0.05 {
+        velocity = Vector3::zeros()
+    }
+
+    if player.jump_available && vertical_input > 0.0 {
+        velocity.y = settings.jump_force;
+        player.jump_available = false;
+    }
+
+    velocity.y -= settings.gravity * time.delta_seconds as f32;
+
+    // player hitting their head on the roof logic could go here
+
+    player.velocity = velocity;
+    player.desired_movement = velocity;
+}
+
+fn move_air(
+    velocity: &Vector3<f32>,
+    last_horizontal_velocity: Vector3<f32>,
+    settings: &PlayerSettings,
+    time: &Time,
+) -> Vector3<f32> {
+    accelerate(
+        velocity,
+        last_horizontal_velocity,
+        settings.max_velocity_air,
+        settings.air_accelerate,
+        time,
+    )
+}
+
+fn move_ground(
+    velocity: &Vector3<f32>,
+    mut last_horizontal_velocity: Vector3<f32>,
+    settings: &PlayerSettings,
+    time: &Time,
+) -> Vector3<f32> {
+    let speed = last_horizontal_velocity.norm();
+    if speed.abs() > 0.01 {
+        let drop = speed * settings.friction * time.delta_seconds as f32;
+        last_horizontal_velocity *= (speed - drop).max(0.0) / speed;
+    }
+
+    accelerate(
+        velocity,
+        last_horizontal_velocity,
+        settings.max_velocity_ground,
+        settings.ground_accelerate,
+        time,
+    )
+}
+
+fn accelerate(
+    acceleration_direction: &Vector3<f32>,
+    last_velocity: Vector3<f32>,
+    max_velocity: f32,
+    acceleration: f32,
+    time: &Time,
+) -> Vector3<f32> {
+    // see https://github.com/FlaxEngine/FlaxSamples/blob/efebd54fa3cf3171c90d43061b138f399407318d/FirstPersonShooterTemplate/Source/FirstPersonShooter/PlayerScript.cs#L164
+    let projected_velocity = last_velocity.dot(acceleration_direction);
+    let mut acceleration = acceleration * time.delta_seconds as f32;
+
+    if projected_velocity + acceleration > max_velocity {
+        acceleration = max_velocity - projected_velocity;
+    }
+
+    last_velocity + acceleration_direction * acceleration
 }
 
 impl ApplicationBuilder {
@@ -124,6 +243,10 @@ impl ApplicationBuilder {
         self.with_resource(settings)
             .with_resource(Player {
                 desired_movement: Vector3::new(0.0, 0.0, 0.0),
+                velocity: Vector3::new(0.0, 0.0, 0.0),
+                jump_available: false,
+                yaw: Default::default(),
+                pitch: Default::default(),
             })
             .with_startup_system(setup_player)
             .with_system(handle_mouse_movement.in_set(AppStage::Update))
