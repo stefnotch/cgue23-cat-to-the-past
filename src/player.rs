@@ -76,18 +76,17 @@ pub fn handle_mouse_movement(
         pitch += Deg(dy as f32 * settings.sensitivity).into();
     }
 
-    let SAFE_FRAC_PI_2: Deg<f32> = Rad(FRAC_PI_2 - 0.0001).to_deg();
+    let max_pitch: Deg<f32> = Deg(90.0 - 0.01);
 
-    if pitch < -SAFE_FRAC_PI_2 {
-        pitch = -SAFE_FRAC_PI_2;
-    } else if pitch > SAFE_FRAC_PI_2 {
-        pitch = SAFE_FRAC_PI_2;
+    if pitch < -max_pitch {
+        pitch = -max_pitch;
+    } else if pitch > max_pitch {
+        pitch = max_pitch;
     }
     let camera_factor = settings.camera_smoothing * time.delta_seconds as f32;
 
-    // TODO: validate from_euler_angle usage
-    let target_orientation = UnitQuaternion::from_axis_angle(&Vector::y_axis(), yaw.0)
-        * UnitQuaternion::from_axis_angle(&Vector::x_axis(), pitch.0);
+    let target_orientation = UnitQuaternion::from_axis_angle(&Vector::y_axis(), yaw.to_rad().0)
+        * UnitQuaternion::from_axis_angle(&Vector::x_axis(), pitch.to_rad().0);
 
     camera.orientation = camera.orientation.slerp(&target_orientation, camera_factor);
     player.pitch = pitch.into();
@@ -142,8 +141,16 @@ fn get_horizontal(input_direction: &Vector3<f32>) -> Vector3<f32> {
     Vector3::new(input_direction.x, 0.0, input_direction.z)
 }
 
+fn normalize_if_not_zero(vector: Vector3<f32>) -> Vector3<f32> {
+    let length_squared = vector.norm_squared();
+    if length_squared.abs() < 0.001 {
+        Vector3::zeros()
+    } else {
+        vector.normalize()
+    }
+}
+
 pub fn update_player(
-    camera: Res<Camera>,
     input: Res<InputMap>,
     time: Res<Time>,
     settings: Res<PlayerSettings>,
@@ -151,13 +158,12 @@ pub fn update_player(
 ) {
     let input_direction = input_to_direction(&input);
     let last_velocity = player.velocity;
-
-    let (_, _, yaw) = camera.orientation.euler_angles();
-
-    let horizontal_input: Vector3<f32> = get_horizontal(&input_direction);
+    let horizontal_input: Vector3<f32> = normalize_if_not_zero(get_horizontal(&input_direction));
     let vertical_input = input_direction.y;
+    //let (_, _, yaw) = camera.orientation.euler_angles();
+    let yaw = player.yaw;
 
-    let mut velocity = UnitQuaternion::from_axis_angle(&Vector::y_axis(), yaw) * horizontal_input;
+    let mut velocity = UnitQuaternion::from_axis_angle(&Vector::y_axis(), yaw.0) * horizontal_input;
 
     if player.jump_available {
         velocity = move_ground(&velocity, get_horizontal(&last_velocity), &settings, &time);
@@ -252,7 +258,7 @@ impl ApplicationBuilder {
             .with_system(handle_mouse_movement.in_set(AppStage::Update))
             .with_system(update_player.in_set(AppStage::Update))
         // Freecam mode, make sure to disable the character controller
-        //.with_system(update_camera_position.in_set(AppStage::Update))
+        // .with_system(update_camera_position.in_set(AppStage::Update))
     }
 }
 
