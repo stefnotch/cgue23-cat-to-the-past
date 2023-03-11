@@ -72,7 +72,7 @@ fn main() {
         refresh_rate: 60,
     };
 
-    let player_settings = PlayerSettings::new(5.0, 0.5, 2.81);
+    let player_settings = PlayerSettings::new(5.0, 0.5, 9.81);
 
     let application = ApplicationBuilder::new(config)
         .with_startup_system(spawn_world)
