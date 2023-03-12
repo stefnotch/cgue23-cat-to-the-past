@@ -11,7 +11,6 @@ use crate::time::Time;
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ExecutorKind;
-use std::time::Instant;
 use winit::dpi::{LogicalSize, PhysicalSize};
 use winit::event::{DeviceEvent, Event, KeyboardInput, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -191,7 +190,6 @@ impl Application {
 
         let camera = Camera::new(Deg(60.0), aspect_ratio, 0.01, 100.0);
         let input_map = InputMap::new();
-        let time = Time::new();
 
         let physics_context = PhysicsContext::new();
 
@@ -227,15 +225,15 @@ impl Application {
 
         world.insert_resource(camera);
         world.insert_resource(input_map);
-        world.insert_resource(time);
 
         world.insert_resource(context);
         world.insert_non_send_resource(renderer);
         schedule.add_system(render.in_set(AppStage::Render));
 
-        startup_schedule.run(&mut world);
+        let time = Time::new();
+        world.insert_resource(time);
 
-        let mut last_frame = Instant::now();
+        startup_schedule.run(&mut world);
 
         self.event_loop
             .run(move |event, _, control_flow| match event {
@@ -285,11 +283,8 @@ impl Application {
                 },
 
                 Event::RedrawEventsCleared => {
-                    let delta_time = last_frame.elapsed().as_secs_f64();
-                    last_frame = Instant::now();
-
                     let mut time = self.world.get_resource_mut::<Time>().unwrap();
-                    time.delta_seconds = delta_time;
+                    time.update();
 
                     self.schedule.run(&mut self.world);
                 }

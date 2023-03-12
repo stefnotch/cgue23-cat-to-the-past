@@ -80,7 +80,7 @@ pub fn handle_mouse_movement(
     } else if pitch > max_pitch {
         pitch = max_pitch;
     }
-    let camera_factor = settings.camera_smoothing * time.delta_seconds as f32;
+    let camera_factor = settings.camera_smoothing * time.delta_seconds();
 
     let target_orientation = UnitQuaternion::from_axis_angle(&Vector::y_axis(), yaw.to_rad().0)
         * UnitQuaternion::from_axis_angle(&Vector::x_axis(), pitch.to_rad().0);
@@ -102,7 +102,7 @@ pub fn update_camera_position(
     let right = camera.orientation * Vector::x_axis();
     let up = Vector3::new(0.0, 1.0, 0.0);
 
-    let delta_time = time.delta_seconds as f32;
+    let delta_time = time.delta_seconds();
 
     camera.position += forward.into_inner() * direction.z * settings.freecam_speed * delta_time;
     camera.position += right.into_inner() * direction.x * settings.freecam_speed * delta_time;
@@ -179,7 +179,7 @@ pub fn update_player(
         player.jump_available = false;
     }
 
-    velocity.y -= settings.gravity * time.delta_seconds as f32;
+    velocity.y -= settings.gravity * time.delta_seconds();
 
     // player hitting their head on the roof logic could go here
 
@@ -210,7 +210,7 @@ fn move_ground(
 ) -> Vector3<f32> {
     let speed = last_horizontal_velocity.norm();
     if speed.abs() > 0.01 {
-        let drop = speed * settings.friction * time.delta_seconds as f32;
+        let drop = speed * settings.friction * time.delta_seconds();
         last_horizontal_velocity *= (speed - drop).max(0.0) / speed;
     }
 
@@ -232,7 +232,7 @@ fn accelerate(
 ) -> Vector3<f32> {
     // see https://github.com/FlaxEngine/FlaxSamples/blob/efebd54fa3cf3171c90d43061b138f399407318d/FirstPersonShooterTemplate/Source/FirstPersonShooter/PlayerScript.cs#L164
     let projected_velocity = last_velocity.dot(acceleration_direction);
-    let mut acceleration = acceleration * time.delta_seconds as f32;
+    let mut acceleration = acceleration * time.delta_seconds();
 
     if projected_velocity + acceleration > max_velocity {
         acceleration = max_velocity - projected_velocity;
