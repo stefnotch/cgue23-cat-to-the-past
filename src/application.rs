@@ -12,7 +12,6 @@ use angle::Deg;
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ExecutorKind;
 use std::time::Instant;
-use winit::dpi;
 use winit::dpi::{LogicalSize, PhysicalSize};
 use winit::event::{DeviceEvent, Event, KeyboardInput, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -111,20 +110,42 @@ impl ApplicationBuilder {
 pub struct Application {
     event_loop: EventLoop<()>,
 
+    config: AppConfig,
     world: World,
     schedule: Schedule,
+    startup_schedule: Schedule,
 }
 
 impl Application {
     fn new(
         config: AppConfig,
-        mut startup_schedule: Schedule,
-        mut schedule: Schedule,
-        mut world: World,
+        startup_schedule: Schedule,
+        schedule: Schedule,
+        world: World,
     ) -> Application {
         let event_loop = EventLoop::new();
 
-        let monitor = event_loop
+        Application {
+            event_loop,
+
+            config,
+            world,
+            schedule,
+            startup_schedule,
+        }
+    }
+
+    pub fn run(mut self)
+    where
+        Self: 'static,
+    {
+        let mut world = &mut self.world;
+        let schedule = &mut self.schedule;
+        let startup_schedule = &mut self.startup_schedule;
+        let config = &self.config;
+
+        let monitor = self
+            .event_loop
             .available_monitors()
             .next()
             .expect("no monitor found!");
@@ -134,7 +155,7 @@ impl Application {
                 width: config.resolution.0,
                 height: config.resolution.1,
             })
-            .with_title("CG Project");
+            .with_title("Cat to the past");
 
         if config.fullscreen {
             if let Some(video_mode) = monitor
@@ -151,7 +172,7 @@ impl Application {
             }
         }
 
-        let context = Context::new(window_builder, &event_loop);
+        let context = Context::new(window_builder, &self.event_loop);
 
         // TODO: move to a more appropriate place
         let surface = context.surface();
@@ -214,18 +235,6 @@ impl Application {
 
         startup_schedule.run(&mut world);
 
-        Application {
-            event_loop,
-
-            world,
-            schedule,
-        }
-    }
-
-    pub fn run(mut self)
-    where
-        Self: 'static,
-    {
         let mut last_frame = Instant::now();
 
         self.event_loop
