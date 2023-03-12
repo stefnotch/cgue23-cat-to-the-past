@@ -2,15 +2,12 @@ use crate::application::{AppStage, ApplicationBuilder};
 use crate::camera::Camera;
 use crate::input::{InputMap, MouseMovement};
 use crate::physics_context::CharacterController;
-use crate::scene::transform::{Transform, TransformBuilder};
 use crate::time::Time;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::{Res, ResMut};
-use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector, Vector3};
-use std::f32::consts::FRAC_PI_2;
-use winit::dpi::Position;
+use nalgebra::{UnitQuaternion, Vector, Vector3};
 use winit::event::VirtualKeyCode;
 
 #[derive(Resource)]
@@ -53,7 +50,7 @@ impl PlayerSettings {
             air_accelerate: 100.0,
             max_velocity_ground: 4.0,
             max_velocity_air: 2.0,
-            jump_force: 8.0,
+            jump_force: 4.0,
             camera_smoothing: 20.0,
         }
     }
@@ -251,8 +248,8 @@ impl ApplicationBuilder {
                 desired_movement: Vector3::new(0.0, 0.0, 0.0),
                 velocity: Vector3::new(0.0, 0.0, 0.0),
                 jump_available: false,
-                yaw: Default::default(),
-                pitch: Default::default(),
+                yaw: Rad(0.0),
+                pitch: Rad(0.0),
             })
             .with_startup_system(setup_player)
             .with_system(handle_mouse_movement.in_set(AppStage::Update))
