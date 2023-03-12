@@ -77,7 +77,7 @@ impl PhysicsContext {
     }
 
     pub fn step_simulation(&mut self, time: &Time) {
-        self.integration_parameters.dt = (time.delta_seconds as Real) / (self.substeps as Real);
+        self.integration_parameters.dt = (time.delta_seconds() as Real) / (self.substeps as Real);
 
         self.physics_pipeline.step(
             &self.gravity,
