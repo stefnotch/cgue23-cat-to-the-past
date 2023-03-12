@@ -22,6 +22,7 @@ mod player;
 mod render;
 mod scene;
 mod time;
+mod time_manager;
 
 fn spawn_world(mut commands: Commands, context: Res<Context>) {
     let memory_allocator = Arc::new(
