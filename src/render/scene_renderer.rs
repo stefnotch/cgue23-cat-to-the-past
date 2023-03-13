@@ -6,6 +6,7 @@ use crate::scene::transform::Transform;
 
 use crate::scene::light::PointLight;
 use crate::scene::material::Material;
+use nalgebra::Matrix3;
 use std::default::Default;
 use std::sync::Arc;
 use vulkano::buffer::{BufferUsage, CpuBufferPool, TypedBufferAccess};
@@ -287,10 +288,11 @@ impl SceneRenderer {
             // descriptor set
             let uniform_subbuffer_entity = {
                 let model_matrix = transform.to_matrix();
+                let normal_model_matrix = model_matrix.try_inverse().unwrap().transpose();
 
                 let uniform_data = vs::ty::Entity {
                     model: model_matrix.into(),
-                    normalMatrix: model_matrix.try_inverse().unwrap().transpose().into(),
+                    normalMatrix: normal_model_matrix.into(),
                     material: model.material.as_ref().into(),
                 };
 

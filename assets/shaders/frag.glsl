@@ -74,7 +74,7 @@ vec3 phong(Material material, PointLight pointLight, vec3 n, vec3 v, vec3 worldP
     float reciAttenuation = 1.0 / (att.constant + d * att.linear + d * d * att.quadratic);
 
     return (diffuse(material.kd, n, l, pointLight.color * material.color) +
-    specular(material.ks, material.alpha, r, v, pointLight.color)) * reciAttenuation;
+        specular(material.ks, material.alpha, r, v, pointLight.color)) * reciAttenuation;
 }
 
 void main() {
@@ -87,5 +87,5 @@ void main() {
         phong(entity.material, scene.pointLight, n, v, worldPos)
     , 1.0);
 
-    f_color = vec4(n, 1.0);
+//    f_color = vec4(n, 1.0);
 }

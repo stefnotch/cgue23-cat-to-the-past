@@ -1,5 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use nalgebra::Vector3;
+use std::f32::consts::PI;
 use std::sync::Arc;
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use vulkano::memory::allocator::MemoryAllocator;
@@ -50,12 +51,12 @@ impl Mesh {
             // front
             CubeFace {
                 position_indices: [0, 1, 2, 3],
-                normal: Vector3::new(0.0, 0.0, 1.0),
+                normal: Vector3::new(0.0, 0.0, -1.0),
             },
             // back
             CubeFace {
                 position_indices: [5, 4, 7, 6],
-                normal: Vector3::new(0.0, 0.0, -1.0),
+                normal: Vector3::new(0.0, 0.0, 1.0),
             },
             // right
             CubeFace {
@@ -113,6 +114,89 @@ impl Mesh {
                 face_indices_schema.map(|i| offset + i)
             })
             .collect();
+
+        let (vertex_buffer, index_buffer) = Mesh::setup_buffer(&vertices, &indices, allocator);
+
+        Arc::new(Mesh {
+            vertices,
+            indices,
+
+            vertex_buffer,
+            index_buffer,
+        })
+    }
+
+    pub fn sphere(
+        longitude_segments: u32,
+        latitude_segments: u32,
+        radius: f32,
+        allocator: &(impl MemoryAllocator + ?Sized),
+    ) -> Arc<Self> {
+        let mut vertices: Vec<MeshVertex> = vec![];
+
+        // top and bottom vertices
+        vertices.push(MeshVertex {
+            position: [0.0, radius, 0.0],
+            normal: [0.0, 1.0, 0.0],
+        });
+        vertices.push(MeshVertex {
+            position: [0.0, -radius, 0.0],
+            normal: [0.0, -1.0, 0.0],
+        });
+
+        // for each axis: n segments -> n+1 vertices
+        let num_latitude_vertices = latitude_segments + 1;
+        let num_longitude_vertices = longitude_segments + 1;
+
+        // vertices and rings
+        // top and bottom vertex already generated -> skip one latitude vertex at the front and back
+        for i in 1..num_latitude_vertices - 1 {
+            let vertical_angle: f32 = i as f32 * PI / latitude_segments as f32;
+            // wrap around -> left and right share a vertex -> generate vertex once
+            for j in 0..num_longitude_vertices - 1 {
+                let horizontal_angle: f32 = j as f32 * (2.0 * PI) / longitude_segments as f32;
+                let position = Vector3::new(
+                    radius * vertical_angle.sin() * horizontal_angle.sin(),
+                    radius * vertical_angle.cos(),
+                    radius * vertical_angle.sin() * horizontal_angle.cos(),
+                );
+                let normal: Vector3<f32> = position.normalize();
+                vertices.push(MeshVertex {
+                    position: position.into(),
+                    normal: normal.into(),
+                });
+            }
+        }
+
+        let mut indices: Vec<u32> = vec![];
+
+        let calc_index = |i: u32, j: u32| {
+            ((i % latitude_segments) * longitude_segments + (j % longitude_segments)) + 2
+        };
+
+        // top and bottom ring
+        for j in 0..(num_longitude_vertices - 1) {
+            indices.push(0);
+            indices.push(calc_index(0, j + 1));
+            indices.push(calc_index(0, j));
+
+            indices.push(1);
+            indices.push(calc_index(latitude_segments - 2, j));
+            indices.push(calc_index(latitude_segments - 2, j + 1));
+        }
+
+        // rest of the sphere
+        for i in 0..(num_latitude_vertices - 2) - 1 {
+            for j in 0..num_longitude_vertices - 1 {
+                indices.push(calc_index(i, j));
+                indices.push(calc_index(i, j + 1));
+                indices.push(calc_index(i + 1, j));
+
+                indices.push(calc_index(i + 1, j + 1));
+                indices.push(calc_index(i + 1, j));
+                indices.push(calc_index(i, j + 1));
+            }
+        }
 
         let (vertex_buffer, index_buffer) = Mesh::setup_buffer(&vertices, &indices, allocator);
 
