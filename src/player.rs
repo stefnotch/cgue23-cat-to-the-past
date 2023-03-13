@@ -73,7 +73,7 @@ pub fn handle_mouse_movement(
         pitch += Deg(dy as f32 * settings.sensitivity).into();
     }
 
-    let max_pitch: Deg<f32> = Deg(90.0 - 0.01);
+    let max_pitch: Deg<f32> = Deg(88.0);
 
     if pitch < -max_pitch {
         pitch = -max_pitch;
