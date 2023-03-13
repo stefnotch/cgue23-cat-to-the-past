@@ -1,11 +1,16 @@
 use crate::camera::Camera;
 use crate::context::Context;
 use crate::render::scene_renderer::SceneRenderer;
+use crate::scene::light::PointLight;
+use crate::scene::material::Material;
 use crate::scene::model::Model;
 use crate::scene::transform::Transform;
-use bevy_ecs::system::{NonSendMut, Query, Res};
+use bevy_ecs::prelude::{Added, Entity};
+use bevy_ecs::system::{Commands, NonSendMut, Query, Res};
 use std::sync::Arc;
+use vulkano::buffer::CpuBufferPool;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
+use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::device::Device;
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
@@ -28,6 +33,8 @@ pub struct Renderer {
     swapchain: SwapchainContainer,
     scene_renderer: SceneRenderer,
     viewport: Viewport,
+
+    descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
 }
 
 struct SwapchainContainer {
@@ -55,12 +62,16 @@ impl Renderer {
 
         let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(context.device()));
 
+        let descriptor_set_allocator =
+            Arc::new(StandardDescriptorSetAllocator::new(context.device()));
+
         let scene_renderer = SceneRenderer::new(
             context,
             &swapchain.images,
             swapchain.swapchain.image_format(),
             memory_allocator,
             command_buffer_allocator,
+            descriptor_set_allocator.clone(),
         );
 
         Renderer {
@@ -69,6 +80,7 @@ impl Renderer {
             swapchain,
             scene_renderer,
             viewport,
+            descriptor_set_allocator,
         }
     }
 
@@ -77,11 +89,18 @@ impl Renderer {
     }
 }
 
+// pub fn update_material_descriptors(mut commands: Commands, query: Query<Entity, Added<Material>>) {
+//     for entity in query.iter() {
+//         commands.entity(entity).insert()
+//     }
+// }
+
 pub fn render(
     mut renderer: NonSendMut<Renderer>,
     context: Res<Context>,
     camera: Res<Camera>,
     query: Query<(&Transform, &Model)>,
+    query_lights: Query<&PointLight>, // TODO: only query changed lights
 ) {
     // On Windows, this can occur from minimizing the application.
     let surface = context.surface();
@@ -156,11 +175,13 @@ pub fn render(
         .join(acquire_future);
 
     let models = query.iter().collect();
+    let lights: Vec<&PointLight> = query_lights.iter().collect();
 
     let future = renderer.scene_renderer.render(
         &context,
         camera.as_ref(),
         models,
+        lights,
         future,
         image_index,
         &renderer.viewport,

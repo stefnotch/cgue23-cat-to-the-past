@@ -11,6 +11,7 @@ use scene::model::Model;
 use crate::application::{AppConfig, ApplicationBuilder};
 use crate::physics_context::{BoxCollider, RapierRigidBody};
 use crate::player::PlayerSettings;
+use crate::scene::light::{Attenuation, PointLight};
 use crate::scene::transform::TransformBuilder;
 
 mod application;
@@ -29,12 +30,28 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
         vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
     );
 
+    commands.spawn(PointLight {
+        position: Vector3::new(0.0, 2.0, 0.0),
+        color: Vector3::new(1.0, 1.0, 1.0),
+        attenuation: Attenuation {
+            constant: 1.0,
+            linear: 0.4,
+            quadratic: 0.1,
+        },
+    });
+
     let cube = Mesh::cube(0.5, 0.5, 0.5, &memory_allocator);
 
     commands.spawn((
         Model {
             mesh: cube,
-            material: Arc::new(Material {}),
+            material: Arc::new(Material {
+                color: Vector3::new(0.0, 1.0, 0.0),
+                ka: 0.0,
+                kd: 0.9,
+                ks: 0.3,
+                alpha: 10.0,
+            }),
         },
         TransformBuilder::new()
             .position(Point3::from(Vector3::new(0.0, 10.0, 0.0)))
@@ -50,7 +67,13 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
     commands.spawn((
         Model {
             mesh: platform,
-            material: Arc::new(Material {}),
+            material: Arc::new(Material {
+                color: Vector3::new(1.0, 0.0, 0.0),
+                ka: 0.1,
+                kd: 0.9,
+                ks: 0.3,
+                alpha: 10.0,
+            }),
         },
         TransformBuilder::new()
             .position(Point3::from(Vector3::new(0.0, -0.5, 0.0)))

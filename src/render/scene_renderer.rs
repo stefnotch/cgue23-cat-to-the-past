@@ -4,6 +4,8 @@ use crate::scene::mesh::MeshVertex;
 use crate::scene::model::Model;
 use crate::scene::transform::Transform;
 
+use crate::scene::light::PointLight;
+use crate::scene::material::Material;
 use std::default::Default;
 use std::sync::Arc;
 use vulkano::buffer::{BufferUsage, CpuBufferPool, TypedBufferAccess};
@@ -13,7 +15,7 @@ use vulkano::command_buffer::{
     SubpassContents,
 };
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
-use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
+use vulkano::descriptor_set::{DescriptorSet, PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
 use vulkano::image::{AttachmentImage, ImageViewAbstract, SwapchainImage};
@@ -33,10 +35,11 @@ pub struct SceneRenderer {
     framebuffers: Vec<Arc<Framebuffer>>,
     memory_allocator: Arc<StandardMemoryAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
-
-    uniform_buffer: CpuBufferPool<vs::ty::Data>,
-    // maybe move that to the main renderer?
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
+
+    uniform_buffer_pool_camera: CpuBufferPool<vs::ty::Camera>,
+    uniform_buffer_pool_scene: CpuBufferPool<vs::ty::Scene>,
+    uniform_buffer_pool_entity: CpuBufferPool<vs::ty::Entity>,
 }
 
 impl SceneRenderer {
@@ -46,12 +49,31 @@ impl SceneRenderer {
         final_output_format: Format,
         memory_allocator: Arc<StandardMemoryAllocator>,
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
+        descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     ) -> Self {
         let vs = vs::load(context.device()).unwrap();
         let fs = fs::load(context.device()).unwrap();
 
         // a pool of buffers, giving us more buffers as needed
-        let uniform_buffer = CpuBufferPool::<vs::ty::Data>::new(
+        let uniform_buffer_pool_camera = CpuBufferPool::<vs::ty::Camera>::new(
+            memory_allocator.clone(),
+            BufferUsage {
+                uniform_buffer: true,
+                ..Default::default()
+            },
+            MemoryUsage::Upload,
+        );
+
+        let uniform_buffer_pool_scene = CpuBufferPool::<vs::ty::Scene>::new(
+            memory_allocator.clone(),
+            BufferUsage {
+                uniform_buffer: true,
+                ..Default::default()
+            },
+            MemoryUsage::Upload,
+        );
+
+        let uniform_buffer_pool_entity = CpuBufferPool::<vs::ty::Entity>::new(
             memory_allocator.clone(),
             BufferUsage {
                 uniform_buffer: true,
@@ -117,17 +139,17 @@ impl SceneRenderer {
             })
             .collect();
 
-        let descriptor_set_allocator =
-            Arc::new(StandardDescriptorSetAllocator::new(context.device()));
-
         SceneRenderer {
             render_pass,
             pipeline,
             framebuffers,
             memory_allocator,
             command_buffer_allocator,
-            uniform_buffer,
             descriptor_set_allocator,
+
+            uniform_buffer_pool_scene,
+            uniform_buffer_pool_camera,
+            uniform_buffer_pool_entity,
         }
     }
 }
@@ -161,6 +183,7 @@ impl SceneRenderer {
         context: &Context,
         camera: &Camera,
         models: Vec<(&Transform, &Model)>,
+        lights: Vec<&PointLight>,
         future: F,
         swapchain_frame_index: u32,
         viewport: &Viewport,
@@ -201,20 +224,74 @@ impl SceneRenderer {
             .bind_pipeline_graphics(self.pipeline.clone());
 
         // TODO: models with different pipelines
-        let layout = self.pipeline.layout().set_layouts().get(0).unwrap();
+        let scene_set_layout = self.pipeline.layout().set_layouts().get(0).unwrap();
+        let camera_set_layout = self.pipeline.layout().set_layouts().get(1).unwrap();
+        let entity_set_layout = self.pipeline.layout().set_layouts().get(2).unwrap();
+
+        let uniform_subbuffer_scene = {
+            let uniform_data = vs::ty::Scene {
+                pointLight: lights[0].into(),
+            };
+
+            self.uniform_buffer_pool_scene
+                .from_data(uniform_data)
+                .unwrap()
+        };
+
+        let scene_descriptor_set = PersistentDescriptorSet::new(
+            &self.descriptor_set_allocator,
+            scene_set_layout.clone(),
+            [WriteDescriptorSet::buffer(0, uniform_subbuffer_scene)],
+        )
+        .unwrap();
+
+        let uniform_subbuffer_camera = {
+            let uniform_data = vs::ty::Camera {
+                view: camera.view().clone().into(),
+                proj: camera.proj().clone().into(),
+                position: camera.position.clone().into(),
+            };
+
+            self.uniform_buffer_pool_camera
+                .from_data(uniform_data)
+                .unwrap()
+        };
+
+        let camera_descriptor_set = PersistentDescriptorSet::new(
+            &self.descriptor_set_allocator,
+            camera_set_layout.clone(),
+            [WriteDescriptorSet::buffer(0, uniform_subbuffer_camera)],
+        )
+        .unwrap();
+
+        builder
+            .bind_descriptor_sets(
+                PipelineBindPoint::Graphics,
+                self.pipeline.layout().clone(),
+                0,
+                scene_descriptor_set.clone(),
+            )
+            .bind_descriptor_sets(
+                PipelineBindPoint::Graphics,
+                self.pipeline.layout().clone(),
+                1,
+                camera_descriptor_set.clone(),
+            );
+
         for (transform, model) in models {
             // descriptor set
-            let uniform_buffer_subbuffer = {
-                let proj = camera.proj();
-                let view = camera.view();
+            let uniform_subbuffer_entity = {
+                let model_matrix = transform.to_matrix();
 
-                let uniform_data = vs::ty::Data {
-                    world: transform.to_matrix().into(),
-                    view: view.clone().into(),
-                    proj: proj.clone().into(),
+                let uniform_data = vs::ty::Entity {
+                    model: model_matrix.into(),
+                    normalMatrix: model_matrix.try_inverse().unwrap().transpose().into(),
+                    material: model.material.as_ref().into(),
                 };
 
-                self.uniform_buffer.from_data(uniform_data).unwrap()
+                self.uniform_buffer_pool_entity
+                    .from_data(uniform_data)
+                    .unwrap()
             };
 
             // TODO: Don't create a new descriptor set every frame
@@ -222,19 +299,22 @@ impl SceneRenderer {
                 let e = WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer);
             set.resources().update(&e);
              */
-            let set = PersistentDescriptorSet::new(
+            let entity_descriptor_set = PersistentDescriptorSet::new(
                 &self.descriptor_set_allocator,
-                layout.clone(),
-                [WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer)],
+                entity_set_layout.clone(),
+                [WriteDescriptorSet::buffer(0, uniform_subbuffer_entity)],
             )
             .unwrap();
+
+            // set.resources()
+            //     .update(&WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer));
 
             builder
                 .bind_descriptor_sets(
                     PipelineBindPoint::Graphics,
                     self.pipeline.layout().clone(),
-                    0,
-                    set.clone(),
+                    2,
+                    entity_descriptor_set.clone(),
                 )
                 .bind_index_buffer(model.mesh.index_buffer.clone())
                 .bind_vertex_buffers(0, model.mesh.vertex_buffer.clone())
@@ -264,9 +344,43 @@ mod vs {
     }
 }
 
+impl From<&PointLight> for vs::ty::PointLight {
+    fn from(value: &PointLight) -> Self {
+        let attenuation = vs::ty::Attenuation {
+            constant: value.attenuation.constant,
+            linear: value.attenuation.linear,
+            quadratic: value.attenuation.quadratic,
+        };
+
+        vs::ty::PointLight {
+            position: value.position.into(),
+            color: value.color.into(),
+            attenuation,
+            _dummy0: Default::default(),
+            _dummy1: Default::default(),
+        }
+    }
+}
+
+impl From<&Material> for vs::ty::Material {
+    fn from(value: &Material) -> Self {
+        vs::ty::Material {
+            color: value.color.into(),
+            ka: value.ka,
+            kd: value.kd,
+            ks: value.ks,
+            alpha: value.alpha,
+        }
+    }
+}
+
 mod fs {
     vulkano_shaders::shader! {
         ty: "fragment",
-        path: "assets/shaders/frag.glsl"
+        path: "assets/shaders/frag.glsl",
+        types_meta: {
+            use bytemuck::{Pod, Zeroable};
+            #[derive(Clone, Copy, Zeroable, Pod)]
+        }
     }
 }
