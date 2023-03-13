@@ -136,6 +136,7 @@ pub fn insert_collider_component(
     for (collider, transform) in &box_collider_query {
         let half_size: Vector3<f32> = collider.size * 0.5;
         let physics_collider = ColliderBuilder::cuboid(half_size.x, half_size.y, half_size.z)
+            // TODO: scaled colliders are not supported yet
             .position(transform.to_isometry())
             .build();
 
