@@ -22,7 +22,7 @@ use vulkano::image::{AttachmentImage, ImageViewAbstract, SwapchainImage};
 use vulkano::memory::allocator::{MemoryUsage, StandardMemoryAllocator};
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
-use vulkano::pipeline::graphics::rasterization::{CullMode, RasterizationState};
+use vulkano::pipeline::graphics::rasterization::{CullMode, PolygonMode, RasterizationState};
 use vulkano::pipeline::graphics::vertex_input::BuffersDefinition;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
@@ -106,9 +106,14 @@ impl SceneRenderer {
         .unwrap();
 
         let pipeline = GraphicsPipeline::start()
+            // .rasterization_state(
+            //     RasterizationState::new()
+            //         .cull_mode(CullMode::Back)
+            //         .polygon_mode(PolygonMode::Line),
+            // )
+            .rasterization_state(RasterizationState::new().cull_mode(CullMode::Back))
             .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
             .depth_stencil_state(DepthStencilState::simple_depth_test())
-            .rasterization_state(RasterizationState::new().cull_mode(CullMode::Back))
             .vertex_input_state(BuffersDefinition::new().vertex::<MeshVertex>())
             .input_assembly_state(InputAssemblyState::new())
             .vertex_shader(vs.entry_point("main").unwrap(), ())
