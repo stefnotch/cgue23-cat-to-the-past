@@ -48,6 +48,6 @@ void main() {
 
     gl_Position = camera.proj * camera.view * entity.model * vec4(position, 1.0);
 
-    v_position = position;
+    v_position = worldPos;
     v_normal = n;
 }

@@ -1,8 +1,10 @@
+use bevy_ecs::query::Without;
+use std::f32::consts::PI;
 use std::sync::Arc;
 
-use bevy_ecs::system::{Commands, Res};
+use bevy_ecs::system::{Commands, Query, Res};
 use context::Context;
-use nalgebra::Point3;
+use nalgebra::{Point3, UnitQuaternion, Vector};
 use rapier3d::na::Vector3;
 use scene::material::Material;
 use scene::mesh::Mesh;
@@ -12,7 +14,7 @@ use crate::application::{AppConfig, ApplicationBuilder};
 use crate::physics_context::{BoxCollider, RapierRigidBody};
 use crate::player::PlayerSettings;
 use crate::scene::light::{Attenuation, PointLight};
-use crate::scene::transform::TransformBuilder;
+use crate::scene::transform::{Transform, TransformBuilder};
 
 mod application;
 mod camera;
@@ -31,7 +33,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
     );
 
     commands.spawn(PointLight {
-        position: Vector3::new(0.0, 2.0, 0.0),
+        position: Vector3::new(0.0, 1.0, 0.0),
         color: Vector3::new(1.0, 1.0, 1.0),
         attenuation: Attenuation {
             constant: 1.0,
@@ -41,6 +43,60 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
     });
 
     let cube = Mesh::cube(0.5, 0.5, 0.5, &memory_allocator);
+
+    let sphere = Mesh::sphere(32, 16, 0.1, &memory_allocator);
+
+    commands.spawn((
+        Model {
+            mesh: sphere.clone(),
+            material: Arc::new(Material {
+                color: Vector3::new(1.0, 1.0, 1.0),
+                ka: 0.0,
+                kd: 1.0,
+                ks: 0.0,
+                alpha: 1.0,
+            }),
+        },
+        TransformBuilder::new()
+            .position(Point3::from(Vector3::new(5.0, 1.0, 0.0)))
+            .build(),
+    ));
+
+    for i in 0..32 {
+        let angle = i as f32 * (2.0 * PI) / 32.0;
+        let (sin, cos) = angle.sin_cos();
+        commands.spawn((
+            Model {
+                mesh: cube.clone(),
+                material: Arc::new(Material {
+                    color: Vector3::new(1.0, 1.0, 1.0),
+                    ka: 0.0,
+                    kd: 1.0,
+                    ks: 0.0,
+                    alpha: 1.0,
+                }),
+            },
+            TransformBuilder::new()
+                .position(Point3::from(Vector3::new(cos * 5.0, 1.0, sin * 5.0)))
+                .build(),
+        ));
+    }
+
+    commands.spawn((
+        Model {
+            mesh: sphere,
+            material: Arc::new(Material {
+                color: Vector3::new(1.0, 1.0, 1.0),
+                ka: 1.0,
+                kd: 0.9,
+                ks: 0.3,
+                alpha: 10.0,
+            }),
+        },
+        TransformBuilder::new()
+            .position(Point3::from(Vector3::new(0.0, 1.0, 0.0)))
+            .build(),
+    ));
 
     commands.spawn((
         Model {
@@ -54,7 +110,11 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
             }),
         },
         TransformBuilder::new()
-            .position(Point3::from(Vector3::new(0.0, 10.0, 0.0)))
+            .position(Point3::from(Vector3::new(0.0, 0.25, 0.0)))
+            .rotation(UnitQuaternion::from_axis_angle(
+                &Vector3::y_axis(),
+                PI / 2.0,
+            ))
             .build(),
         BoxCollider {
             size: Vector3::new(0.5, 0.5, 0.5),
@@ -69,9 +129,9 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
             mesh: platform,
             material: Arc::new(Material {
                 color: Vector3::new(1.0, 0.0, 0.0),
-                ka: 0.1,
+                ka: 0.0,
                 kd: 0.9,
-                ks: 0.3,
+                ks: 0.0,
                 alpha: 10.0,
             }),
         },
@@ -82,6 +142,12 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
             size: Vector3::new(20.0, 0.1, 20.0),
         },
     ));
+}
+
+fn rotate_entites(mut query: Query<&mut Transform, Without<BoxCollider>>) {
+    for mut transform in query.iter_mut() {
+        transform.rotation *= UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.05);
+    }
 }
 
 fn main() {
@@ -100,6 +166,7 @@ fn main() {
 
     let application = ApplicationBuilder::new(config)
         .with_startup_system(spawn_world)
+        .with_system(rotate_entites)
         .with_player_controller(player_settings)
         .build();
 
