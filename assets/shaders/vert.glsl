@@ -44,10 +44,10 @@ layout(set = 2, binding = 0) uniform Entity {
 
 void main() {
     vec3 worldPos = (entity.model * vec4(position, 1.0)).xyz; // world space
-    vec3 n = normalize(mat3(entity.normalMatrix) * normal); // world space
+    vec3 n = mat3(entity.normalMatrix) * normal; // world space
 
     gl_Position = camera.proj * camera.view * entity.model * vec4(position, 1.0);
 
     v_position = position;
-    v_normal = normal;
+    v_normal = n;
 }

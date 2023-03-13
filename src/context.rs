@@ -1,7 +1,9 @@
 use bevy_ecs::system::Resource;
 use std::sync::Arc;
 use vulkano::device::physical::{PhysicalDevice, PhysicalDeviceType};
-use vulkano::device::{Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo};
+use vulkano::device::{
+    Device, DeviceCreateInfo, DeviceExtensions, Features, Queue, QueueCreateInfo,
+};
 use vulkano::instance::debug::{
     DebugUtilsMessageSeverity, DebugUtilsMessageType, DebugUtilsMessenger,
     DebugUtilsMessengerCreateInfo,
@@ -230,6 +232,10 @@ fn create_logical_device(
     let (device, mut queues) = Device::new(
         physical_device.clone(),
         DeviceCreateInfo {
+            enabled_features: Features {
+                fill_mode_non_solid: true,
+                ..Default::default()
+            },
             enabled_extensions: *device_extensions,
             queue_create_infos: vec![QueueCreateInfo {
                 queue_family_index,
