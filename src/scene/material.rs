@@ -3,6 +3,8 @@ use nalgebra::Vector3;
 use std::sync::Arc;
 use vulkano::descriptor_set::PersistentDescriptorSet;
 
+use super::loader::Asset;
+
 // #[derive(Component)]
 // pub struct MaterialDescriptorSetHandle {
 //     pub descriptor_set: Arc<PersistentDescriptorSet>,
@@ -18,3 +20,5 @@ pub struct Material {
     pub alpha: f32,
     // TODO: Add a shader/pipeline here (we only support one shader for now)
 }
+
+impl Asset for Material {}

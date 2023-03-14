@@ -247,7 +247,7 @@ impl SwapchainContainer {
                 device.clone(),
                 surface.clone(),
                 SwapchainCreateInfo {
-                    min_image_count: surface_capabilities.min_image_count + 1,
+                    min_image_count: surface_capabilities.min_image_count,
                     image_format,
                     image_extent: window.inner_size().into(),
                     image_usage: ImageUsage {

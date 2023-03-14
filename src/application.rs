@@ -7,12 +7,13 @@ use crate::physics_context::{
     update_transform_system, PhysicsContext,
 };
 use crate::render::{render, Renderer};
+use crate::scene::loader::AssetServer;
 use crate::time::Time;
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ExecutorKind;
 use winit::dpi::{LogicalSize, PhysicalSize};
-use winit::event::{DeviceEvent, Event, KeyboardInput, WindowEvent};
+use winit::event::{DeviceEvent, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Fullscreen::Exclusive;
 use winit::window::{CursorGrabMode, Window, WindowBuilder};
@@ -188,6 +189,10 @@ impl Application {
 
         let aspect_ratio = config.resolution.0 as f32 / config.resolution.1 as f32;
 
+        let asset_server = AssetServer::new();
+        world.insert_resource(asset_server);
+        AssetServer::insert_asset_types(&mut world);
+
         let camera = Camera::new(Deg(60.0), aspect_ratio, 0.01, 100.0);
         let input_map = InputMap::new();
 
@@ -266,6 +271,10 @@ impl Application {
                             },
                         ..
                     } => {
+                        if key_code == VirtualKeyCode::Escape {
+                            *control_flow = ControlFlow::Exit;
+                        }
+
                         self.world
                             .send_event(input::KeyboardInput { key_code, state });
                     }
