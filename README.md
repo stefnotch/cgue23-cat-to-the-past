@@ -1,4 +1,4 @@
-# cat-cg-project
+# Cat to the past
 Computergraphics Project at the TU Vienna
 
 ## Game concept
