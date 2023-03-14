@@ -43,7 +43,29 @@ impl AssetServer {
         P: AsRef<Path>,
     {
         let scene = Gltf::open(path)?;
-        println!("scene: {:?}", scene);
+        // TODO: Load buffers
+        // https://github.com/flomonster/easy-gltf/blob/master/src/utils/gltf_data.rs
+
+        let buffers = HashMap::<usize, Vec<u8>>::new();
+
+        for buffer in scene.buffers() {
+            let data = match buffer.source() {
+                gltf::buffer::Source::Bin => todo!(),
+                gltf::buffer::Source::Uri(_) => todo!(),
+            };
+
+            buffers.insert(buffer.index(), data);
+        }
+
+        // TODO: https://github.com/bevyengine/bevy/blob/main/crates/bevy_gltf/src/loader.rs#L1027
+
+        // create our meshes and upload them to the GPU
+
+        // load textures
+
+        // load materials
+
+        // load primitives (reference stuff above) and create models
 
         Ok(())
     }
