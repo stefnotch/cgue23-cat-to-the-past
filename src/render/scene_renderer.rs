@@ -285,48 +285,50 @@ impl SceneRenderer {
             );
 
         for (transform, model) in models {
-            // descriptor set
-            let uniform_subbuffer_entity = {
-                let model_matrix = transform.to_matrix();
-                let normal_model_matrix = model_matrix.try_inverse().unwrap().transpose();
+            for primitive in &model.primitives {
+                // descriptor set
+                let uniform_subbuffer_entity = {
+                    let model_matrix = transform.to_matrix();
+                    let normal_model_matrix = model_matrix.try_inverse().unwrap().transpose();
 
-                let uniform_data = vs::ty::Entity {
-                    model: model_matrix.into(),
-                    normalMatrix: normal_model_matrix.into(),
-                    material: model.material.as_ref().into(),
+                    let uniform_data = vs::ty::Entity {
+                        model: model_matrix.into(),
+                        normalMatrix: normal_model_matrix.into(),
+                        material: primitive.material.as_ref().into(),
+                    };
+
+                    self.uniform_buffer_pool_entity
+                        .from_data(uniform_data)
+                        .unwrap()
                 };
 
-                self.uniform_buffer_pool_entity
-                    .from_data(uniform_data)
-                    .unwrap()
-            };
-
-            // TODO: Don't create a new descriptor set every frame
-            /*
-                let e = WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer);
-            set.resources().update(&e);
-             */
-            let entity_descriptor_set = PersistentDescriptorSet::new(
-                &self.descriptor_set_allocator,
-                entity_set_layout.clone(),
-                [WriteDescriptorSet::buffer(0, uniform_subbuffer_entity)],
-            )
-            .unwrap();
-
-            // set.resources()
-            //     .update(&WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer));
-
-            builder
-                .bind_descriptor_sets(
-                    PipelineBindPoint::Graphics,
-                    self.pipeline.layout().clone(),
-                    2,
-                    entity_descriptor_set.clone(),
+                // TODO: Don't create a new descriptor set every frame
+                /*
+                    let e = WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer);
+                set.resources().update(&e);
+                 */
+                let entity_descriptor_set = PersistentDescriptorSet::new(
+                    &self.descriptor_set_allocator,
+                    entity_set_layout.clone(),
+                    [WriteDescriptorSet::buffer(0, uniform_subbuffer_entity)],
                 )
-                .bind_index_buffer(model.mesh.index_buffer.clone())
-                .bind_vertex_buffers(0, model.mesh.vertex_buffer.clone())
-                .draw_indexed(model.mesh.index_buffer.len() as u32, 1, 0, 0, 0)
                 .unwrap();
+
+                // set.resources()
+                //     .update(&WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer));
+
+                builder
+                    .bind_descriptor_sets(
+                        PipelineBindPoint::Graphics,
+                        self.pipeline.layout().clone(),
+                        2,
+                        entity_descriptor_set.clone(),
+                    )
+                    .bind_index_buffer(primitive.mesh.index_buffer.clone())
+                    .bind_vertex_buffers(0, primitive.mesh.vertex_buffer.clone())
+                    .draw_indexed(primitive.mesh.index_buffer.len() as u32, 1, 0, 0, 0)
+                    .unwrap();
+            }
         }
 
         builder.end_render_pass().unwrap();

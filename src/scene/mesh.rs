@@ -5,6 +5,8 @@ use std::sync::Arc;
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use vulkano::memory::allocator::MemoryAllocator;
 
+use super::loader::Asset;
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, Zeroable, Pod)]
 pub struct MeshVertex {
@@ -21,6 +23,7 @@ pub struct Mesh {
     pub vertex_buffer: Arc<CpuAccessibleBuffer<[MeshVertex]>>,
     pub index_buffer: Arc<CpuAccessibleBuffer<[u32]>>,
 }
+impl Asset for Mesh {}
 
 impl Mesh {
     pub fn cube(

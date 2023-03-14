@@ -1,4 +1,5 @@
 use bevy_ecs::query::Without;
+use scene::loader::AssetServer;
 use std::f32::consts::PI;
 use std::sync::Arc;
 
@@ -8,7 +9,7 @@ use nalgebra::{Point3, UnitQuaternion};
 use rapier3d::na::Vector3;
 use scene::material::Material;
 use scene::mesh::Mesh;
-use scene::model::Model;
+use scene::model::{Model, Primitive};
 
 use crate::application::{AppConfig, ApplicationBuilder};
 use crate::physics_context::{BoxCollider, RapierRigidBody};
@@ -27,10 +28,14 @@ mod scene;
 mod time;
 mod time_manager;
 
-fn spawn_world(mut commands: Commands, context: Res<Context>) {
+fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<AssetServer>) {
     let memory_allocator = Arc::new(
         vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
     );
+
+    asset_server
+        .load_scene("./assets/scene/only_floors.gltf")
+        .unwrap();
 
     commands.spawn(PointLight {
         position: Vector3::new(0.0, 1.0, 0.0),
@@ -48,14 +53,16 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
 
     commands.spawn((
         Model {
-            mesh: sphere.clone(),
-            material: Arc::new(Material {
-                color: Vector3::new(1.0, 1.0, 1.0),
-                ka: 0.0,
-                kd: 1.0,
-                ks: 0.0,
-                alpha: 1.0,
-            }),
+            primitives: vec![Primitive {
+                mesh: sphere.clone(),
+                material: Arc::new(Material {
+                    color: Vector3::new(1.0, 1.0, 1.0),
+                    ka: 0.0,
+                    kd: 1.0,
+                    ks: 0.0,
+                    alpha: 1.0,
+                }),
+            }],
         },
         TransformBuilder::new()
             .position(Point3::from(Vector3::new(5.0, 1.0, 0.0)))
@@ -67,14 +74,16 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
         let (sin, cos) = angle.sin_cos();
         commands.spawn((
             Model {
-                mesh: cube.clone(),
-                material: Arc::new(Material {
-                    color: Vector3::new(1.0, 1.0, 1.0),
-                    ka: 0.0,
-                    kd: 1.0,
-                    ks: 0.0,
-                    alpha: 1.0,
-                }),
+                primitives: vec![Primitive {
+                    mesh: cube.clone(),
+                    material: Arc::new(Material {
+                        color: Vector3::new(1.0, 1.0, 1.0),
+                        ka: 0.0,
+                        kd: 1.0,
+                        ks: 0.0,
+                        alpha: 1.0,
+                    }),
+                }],
             },
             TransformBuilder::new()
                 .position(Point3::from(Vector3::new(cos * 5.0, 1.0, sin * 5.0)))
@@ -84,14 +93,16 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
 
     commands.spawn((
         Model {
-            mesh: sphere,
-            material: Arc::new(Material {
-                color: Vector3::new(1.0, 1.0, 1.0),
-                ka: 1.0,
-                kd: 0.9,
-                ks: 0.3,
-                alpha: 10.0,
-            }),
+            primitives: vec![Primitive {
+                mesh: sphere,
+                material: Arc::new(Material {
+                    color: Vector3::new(1.0, 1.0, 1.0),
+                    ka: 1.0,
+                    kd: 0.9,
+                    ks: 0.3,
+                    alpha: 10.0,
+                }),
+            }],
         },
         TransformBuilder::new()
             .position(Point3::from(Vector3::new(0.0, 1.0, 0.0)))
@@ -100,14 +111,16 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
 
     commands.spawn((
         Model {
-            mesh: cube,
-            material: Arc::new(Material {
-                color: Vector3::new(0.0, 1.0, 0.0),
-                ka: 0.0,
-                kd: 0.9,
-                ks: 0.3,
-                alpha: 10.0,
-            }),
+            primitives: vec![Primitive {
+                mesh: cube,
+                material: Arc::new(Material {
+                    color: Vector3::new(0.0, 1.0, 0.0),
+                    ka: 0.0,
+                    kd: 0.9,
+                    ks: 0.3,
+                    alpha: 10.0,
+                }),
+            }],
         },
         TransformBuilder::new()
             .position(Point3::from(Vector3::new(0.0, 0.25, 0.0)))
@@ -126,14 +139,16 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
 
     commands.spawn((
         Model {
-            mesh: platform,
-            material: Arc::new(Material {
-                color: Vector3::new(1.0, 0.0, 0.0),
-                ka: 0.0,
-                kd: 0.9,
-                ks: 0.0,
-                alpha: 10.0,
-            }),
+            primitives: vec![Primitive {
+                mesh: platform,
+                material: Arc::new(Material {
+                    color: Vector3::new(1.0, 0.0, 0.0),
+                    ka: 0.0,
+                    kd: 0.9,
+                    ks: 0.0,
+                    alpha: 10.0,
+                }),
+            }],
         },
         TransformBuilder::new()
             .position(Point3::from(Vector3::new(0.0, -0.5, 0.0)))
