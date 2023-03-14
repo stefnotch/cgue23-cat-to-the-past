@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Query, Res};
 use context::Context;
-use nalgebra::{Point3, UnitQuaternion, Vector};
+use nalgebra::{Point3, UnitQuaternion};
 use rapier3d::na::Vector3;
 use scene::material::Material;
 use scene::mesh::Mesh;

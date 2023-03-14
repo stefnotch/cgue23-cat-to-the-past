@@ -1,6 +1,7 @@
 use bevy_ecs::component::Component;
 use nalgebra::Vector3;
 
+// TODO: calculate approximate light range from attenuation and vice-versa
 pub struct Attenuation {
     pub constant: f32,
     pub linear: f32,
