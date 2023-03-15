@@ -255,10 +255,10 @@ pub fn update_transform_system(
                 .expect("Rigid body not found"),
             None => continue,
         };
-        let position = body.position().translation.vector.into();
+        let translation = body.position().translation;
         let rotation = body.rotation().into_inner();
 
-        transform.position = position;
+        transform.translation = translation;
         transform.rotation = UnitQuaternion::from_quaternion(rotation);
     }
 }

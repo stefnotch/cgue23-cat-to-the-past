@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Query, Res};
 use context::Context;
-use nalgebra::{Point3, UnitQuaternion};
+use nalgebra::{Translation3, UnitQuaternion};
 use rapier3d::na::Vector3;
 use scene::material::Material;
 use scene::mesh::Mesh;
@@ -34,7 +34,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
     );
 
     asset_server
-        .load_scene("./assets/scene/only_floors.gltf")
+        .load_default_scene("./assets/scene/only_floor_v2.gltf")
         .unwrap();
 
     commands.spawn(PointLight {
@@ -65,7 +65,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
             }],
         },
         TransformBuilder::new()
-            .position(Point3::from(Vector3::new(5.0, 1.0, 0.0)))
+            .translation(Translation3::new(5.0, 1.0, 0.0))
             .build(),
     ));
 
@@ -86,7 +86,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
                 }],
             },
             TransformBuilder::new()
-                .position(Point3::from(Vector3::new(cos * 5.0, 1.0, sin * 5.0)))
+                .translation(Translation3::new(cos * 5.0, 1.0, sin * 5.0))
                 .build(),
         ));
     }
@@ -105,7 +105,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
             }],
         },
         TransformBuilder::new()
-            .position(Point3::from(Vector3::new(0.0, 1.0, 0.0)))
+            .translation(Translation3::new(0.0, 1.0, 0.0))
             .build(),
     ));
 
@@ -123,7 +123,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
             }],
         },
         TransformBuilder::new()
-            .position(Point3::from(Vector3::new(0.0, 0.25, 0.0)))
+            .translation(Translation3::new(0.0, 0.25, 0.0))
             .rotation(UnitQuaternion::from_axis_angle(
                 &Vector3::y_axis(),
                 PI / 2.0,
@@ -151,7 +151,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
             }],
         },
         TransformBuilder::new()
-            .position(Point3::from(Vector3::new(0.0, -0.5, 0.0)))
+            .translation(Translation3::new(0.0, -0.5, 0.0))
             .build(),
         BoxCollider {
             size: Vector3::new(20.0, 0.1, 20.0),
