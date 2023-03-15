@@ -1,13 +1,19 @@
-use crate::scene::light::Light::PointLight;
-use crate::scene::light::{Attenuation, Light};
+use crate::scene::light::Light;
+use crate::scene::mesh::MeshVertex;
 use crate::scene::model::Model;
 use crate::scene::transform::Transform;
 use bevy_ecs::prelude::*;
 use gltf::khr_lights_punctual::Kind;
-use gltf::{import, khr_lights_punctual, Gltf, Node, Primitive};
+use gltf::{import, khr_lights_punctual, Node, Semantic};
 use nalgebra::{Point3, Quaternion, Translation3, UnitQuaternion, Vector3};
+use std::sync::Arc;
 use std::{collections::HashMap, path::Path};
 use uuid::Uuid;
+use vulkano::memory::allocator::MemoryAllocator;
+
+use super::material::Material;
+use super::mesh::Mesh;
+use super::texture::Texture;
 
 // textures
 // meshes
@@ -44,26 +50,37 @@ impl AssetServer {
     }
 
     /// loads one .gltf file
-    pub fn load_default_scene<P>(&self, path: P) -> Result<(), Box<dyn std::error::Error>>
+    pub fn load_default_scene<P>(
+        &self,
+        path: P,
+        memory_allocator: &dyn MemoryAllocator,
+    ) -> Result<(), Box<dyn std::error::Error>>
     where
         P: AsRef<Path>,
     {
         let (doc, buffers, images) = import(path)?;
+        let mut scene_loading_data = SceneLoadingData::new(memory_allocator, buffers, images);
+        let mut scene_loading_result = SceneLoadingResult::new();
 
         if doc.scenes().len() > 1 {
-            todo!("We shouldn't have more than one scene; return Err result later");
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "We shouldn't have more than one scene",
+            )));
         }
 
         let scene = doc.default_scene().ok_or("Default scene is not set")?;
 
-        let mut lights = vec![];
-        let mut meshes = vec![];
-
         for node in scene.nodes() {
-            Self::read_node(&node, &mut lights, &mut meshes, &Transform::default());
+            Self::read_node(
+                &node,
+                &mut scene_loading_data,
+                &mut scene_loading_result,
+                &Transform::default(),
+            );
         }
 
-        println!("{:?}", lights);
+        println!("{:?}", scene_loading_result.lights);
 
         // https://github.com/flomonster/easy-gltf/blob/master/src/utils/gltf_data.rs
 
@@ -86,27 +103,35 @@ impl AssetServer {
 
     fn read_node(
         node: &Node,
-        lights: &mut Vec<Light>,
-        models: &mut Vec<Model>,
+        scene_loading_data: &mut SceneLoadingData,
+        scene_loading_result: &mut SceneLoadingResult,
         parent_transform: &Transform,
     ) {
         let local_transform: Transform = node.transform().into();
         let global_transform = parent_transform * local_transform;
 
         for child in node.children() {
-            AssetServer::read_node(&child, lights, models, &global_transform);
+            AssetServer::read_node(
+                &child,
+                scene_loading_data,
+                scene_loading_result,
+                &global_transform,
+            );
         }
 
         // skip loading camera (hardcoded)
 
         if let Some(light) = node.light() {
-            lights.push(Self::load_light(light, &global_transform));
+            scene_loading_result
+                .lights
+                .push(Self::load_light(light, &global_transform));
         }
 
         if let Some(mesh) = node.mesh() {
-            for primitive in mesh.primitives() {
-                models.push(Self::load_model(primitive, &global_transform))
-            }
+            scene_loading_result.models.push((
+                global_transform.clone(),
+                Self::load_model(mesh, scene_loading_data),
+            ));
         }
     }
 
@@ -128,8 +153,27 @@ impl AssetServer {
         }
     }
 
-    fn load_model(primitive: Primitive, global_transform: &Transform) -> Model {
-        Model { primitives: vec![] }
+    fn load_model(mesh: gltf::Mesh, scene_loading_data: &mut SceneLoadingData) -> Model {
+        let mut model = Model {
+            primitives: Vec::new(),
+        };
+        for primitive in mesh.primitives() {
+            let mesh = scene_loading_data.get_mesh(primitive);
+
+            model.primitives.push(crate::scene::model::Primitive {
+                mesh,
+                // TODO: actually load a material
+                material: Arc::new(Material {
+                    color: Vector3::new(1.0, 1.0, 1.0),
+                    ka: 0.0,
+                    kd: 0.0,
+                    ks: 0.0,
+                    alpha: 1.0,
+                }),
+            })
+        }
+
+        model
     }
 }
 
@@ -149,4 +193,90 @@ impl From<gltf::scene::Transform> for Transform {
             scale,
         }
     }
+}
+
+struct SceneLoadingData<'a> {
+    gltf_buffers: Vec<gltf::buffer::Data>,
+    gltf_images: Vec<gltf::image::Data>,
+    meshes: HashMap<MeshKey, Arc<Mesh>>,
+    textures: Vec<Option<Texture>>,
+    allocator: &'a dyn MemoryAllocator,
+}
+
+struct SceneLoadingResult {
+    lights: Vec<Light>,
+    models: Vec<(Transform, Model)>,
+}
+impl SceneLoadingResult {
+    fn new() -> Self {
+        Self {
+            lights: vec![],
+            models: vec![],
+        }
+    }
+}
+
+impl<'a> SceneLoadingData<'a> {
+    fn new(
+        memory_allocator: &'a dyn MemoryAllocator,
+        buffers: Vec<gltf::buffer::Data>,
+        images: Vec<gltf::image::Data>,
+    ) -> Self {
+        let mut textures = vec![];
+        for _ in 0..images.len() {
+            textures.push(None);
+        }
+
+        Self {
+            gltf_buffers: buffers,
+            gltf_images: images,
+            meshes: HashMap::new(),
+            textures,
+            allocator: memory_allocator,
+        }
+    }
+
+    fn get_mesh(&mut self, primitive: gltf::Primitive) -> Arc<Mesh> {
+        assert!(primitive.mode() == gltf::mesh::Mode::Triangles);
+
+        let mesh_key = MeshKey {
+            index_buffer_id: primitive.indices().unwrap().index(),
+            vertex_buffer_positions_id: primitive.get(&Semantic::Positions).unwrap().index(),
+            vertex_buffer_normals_id: primitive.get(&Semantic::Normals).unwrap().index(),
+            vertex_buffer_uvs_id: primitive.get(&Semantic::TexCoords(0)).unwrap().index(),
+        };
+
+        if let Some(mesh) = self.meshes.get(&mesh_key) {
+            return mesh.clone();
+        } else {
+            let reader = primitive.reader(|buffer| Some(&self.gltf_buffers[buffer.index()]));
+            let positions = reader.read_positions().unwrap();
+            let normals = reader.read_normals().unwrap();
+            // let uvs = reader.read_tex_coords(0).unwrap();
+            let mut vertices = vec![];
+
+            // zippy zip https://stackoverflow.com/a/71494478/3492994
+            for (position, normal) in positions.zip(normals) {
+                vertices.push(MeshVertex {
+                    position,
+                    normal,
+                    // uv: Vector2::from(uv),
+                });
+            }
+
+            let indices = reader
+                .read_indices()
+                .map(|indices| indices.into_u32().collect())
+                .unwrap_or_else(|| (0..vertices.len()).map(|index| index as u32).collect());
+            Mesh::new(vertices, indices, self.allocator)
+        }
+    }
+}
+
+#[derive(Hash, Eq, PartialEq, Debug)]
+struct MeshKey {
+    index_buffer_id: usize,
+    vertex_buffer_positions_id: usize,
+    vertex_buffer_normals_id: usize,
+    vertex_buffer_uvs_id: usize,
 }

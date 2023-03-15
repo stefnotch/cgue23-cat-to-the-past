@@ -10,8 +10,8 @@ use super::loader::Asset;
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, Zeroable, Pod)]
 pub struct MeshVertex {
-    position: [f32; 3],
-    normal: [f32; 3],
+    pub(super) position: [f32; 3],
+    pub(super) normal: [f32; 3],
 }
 
 vulkano::impl_vertex!(MeshVertex, position, normal);
@@ -26,6 +26,21 @@ pub struct Mesh {
 impl Asset for Mesh {}
 
 impl Mesh {
+    pub fn new(
+        vertices: Vec<MeshVertex>,
+        indices: Vec<u32>,
+        allocator: &(impl MemoryAllocator + ?Sized),
+    ) -> Arc<Self> {
+        let (vertex_buffer, index_buffer) = Mesh::setup_buffer(&vertices, &indices, allocator);
+
+        Arc::new(Self {
+            vertices,
+            indices,
+            vertex_buffer,
+            index_buffer,
+        })
+    }
+
     pub fn cube(
         width: f32,
         height: f32,

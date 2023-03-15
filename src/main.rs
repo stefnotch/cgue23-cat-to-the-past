@@ -34,7 +34,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
     );
 
     asset_server
-        .load_default_scene("./assets/scene/only_floor_v2.gltf")
+        .load_default_scene("./assets/scene/only_floor_v2.gltf", &memory_allocator)
         .unwrap();
 
     commands.spawn(PointLight {
