@@ -1,6 +1,6 @@
 use crate::application::{AppStage, ApplicationBuilder};
 use crate::camera::Camera;
-use crate::input::{InputMap, MouseMovement};
+use crate::input::{InputMap, KeyboardInput, MouseMovement};
 use crate::physics_context::CharacterController;
 use crate::time::Time;
 use angle::{Angle, Deg, Rad};
@@ -8,11 +8,13 @@ use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::{Res, ResMut};
 use nalgebra::{UnitQuaternion, Vector, Vector3};
+use winit::event::ElementState::Released;
 use winit::event::VirtualKeyCode;
 
 #[derive(Resource)]
 pub struct PlayerSettings {
     freecam_speed: f32,
+    pub freecam_activated: bool,
     /// players use a different gravity
     gravity: f32,
     sensitivity: f32,
@@ -42,6 +44,7 @@ impl PlayerSettings {
     pub fn new(speed: f32, sensitivity: f32, gravity: f32) -> Self {
         PlayerSettings {
             freecam_speed: speed,
+            freecam_activated: false,
             sensitivity,
             gravity,
 
@@ -96,6 +99,10 @@ pub fn update_camera_position(
     time: Res<Time>,
     settings: Res<PlayerSettings>,
 ) {
+    if !settings.freecam_activated {
+        return;
+    }
+
     let direction = input_to_direction(&input);
 
     let forward = camera.orientation * Vector::z_axis();
@@ -153,6 +160,10 @@ pub fn update_player(
     settings: Res<PlayerSettings>,
     mut player: ResMut<Player>,
 ) {
+    if settings.freecam_activated {
+        return;
+    }
+
     let input_direction = input_to_direction(&input);
     let last_velocity = player.velocity;
     let horizontal_input: Vector3<f32> = normalize_if_not_zero(get_horizontal(&input_direction));
@@ -241,6 +252,17 @@ fn accelerate(
     last_velocity + acceleration_direction * acceleration
 }
 
+pub fn freecam_toggle_system(
+    mut settings: ResMut<PlayerSettings>,
+    mut reader: EventReader<KeyboardInput>,
+) {
+    for event in reader.iter() {
+        if event.key_code == VirtualKeyCode::T && event.state == Released {
+            settings.freecam_activated = !settings.freecam_activated;
+        }
+    }
+}
+
 impl ApplicationBuilder {
     pub fn with_player_controller(self, settings: PlayerSettings) -> Self {
         self.with_resource(settings)
@@ -254,8 +276,8 @@ impl ApplicationBuilder {
             .with_startup_system(setup_player)
             .with_system(handle_mouse_movement.in_set(AppStage::Update))
             .with_system(update_player.in_set(AppStage::Update))
-        // Freecam mode, make sure to disable the character controller
-        // .with_system(update_camera_position.in_set(AppStage::Update))
+            .with_system(update_camera_position.in_set(AppStage::Update))
+            .with_system(freecam_toggle_system.in_set(AppStage::EventUpdate))
     }
 }
 
