@@ -1,5 +1,5 @@
 use crate::camera::Camera;
-use crate::player::Player;
+use crate::player::{Player, PlayerSettings};
 use crate::scene::transform::Transform;
 use crate::time::Time;
 use bevy_ecs::prelude::{Added, Component, Query, Res, ResMut, Resource};
@@ -182,6 +182,7 @@ pub fn step_character_controller(
     // TODO: Referencing the camera in the physics part is a bit odd
     mut camera: ResMut<Camera>,
     mut player: ResMut<Player>,
+    settings: Res<PlayerSettings>,
     mut physics_context: ResMut<PhysicsContext>,
     // TODO: No transform, hmm
     query: Query<&CharacterController>,
@@ -239,7 +240,9 @@ pub fn step_character_controller(
         let new_position = position.translation.vector + effective_movement.translation;
         character_body.set_next_kinematic_translation(new_position);
 
-        camera.position = new_position.into();
+        if !settings.freecam_activated {
+            camera.position = new_position.into();
+        }
     }
 }
 
