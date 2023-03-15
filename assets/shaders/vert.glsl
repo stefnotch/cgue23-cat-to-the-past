@@ -6,12 +6,6 @@ layout(location = 1) in vec3 normal;
 layout(location = 0) out vec3 v_position;
 layout(location = 1) out vec3 v_normal;
 
-struct Attenuation {
-    float constant;
-    float linear;
-    float quadratic;
-};
-
 struct Material {
     vec3 color;
     float ka;
@@ -23,7 +17,8 @@ struct Material {
 struct PointLight {
     vec3 position;
     vec3 color;
-    Attenuation attenuation;
+    float range;
+    float intensity;
 };
 
 layout(set = 0, binding = 0) uniform Scene {

@@ -11,6 +11,11 @@ Then load the past (save) where the sword was still on the table. And since that
 
 Should make for an interesting puzzle game. Or a stealth:tm: game, because you can always openly smack the guy in front of you, get to the next area...and then just load the past where the guard was still alive and didn't alert the entire facility. Or that mechanic could be used to make a cat petting simulator, where you basically have a cheatcode. You can indefinitely pet the cat, because as soon as the cat is satisfied and walks away, you just turn time back... :cat2:
 
+## Technical Details
+
+world space: +y up, -z forward, +x right (reasonable right-handed coordinate system)
+units: meter
+
 ## More concrete ideas
 
 3D Platformer game: 

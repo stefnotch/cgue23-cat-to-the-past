@@ -2,7 +2,9 @@ use crate::input::WindowResize;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::system::{ResMut, Resource};
-use nalgebra::{Matrix, Matrix4, Perspective3, Point3, UnitQuaternion, Vector, Vector3};
+use nalgebra::{
+    vector, Matrix, Matrix4, Perspective3, Point3, UnitQuaternion, Vector, Vector3, Vector4,
+};
 
 #[derive(Resource)]
 pub struct Camera {
@@ -36,12 +38,31 @@ impl Camera {
         &self.view
     }
 
-    pub fn proj(&self) -> &Matrix4<f32> {
-        &self.proj.as_matrix()
+    pub fn proj(&self) -> Matrix4<f32> {
+        // https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/
+        let flip_yz_matrix: Matrix4<f32> =
+            Matrix4::from_diagonal(&Vector4::new(1.0, -1.0, -1.0, 1.0));
+        let matrix = self.proj.as_matrix() * flip_yz_matrix;
+        matrix
     }
 
     pub fn update(&mut self) {
         self.view = calculate_view(self.position, self.orientation);
+    }
+
+    /// in world-space
+    pub const fn forward() -> Vector3<f32> {
+        vector![0.0, 0.0, -1.0]
+    }
+
+    /// in world-space
+    pub const fn right() -> Vector3<f32> {
+        vector![1.0, 0.0, 0.0]
+    }
+
+    /// in world-space
+    pub const fn up() -> Vector3<f32> {
+        vector![0.0, 1.0, 0.0]
     }
 }
 
@@ -59,10 +80,9 @@ pub fn update_camera_aspect_ratio(
 }
 
 fn calculate_view(position: Point3<f32>, orientation: UnitQuaternion<f32>) -> Matrix4<f32> {
-    let cam_direction = orientation * Vector::z_axis();
-    let target = position + cam_direction.into_inner();
+    // TODO: check if camera forward is correct here
+    let cam_direction = orientation * Camera::forward();
+    let target = position + cam_direction;
 
-    let inv_unit_y = Vector3::new(0.0, -1.0, 0.0);
-
-    Matrix::look_at_rh(&position, &target, &inv_unit_y)
+    Matrix::look_at_rh(&position, &target, &Camera::up())
 }

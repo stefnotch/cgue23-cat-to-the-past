@@ -44,7 +44,7 @@ impl PlayerSettings {
     pub fn new(speed: f32, sensitivity: f32, gravity: f32) -> Self {
         PlayerSettings {
             freecam_speed: speed,
-            freecam_activated: false,
+            freecam_activated: true,
             sensitivity,
             gravity,
 
@@ -105,14 +105,14 @@ pub fn update_camera_position(
 
     let direction = input_to_direction(&input);
 
-    let forward = camera.orientation * Vector::z_axis();
-    let right = camera.orientation * Vector::x_axis();
-    let up = Vector3::new(0.0, 1.0, 0.0);
+    let forward = camera.orientation * Camera::forward();
+    let right = camera.orientation * Camera::right();
+    let up = Camera::up();
 
     let delta_time = time.delta_seconds();
 
-    camera.position += forward.into_inner() * direction.z * settings.freecam_speed * delta_time;
-    camera.position += right.into_inner() * direction.x * settings.freecam_speed * delta_time;
+    camera.position += forward * -direction.z * settings.freecam_speed * delta_time;
+    camera.position += right * direction.x * settings.freecam_speed * delta_time;
     camera.position += up * direction.y * settings.freecam_speed * delta_time;
 }
 
