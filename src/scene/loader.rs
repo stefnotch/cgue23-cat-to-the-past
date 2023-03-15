@@ -243,6 +243,7 @@ impl<'a> SceneLoadingData<'a> {
             index_buffer_id: primitive.indices().unwrap().index(),
             vertex_buffer_positions_id: primitive.get(&Semantic::Positions).unwrap().index(),
             vertex_buffer_normals_id: primitive.get(&Semantic::Normals).unwrap().index(),
+            // TODO: Fallback for missing UVs
             vertex_buffer_uvs_id: primitive.get(&Semantic::TexCoords(0)).unwrap().index(),
         };
 
