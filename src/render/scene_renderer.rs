@@ -4,9 +4,8 @@ use crate::scene::mesh::MeshVertex;
 use crate::scene::model::Model;
 use crate::scene::transform::Transform;
 
-use crate::scene::light::PointLight;
+use crate::scene::light::{Light, PointLight};
 use crate::scene::material::Material;
-use nalgebra::Matrix3;
 use std::default::Default;
 use std::sync::Arc;
 use vulkano::buffer::{BufferUsage, CpuBufferPool, TypedBufferAccess};
@@ -16,14 +15,14 @@ use vulkano::command_buffer::{
     SubpassContents,
 };
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
-use vulkano::descriptor_set::{DescriptorSet, PersistentDescriptorSet, WriteDescriptorSet};
+use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
 use vulkano::image::{AttachmentImage, ImageViewAbstract, SwapchainImage};
 use vulkano::memory::allocator::{MemoryUsage, StandardMemoryAllocator};
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
-use vulkano::pipeline::graphics::rasterization::{CullMode, PolygonMode, RasterizationState};
+use vulkano::pipeline::graphics::rasterization::{CullMode, RasterizationState};
 use vulkano::pipeline::graphics::vertex_input::BuffersDefinition;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
@@ -189,7 +188,7 @@ impl SceneRenderer {
         context: &Context,
         camera: &Camera,
         models: Vec<(&Transform, &Model)>,
-        lights: Vec<&PointLight>,
+        lights: Vec<&Light>,
         future: F,
         swapchain_frame_index: u32,
         viewport: &Viewport,
@@ -235,8 +234,10 @@ impl SceneRenderer {
         let entity_set_layout = self.pipeline.layout().set_layouts().get(2).unwrap();
 
         let uniform_subbuffer_scene = {
+            let Light::Point(light) = lights[0];
+
             let uniform_data = vs::ty::Scene {
-                pointLight: lights[0].into(),
+                pointLight: light.into(),
             };
 
             self.uniform_buffer_pool_scene
@@ -355,18 +356,12 @@ mod vs {
 
 impl From<&PointLight> for vs::ty::PointLight {
     fn from(value: &PointLight) -> Self {
-        let attenuation = vs::ty::Attenuation {
-            constant: value.attenuation.constant,
-            linear: value.attenuation.linear,
-            quadratic: value.attenuation.quadratic,
-        };
-
         vs::ty::PointLight {
             position: value.position.into(),
             color: value.color.into(),
-            attenuation,
+            range: value.range,
+            intensity: value.intensity,
             _dummy0: Default::default(),
-            _dummy1: Default::default(),
         }
     }
 }

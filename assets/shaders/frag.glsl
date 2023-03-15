@@ -5,11 +5,7 @@ layout(location = 1) in vec3 v_normal;
 
 layout(location = 0) out vec4 f_color;
 
-struct Attenuation {
-    float constant;
-    float linear;
-    float quadratic;
-};
+// TODO: import structs to reduce code duplication and to keep the structs in sync in both vertex and fragment shader
 
 struct Material {
     vec3 color;
@@ -22,7 +18,8 @@ struct Material {
 struct PointLight {
     vec3 position;
     vec3 color;
-    Attenuation attenuation;
+    float range;
+    float intensity;
 };
 
 layout(set = 0, binding = 0) uniform Scene {
@@ -66,12 +63,12 @@ vec3 specular(float ks, float alpha, vec3 r, vec3 v, vec3 is) {
 }
 
 vec3 phong(Material material, PointLight pointLight, vec3 n, vec3 v, vec3 worldPos) {
-    vec3 l = normalize(pointLight.position - worldPos);
-    float d = length(pointLight.position - worldPos);
+    vec3 positionToLight = pointLight.position - worldPos;
+    vec3 l = normalize(positionToLight);
+    float d_squared = dot(positionToLight, positionToLight);
     vec3 r = reflect(-l,n);
 
-    Attenuation att = pointLight.attenuation;
-    float reciAttenuation = 1.0 / (att.constant + d * att.linear + d * d * att.quadratic);
+    float reciAttenuation = (1.0 / d_squared) * pointLight.intensity;
 
     return (diffuse(material.kd, n, l, pointLight.color * material.color) +
         specular(material.ks, material.alpha, r, v, pointLight.color)) * reciAttenuation;
@@ -87,5 +84,5 @@ void main() {
         phong(entity.material, scene.pointLight, n, v, worldPos)
     , 1.0);
 
-//    f_color = vec4(n, 1.0);
+    f_color = vec4(n, 1.0);
 }

@@ -1,7 +1,7 @@
-use crate::scene::light::Light;
+use crate::scene::light::{Light, PointLight};
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::Model;
-use crate::scene::transform::Transform;
+use crate::scene::transform::{Transform, TransformBuilder};
 use bevy_ecs::prelude::*;
 use gltf::khr_lights_punctual::Kind;
 use gltf::{import, khr_lights_punctual, Node, Semantic};
@@ -9,7 +9,7 @@ use nalgebra::{Point3, Quaternion, Translation3, UnitQuaternion, Vector3};
 use std::sync::Arc;
 use std::{collections::HashMap, path::Path};
 use uuid::Uuid;
-use vulkano::memory::allocator::MemoryAllocator;
+use vulkano::memory::allocator::{MemoryAllocator, StandardMemoryAllocator};
 
 use super::material::Material;
 use super::mesh::Mesh;
@@ -53,7 +53,8 @@ impl AssetServer {
     pub fn load_default_scene<P>(
         &self,
         path: P,
-        memory_allocator: &dyn MemoryAllocator,
+        commands: &mut Commands,
+        memory_allocator: &Arc<StandardMemoryAllocator>,
     ) -> Result<(), Box<dyn std::error::Error>>
     where
         P: AsRef<Path>,
@@ -81,6 +82,15 @@ impl AssetServer {
         }
 
         println!("{:?}", scene_loading_result.lights);
+
+        for light in scene_loading_result.lights {
+            commands.spawn(light);
+        }
+
+        for (transform, model) in scene_loading_result.models {
+            // TODO: Add colliders
+            commands.spawn((model, transform));
+        }
 
         // https://github.com/flomonster/easy-gltf/blob/master/src/utils/gltf_data.rs
 
@@ -140,13 +150,13 @@ impl AssetServer {
             Kind::Directional => {
                 todo!("directional lights are not supported yet")
             }
-            Kind::Point => Light::PointLight {
+            Kind::Point => Light::Point(PointLight {
                 position: Point3::from(global_transform.translation.vector),
                 // TODO: validate implementation (might have mistaken column and row)
                 color: Vector3::from_column_slice(&light.color()),
                 range: light.range().unwrap_or_else(|| 20.0f32),
                 intensity: light.intensity(),
-            },
+            }),
             Kind::Spot { .. } => {
                 todo!("spot lights are not supported yet")
             }
@@ -164,9 +174,9 @@ impl AssetServer {
                 mesh,
                 // TODO: actually load a material
                 material: Arc::new(Material {
-                    color: Vector3::new(1.0, 1.0, 1.0),
+                    color: Vector3::new(1.0, 0.0, 1.0),
                     ka: 0.0,
-                    kd: 0.0,
+                    kd: 1.0,
                     ks: 0.0,
                     alpha: 1.0,
                 }),
@@ -257,7 +267,10 @@ impl<'a> SceneLoadingData<'a> {
             let mut vertices = vec![];
 
             // zippy zip https://stackoverflow.com/a/71494478/3492994
-            for (position, normal) in positions.zip(normals) {
+            for (mut position, mut normal) in positions.zip(normals) {
+                position[2] *= -1.0;
+                normal[2] *= -1.0;
+
                 vertices.push(MeshVertex {
                     position,
                     normal,

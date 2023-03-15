@@ -1,14 +1,11 @@
 use crate::camera::Camera;
 use crate::context::Context;
 use crate::render::scene_renderer::SceneRenderer;
-use crate::scene::light::PointLight;
-use crate::scene::material::Material;
+use crate::scene::light::Light;
 use crate::scene::model::Model;
 use crate::scene::transform::Transform;
-use bevy_ecs::prelude::{Added, Entity};
-use bevy_ecs::system::{Commands, NonSendMut, Query, Res};
+use bevy_ecs::system::{NonSendMut, Query, Res};
 use std::sync::Arc;
-use vulkano::buffer::CpuBufferPool;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::device::Device;
@@ -100,7 +97,7 @@ pub fn render(
     context: Res<Context>,
     camera: Res<Camera>,
     query: Query<(&Transform, &Model)>,
-    query_lights: Query<&PointLight>, // TODO: only query changed lights
+    query_lights: Query<&Light>, // TODO: only query changed lights
 ) {
     // On Windows, this can occur from minimizing the application.
     let surface = context.surface();
@@ -175,7 +172,7 @@ pub fn render(
         .join(acquire_future);
 
     let models = query.iter().collect();
-    let lights: Vec<&PointLight> = query_lights.iter().collect();
+    let lights: Vec<&Light> = query_lights.iter().collect();
 
     let future = renderer.scene_renderer.render(
         &context,
