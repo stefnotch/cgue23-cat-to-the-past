@@ -54,27 +54,27 @@ impl Mesh {
 
         let positions: [Vector3<f32>; 8] = [
             // front
-            Vector3::new(-0.5, -0.5, -0.5),
-            Vector3::new(0.5, -0.5, -0.5),
-            Vector3::new(0.5, 0.5, -0.5),
-            Vector3::new(-0.5, 0.5, -0.5),
-            // back
             Vector3::new(-0.5, -0.5, 0.5),
             Vector3::new(0.5, -0.5, 0.5),
             Vector3::new(0.5, 0.5, 0.5),
             Vector3::new(-0.5, 0.5, 0.5),
+            // back
+            Vector3::new(-0.5, -0.5, -0.5),
+            Vector3::new(0.5, -0.5, -0.5),
+            Vector3::new(0.5, 0.5, -0.5),
+            Vector3::new(-0.5, 0.5, -0.5),
         ];
 
         let faces: [CubeFace; 6] = [
             // front
             CubeFace {
                 position_indices: [0, 1, 2, 3],
-                normal: Vector3::new(0.0, 0.0, -1.0),
+                normal: Vector3::new(0.0, 0.0, 1.0),
             },
             // back
             CubeFace {
                 position_indices: [5, 4, 7, 6],
-                normal: Vector3::new(0.0, 0.0, 1.0),
+                normal: Vector3::new(0.0, 0.0, -1.0),
             },
             // right
             CubeFace {

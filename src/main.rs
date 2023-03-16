@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Query, Res};
 use context::Context;
-use nalgebra::{Translation3, UnitQuaternion};
+use nalgebra::{Point3, Translation3, UnitQuaternion};
 use rapier3d::na::Vector3;
 use scene::material::Material;
 use scene::mesh::Mesh;
@@ -14,7 +14,7 @@ use scene::model::{Model, Primitive};
 use crate::application::{AppConfig, ApplicationBuilder};
 use crate::physics_context::{BoxCollider, RapierRigidBody};
 use crate::player::PlayerSettings;
-use crate::scene::light::PointLight;
+use crate::scene::light::{Light, PointLight};
 use crate::scene::transform::{Transform, TransformBuilder};
 
 mod application;
@@ -33,6 +33,13 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
         vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
     );
 
+    // commands.spawn(Light::Point(PointLight {
+    //     position: Point3::new(0.0, 1.0, 0.0),
+    //     color: Vector3::new(1.0, 1.0, 1.0),
+    //     range: 0.0,
+    //     intensity: 2.0,
+    // }));
+
     asset_server
         .load_default_scene(
             "./assets/scene/only_floor_v2.gltf",
@@ -41,35 +48,86 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
         )
         .unwrap();
 
-    let cube = Mesh::cube(0.5, 0.5, 0.5, &memory_allocator);
-
-    let center = Vector3::new(4.07, 5.90, -1.01);
-
-    for i in 0..32 {
-        let angle = i as f32 * (2.0 * PI) / 32.0;
-        let (sin, cos) = angle.sin_cos();
-        commands.spawn((
-            Model {
-                primitives: vec![Primitive {
-                    mesh: cube.clone(),
-                    material: Arc::new(Material {
-                        color: Vector3::new(1.0, 1.0, 1.0),
-                        ka: 0.0,
-                        kd: 1.0,
-                        ks: 0.0,
-                        alpha: 1.0,
-                    }),
-                }],
-            },
-            TransformBuilder::new()
-                .translation(Translation3::new(
-                    center.x + cos * 5.0,
-                    center.y + 1.0,
-                    center.z + sin * 5.0,
-                ))
-                .build(),
-        ));
-    }
+    // let cube = Mesh::cube(1.0, 1.0, 1.0, &memory_allocator);
+    //
+    // // let center = Vector3::new(4.07, 5.90, -1.01);
+    // let center: Vector3<f32> = Vector3::zeros();
+    //
+    // for i in 0..32 {
+    //     let angle = i as f32 * (2.0 * PI) / 32.0;
+    //     let (sin, cos) = angle.sin_cos();
+    //     commands.spawn((
+    //         Model {
+    //             primitives: vec![Primitive {
+    //                 mesh: cube.clone(),
+    //                 material: Arc::new(Material {
+    //                     color: Vector3::new(1.0, 1.0, 1.0),
+    //                     ka: 0.0,
+    //                     kd: 1.0,
+    //                     ks: 0.0,
+    //                     alpha: 1.0,
+    //                 }),
+    //             }],
+    //         },
+    //         TransformBuilder::new()
+    //             .translation(Translation3::new(
+    //                 center.x + cos * 5.0,
+    //                 center.y + 1.0,
+    //                 center.z + sin * 5.0,
+    //             ))
+    //             .scale(Vector3::new(0.5, 0.5, 0.5))
+    //             .build(),
+    //     ));
+    // }
+    //
+    // commands.spawn((
+    //     Model {
+    //         primitives: vec![Primitive {
+    //             mesh: cube.clone(),
+    //             material: Arc::new(Material {
+    //                 color: Vector3::new(0.0, 1.0, 0.0),
+    //                 ka: 0.0,
+    //                 kd: 0.9,
+    //                 ks: 0.3,
+    //                 alpha: 10.0,
+    //             }),
+    //         }],
+    //     },
+    //     TransformBuilder::new()
+    //         .translation(Translation3::new(0.0, 0.25, 0.0))
+    //         .rotation(UnitQuaternion::from_axis_angle(
+    //             &Vector3::y_axis(),
+    //             PI / 2.0,
+    //         ))
+    //         .scale(Vector3::new(0.5, 0.5, 0.5))
+    //         .build(),
+    //     BoxCollider {
+    //         size: Vector3::new(0.5, 0.5, 0.5),
+    //     },
+    //     RapierRigidBody { handle: None },
+    // ));
+    //
+    // commands.spawn((
+    //     Model {
+    //         primitives: vec![Primitive {
+    //             mesh: cube.clone(),
+    //             material: Arc::new(Material {
+    //                 color: Vector3::new(1.0, 0.0, 0.0),
+    //                 ka: 0.0,
+    //                 kd: 0.9,
+    //                 ks: 0.0,
+    //                 alpha: 10.0,
+    //             }),
+    //         }],
+    //     },
+    //     TransformBuilder::new()
+    //         .translation(Translation3::new(0.0, -0.5, 0.0))
+    //         .scale(Vector3::new(20.0, 0.1, 20.0))
+    //         .build(),
+    //     BoxCollider {
+    //         size: Vector3::new(20.0, 0.1, 20.0),
+    //     },
+    // ));
 }
 
 fn rotate_entites(mut query: Query<&mut Transform, Without<BoxCollider>>) {

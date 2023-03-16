@@ -106,12 +106,10 @@ impl SceneRenderer {
         .unwrap();
 
         let pipeline = GraphicsPipeline::start()
-            // .rasterization_state(
-            //     RasterizationState::new()
-            //         .cull_mode(CullMode::Back)
-            //         .polygon_mode(PolygonMode::Line),
-            // )
-            .rasterization_state(RasterizationState::new().cull_mode(CullMode::Back))
+            .rasterization_state(
+                RasterizationState::new().cull_mode(CullMode::Back), // .polygon_mode(PolygonMode::Line),
+            )
+            // .rasterization_state(RasterizationState::new().cull_mode(CullMode::Back))
             .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
             .depth_stencil_state(DepthStencilState::simple_depth_test())
             .vertex_input_state(BuffersDefinition::new().vertex::<MeshVertex>())

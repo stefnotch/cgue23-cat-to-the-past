@@ -2,9 +2,7 @@ use crate::input::WindowResize;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::system::{ResMut, Resource};
-use nalgebra::{
-    vector, Matrix, Matrix4, Perspective3, Point3, UnitQuaternion, Vector, Vector3, Vector4,
-};
+use nalgebra::{vector, Matrix, Matrix4, Perspective3, Point3, UnitQuaternion, Vector3, Vector4};
 
 #[derive(Resource)]
 pub struct Camera {
@@ -24,7 +22,7 @@ impl Camera {
 
         Camera {
             view: calculate_view(position, orientation),
-            proj: Perspective3::new(aspect_ratio, fov.value(), near, far),
+            proj: dbg!(calculate_projection(aspect_ratio, fov, near, far)),
             position,
             orientation,
         }
@@ -40,10 +38,11 @@ impl Camera {
 
     pub fn proj(&self) -> Matrix4<f32> {
         // https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/
-        let flip_yz_matrix: Matrix4<f32> =
-            Matrix4::from_diagonal(&Vector4::new(1.0, -1.0, -1.0, 1.0));
-        let matrix = self.proj.as_matrix() * flip_yz_matrix;
-        matrix
+        // z does not get flipped because Perspective3 already gives us a matrix where z is flipped
+        // see: https://nalgebra.org/docs/user_guide/cg_recipes#screen-space-to-view-space
+        let flip_y = Matrix4::from_diagonal(&Vector4::new(1.0, -1.0, 1.0, 1.0));
+
+        self.proj.as_matrix() * flip_y
     }
 
     pub fn update(&mut self) {
@@ -52,7 +51,7 @@ impl Camera {
 
     /// in world-space
     pub const fn forward() -> Vector3<f32> {
-        vector![0.0, 0.0, -1.0]
+        vector![0.0, 0.0, 1.0]
     }
 
     /// in world-space
@@ -79,8 +78,16 @@ pub fn update_camera_aspect_ratio(
     }
 }
 
+fn calculate_projection(
+    aspect_ratio: f32,
+    fov: Rad<f32>,
+    near: f32,
+    far: f32,
+) -> Perspective3<f32> {
+    Perspective3::new(aspect_ratio, fov.value(), near, far)
+}
+
 fn calculate_view(position: Point3<f32>, orientation: UnitQuaternion<f32>) -> Matrix4<f32> {
-    // TODO: check if camera forward is correct here
     let cam_direction = orientation * Camera::forward();
     let target = position + cam_direction;
 
