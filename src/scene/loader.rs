@@ -2,11 +2,11 @@ use crate::physics_context::BoxCollider;
 use crate::scene::light::{Light, PointLight};
 use crate::scene::mesh::{BoundingBox, MeshVertex};
 use crate::scene::model::{Model, Primitive};
-use crate::scene::transform::{Transform, TransformBuilder};
+use crate::scene::transform::Transform;
 use bevy_ecs::prelude::*;
 use gltf::khr_lights_punctual::Kind;
 use gltf::{import, khr_lights_punctual, Node, Semantic};
-use nalgebra::{Point3, Quaternion, Translation3, UnitQuaternion, Vector3};
+use nalgebra::{Quaternion, Translation3, UnitQuaternion, Vector3};
 use std::sync::Arc;
 use std::{collections::HashMap, path::Path};
 use uuid::Uuid;
@@ -159,10 +159,9 @@ impl AssetServer {
         // skip loading camera (hardcoded)
 
         if let Some(light) = node.light() {
-            scene_loading_result.lights.push((
-                global_transform.clone(),
-                Self::load_light(light, &global_transform),
-            ));
+            scene_loading_result
+                .lights
+                .push((global_transform.clone(), Self::load_light(light)));
         }
 
         if let Some(mesh) = node.mesh() {
@@ -173,7 +172,7 @@ impl AssetServer {
         }
     }
 
-    fn load_light(light: khr_lights_punctual::Light, global_transform: &Transform) -> Light {
+    fn load_light(light: khr_lights_punctual::Light) -> Light {
         match light.kind() {
             Kind::Directional => {
                 todo!("directional lights are not supported yet")
@@ -203,7 +202,7 @@ impl AssetServer {
                 material: Arc::new(Material {
                     color: Vector3::new(1.0, 0.0, 1.0),
                     ka: 0.0,
-                    kd: 1.0,
+                    kd: 0.2,
                     ks: 0.0,
                     alpha: 1.0,
                 }),

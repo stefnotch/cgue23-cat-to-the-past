@@ -2,8 +2,12 @@ use crate::input::WindowResize;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::system::{ResMut, Resource};
-use nalgebra::{vector, Matrix, Matrix4, Perspective3, Point3, UnitQuaternion, Vector3, Vector4};
+use nalgebra::{
+    vector, Matrix, Matrix4, Perspective3, Point3, UnitQuaternion, UnitVector3, Vector4,
+};
 
+// TODO: look up how to get the euler yaw and pitch angles from a quaternion
+// IDEA: remove position and orientation and use transforms instead
 #[derive(Resource)]
 pub struct Camera {
     view: Matrix4<f32>,
@@ -50,18 +54,18 @@ impl Camera {
     }
 
     /// in world-space
-    pub const fn forward() -> Vector3<f32> {
-        vector![0.0, 0.0, -1.0]
+    pub const fn forward() -> UnitVector3<f32> {
+        UnitVector3::new_unchecked(vector![0.0, 0.0, -1.0])
     }
 
     /// in world-space
-    pub const fn right() -> Vector3<f32> {
-        vector![1.0, 0.0, 0.0]
+    pub const fn right() -> UnitVector3<f32> {
+        UnitVector3::new_unchecked(vector![1.0, 0.0, 0.0])
     }
 
     /// in world-space
-    pub const fn up() -> Vector3<f32> {
-        vector![0.0, 1.0, 0.0]
+    pub const fn up() -> UnitVector3<f32> {
+        UnitVector3::new_unchecked(vector![0.0, 1.0, 0.0])
     }
 }
 
@@ -89,7 +93,7 @@ fn calculate_projection(
 
 fn calculate_view(position: Point3<f32>, orientation: UnitQuaternion<f32>) -> Matrix4<f32> {
     let cam_direction = orientation * Camera::forward();
-    let target = position + cam_direction;
+    let target = position + cam_direction.into_inner();
 
     Matrix::look_at_rh(&position, &target, &Camera::up())
 }

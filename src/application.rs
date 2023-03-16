@@ -33,11 +33,6 @@ pub struct AppConfig {
 }
 
 #[derive(SystemSet, Clone, PartialEq, Eq, Hash, Debug)]
-pub enum AppStartupStage {
-    Startup,
-}
-
-#[derive(SystemSet, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum AppStage {
     EventUpdate,
     Update,

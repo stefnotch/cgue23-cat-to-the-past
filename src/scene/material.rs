@@ -1,7 +1,5 @@
 use bevy_ecs::prelude::Component;
 use nalgebra::Vector3;
-use std::sync::Arc;
-use vulkano::descriptor_set::PersistentDescriptorSet;
 
 use super::loader::Asset;
 

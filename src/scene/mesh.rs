@@ -198,7 +198,7 @@ impl Mesh {
         longitude_segments: u32,
         latitude_segments: u32,
         radius: f32,
-        allocator: &(impl MemoryAllocator),
+        allocator: &impl MemoryAllocator,
     ) -> Arc<Self> {
         let mut vertices: Vec<MeshVertex> = vec![];
 
