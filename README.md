@@ -13,8 +13,10 @@ Should make for an interesting puzzle game. Or a stealth:tm: game, because you c
 
 ## Technical Details
 
-world space: +y up, -z forward, +x right (reasonable right-handed coordinate system)
-units: meter
+world space: +y up, -z forward, +x right (reasonable right-handed coordinate system)  
+winding order: counter-clockwise
+units: meter  
+importer: gltf, we flatten the tree, we generate one axis aligned collider per model
 
 ## More concrete ideas
 
