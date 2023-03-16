@@ -113,7 +113,7 @@ impl AssetServer {
                 .fold(BoundingBox::empty(), |a, b| (a.combine(b)));
 
             let box_collider = BoxCollider {
-                size: transform.scale.clone().component_mul(&bounding_box.size()),
+                bounds: bounding_box,
             };
 
             commands.spawn((model, transform, box_collider));
