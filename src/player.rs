@@ -72,7 +72,11 @@ pub fn handle_mouse_movement(
     for event in reader.iter() {
         let MouseMovement(dx, dy) = *event;
 
-        yaw += Deg(dx as f32 * settings.sensitivity).into();
+        // Note: positive rotations are counter-clockwise. Adding to yaw rotates the camera to the
+        // left. Moving the mouse to the left gives us negative dx values, so we flipped those.
+        // Note: The coordinate system of the monitor starts from (0,0) in the top left corner, so we
+        // needed to flip the sign of dy once again
+        yaw += Deg(-dx as f32 * settings.sensitivity).into();
         pitch += Deg(dy as f32 * settings.sensitivity).into();
     }
 
@@ -111,7 +115,7 @@ pub fn update_camera_position(
 
     let delta_time = time.delta_seconds();
 
-    camera.position += forward * -direction.z * settings.freecam_speed * delta_time;
+    camera.position += forward * direction.z * settings.freecam_speed * delta_time;
     camera.position += right * direction.x * settings.freecam_speed * delta_time;
     camera.position += up * direction.y * settings.freecam_speed * delta_time;
 }
@@ -126,10 +130,10 @@ fn input_to_direction(input: &InputMap) -> Vector3<f32> {
     }
 
     if input.is_pressed(VirtualKeyCode::A) {
-        direction.x += -1.0;
+        direction.x += 1.0;
     }
     if input.is_pressed(VirtualKeyCode::D) {
-        direction.x += 1.0;
+        direction.x += -1.0;
     }
 
     if input.is_pressed(VirtualKeyCode::Space) {

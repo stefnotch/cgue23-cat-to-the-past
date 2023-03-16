@@ -267,10 +267,7 @@ impl<'a> SceneLoadingData<'a> {
             let mut vertices = vec![];
 
             // zippy zip https://stackoverflow.com/a/71494478/3492994
-            for (mut position, mut normal) in positions.zip(normals) {
-                position[2] *= -1.0;
-                normal[2] *= -1.0;
-
+            for (position, normal) in positions.zip(normals) {
                 vertices.push(MeshVertex {
                     position,
                     normal,

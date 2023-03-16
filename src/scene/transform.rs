@@ -4,7 +4,7 @@ use nalgebra::{
 };
 use std::ops::{Add, Mul};
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Debug)]
 pub struct Transform {
     pub translation: Translation3<f32>,
     pub rotation: UnitQuaternion<f32>,

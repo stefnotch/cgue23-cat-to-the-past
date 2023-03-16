@@ -84,5 +84,5 @@ void main() {
         phong(entity.material, scene.pointLight, n, v, worldPos)
     , 1.0);
 
-    f_color = vec4(n, 1.0);
+//    f_color = vec4(n, 1.0);
 }
