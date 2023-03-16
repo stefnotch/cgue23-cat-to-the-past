@@ -43,6 +43,13 @@ impl BoundingBox<Vector3<f32>> {
     pub fn size(&self) -> Vector3<f32> {
         self.max - self.min
     }
+
+    pub fn scale(&self, scaling: &Vector3<f32>) -> BoundingBox<Vector3<f32>> {
+        BoundingBox {
+            min: self.min.component_mul(scaling),
+            max: self.max.component_mul(scaling),
+        }
+    }
 }
 
 impl<T> BoundingBox<T> {

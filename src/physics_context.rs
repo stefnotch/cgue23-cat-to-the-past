@@ -135,17 +135,31 @@ pub fn insert_collider_component(
     mut character_controller_query: Query<&mut CharacterController, Added<CharacterController>>,
 ) {
     for (collider, transform) in &box_collider_query {
-        // TODO: Fix this
-        let half_size: Vector3<f32> = collider.bounds.size() * 0.5;
+        let scaled_bounds = collider.bounds.scale(&transform.scale);
+        let half_size: Vector3<f32> = scaled_bounds.size() * 0.5;
+        let collider_offset = scaled_bounds.min + half_size;
+        dbg!(&collider.bounds);
+        println!(
+            "Collider offset: {:?}, half size: {:?}, scale: {:?}",
+            collider_offset, half_size, transform.scale
+        );
         let physics_collider = ColliderBuilder::cuboid(half_size.x, half_size.y, half_size.z)
-            // TODO: scaled colliders are not supported yet
-            .position(transform.to_isometry())
+            .position(
+                transform.to_isometry()
+                    * Isometry::translation(
+                        collider_offset.x,
+                        collider_offset.y,
+                        collider_offset.z,
+                    ),
+            )
             .build();
 
         physics_context.colliders.insert(physics_collider);
     }
 
+    // Rigid bodies like the cube
     for (mut rigid_body, collider, transform) in rigid_body_query.iter_mut() {
+        // TODO: Fix
         let physics_rigid_body = RigidBodyBuilder::dynamic()
             .position(transform.to_isometry())
             .build();
@@ -155,7 +169,7 @@ pub fn insert_collider_component(
 
         let half_size: Vector3<f32> = collider.bounds.size() * 0.5;
         let physics_collider =
-        // TODO: scaled colliders are not supported yet
+        // TODO: scaled colliders are not supported yetf
             ColliderBuilder::cuboid(half_size.x, half_size.y, half_size.z).build();
 
         context
@@ -165,6 +179,7 @@ pub fn insert_collider_component(
         rigid_body.handle = Some(handle);
     }
 
+    // Player
     for mut character_controller in character_controller_query.iter_mut() {
         let physics_rigid_body = RigidBodyBuilder::kinematic_position_based()
             .translation(camera.position.coords)
