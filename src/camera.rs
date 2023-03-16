@@ -22,7 +22,7 @@ impl Camera {
 
         Camera {
             view: calculate_view(position, orientation),
-            proj: dbg!(calculate_projection(aspect_ratio, fov, near, far)),
+            proj: calculate_projection(aspect_ratio, fov, near, far),
             position,
             orientation,
         }
@@ -51,7 +51,7 @@ impl Camera {
 
     /// in world-space
     pub const fn forward() -> Vector3<f32> {
-        vector![0.0, 0.0, 1.0]
+        vector![0.0, 0.0, -1.0]
     }
 
     /// in world-space
