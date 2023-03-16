@@ -74,10 +74,9 @@ pub fn handle_mouse_movement(
 
         // Note: positive rotations are counter-clockwise. Adding to yaw rotates the camera to the
         // left. Moving the mouse to the left gives us negative dx values, so we flipped those.
-        // Note: The coordinate system of the monitor starts from (0,0) in the top left corner, so we
-        // needed to flip the sign of dy once again
+        // Same logic applies to the y coordinate
         yaw += Deg(-dx as f32 * settings.sensitivity).into();
-        pitch += Deg(dy as f32 * settings.sensitivity).into();
+        pitch += Deg(-dy as f32 * settings.sensitivity).into();
     }
 
     let max_pitch: Deg<f32> = Deg(88.0);
@@ -129,10 +128,10 @@ fn input_to_direction(input: &InputMap) -> Vector3<f32> {
         direction.z += -1.0;
     }
 
-    if input.is_pressed(VirtualKeyCode::A) {
+    if input.is_pressed(VirtualKeyCode::D) {
         direction.x += 1.0;
     }
-    if input.is_pressed(VirtualKeyCode::D) {
+    if input.is_pressed(VirtualKeyCode::A) {
         direction.x += -1.0;
     }
 
