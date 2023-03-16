@@ -1,5 +1,6 @@
 use crate::camera::Camera;
 use crate::player::{Player, PlayerSettings};
+use crate::scene::mesh::BoundingBox;
 use crate::scene::transform::Transform;
 use crate::time::Time;
 use bevy_ecs::prelude::{Added, Component, Query, Res, ResMut, Resource};
@@ -112,7 +113,7 @@ pub struct RapierRigidBody {
 // for now colliders are created once and never changed or deleted
 #[derive(Component)]
 pub struct BoxCollider {
-    pub size: Vector3<f32>,
+    pub bounds: BoundingBox<Vector3<f32>>,
 }
 
 #[derive(Component)]
@@ -134,7 +135,8 @@ pub fn insert_collider_component(
     mut character_controller_query: Query<&mut CharacterController, Added<CharacterController>>,
 ) {
     for (collider, transform) in &box_collider_query {
-        let half_size: Vector3<f32> = collider.size * 0.5;
+        // TODO: Fix this
+        let half_size: Vector3<f32> = collider.bounds.size() * 0.5;
         let physics_collider = ColliderBuilder::cuboid(half_size.x, half_size.y, half_size.z)
             // TODO: scaled colliders are not supported yet
             .position(transform.to_isometry())
@@ -151,8 +153,9 @@ pub fn insert_collider_component(
         let context = physics_context.as_mut();
         let handle = context.rigid_bodies.insert(physics_rigid_body);
 
-        let half_size: Vector3<f32> = collider.size * 0.5;
+        let half_size: Vector3<f32> = collider.bounds.size() * 0.5;
         let physics_collider =
+        // TODO: scaled colliders are not supported yet
             ColliderBuilder::cuboid(half_size.x, half_size.y, half_size.z).build();
 
         context
