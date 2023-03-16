@@ -1,21 +1,16 @@
 use bevy_ecs::query::Without;
 use scene::loader::AssetServer;
-use std::f32::consts::PI;
 use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Query, Res};
 use context::Context;
-use nalgebra::{Point3, Translation3, UnitQuaternion};
+use nalgebra::UnitQuaternion;
 use rapier3d::na::Vector3;
-use scene::material::Material;
-use scene::mesh::Mesh;
-use scene::model::{Model, Primitive};
 
 use crate::application::{AppConfig, ApplicationBuilder};
-use crate::physics_context::{BoxCollider, RapierRigidBody};
+use crate::physics_context::BoxCollider;
 use crate::player::PlayerSettings;
-use crate::scene::light::{Light, PointLight};
-use crate::scene::transform::{Transform, TransformBuilder};
+use crate::scene::transform::Transform;
 
 mod application;
 mod camera;
@@ -130,7 +125,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
     // ));
 }
 
-fn rotate_entites(mut query: Query<&mut Transform, Without<BoxCollider>>) {
+fn _rotate_entites(mut query: Query<&mut Transform, Without<BoxCollider>>) {
     for mut transform in query.iter_mut() {
         transform.rotation *= UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.05);
     }

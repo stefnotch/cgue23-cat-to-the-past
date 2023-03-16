@@ -30,8 +30,6 @@ pub struct Renderer {
     swapchain: SwapchainContainer,
     scene_renderer: SceneRenderer,
     viewport: Viewport,
-
-    descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
 }
 
 struct SwapchainContainer {
@@ -77,7 +75,6 @@ impl Renderer {
             swapchain,
             scene_renderer,
             viewport,
-            descriptor_set_allocator,
         }
     }
 

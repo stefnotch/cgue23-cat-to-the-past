@@ -1,6 +1,6 @@
 use bevy_ecs::prelude::*;
 use nalgebra::{
-    Isometry, Isometry3, Matrix4, Point3, Quaternion, Translation3, Unit, UnitQuaternion, Vector3,
+    Isometry, Isometry3, Matrix4, Quaternion, Translation3, Unit, UnitQuaternion, Vector3,
 };
 use std::ops::{Add, Mul};
 
@@ -56,12 +56,14 @@ impl Mul<Transform> for &Transform {
     }
 }
 
+#[allow(dead_code)]
 pub struct TransformBuilder {
     translation: Translation3<f32>,
     rotation: UnitQuaternion<f32>,
     scale: Vector3<f32>,
 }
 
+#[allow(dead_code)]
 impl TransformBuilder {
     pub fn new() -> Self {
         Self {

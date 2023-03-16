@@ -7,7 +7,7 @@ use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::{Res, ResMut};
-use nalgebra::{UnitQuaternion, Vector, Vector3};
+use nalgebra::{UnitQuaternion, Vector3};
 use winit::event::ElementState::Released;
 use winit::event::VirtualKeyCode;
 
@@ -88,8 +88,8 @@ pub fn handle_mouse_movement(
     }
     let camera_factor = settings.camera_smoothing * time.delta_seconds();
 
-    let target_orientation = UnitQuaternion::from_axis_angle(&Vector::y_axis(), yaw.to_rad().0)
-        * UnitQuaternion::from_axis_angle(&Vector::x_axis(), pitch.to_rad().0);
+    let target_orientation = UnitQuaternion::from_axis_angle(&Camera::up(), yaw.to_rad().0)
+        * UnitQuaternion::from_axis_angle(&Camera::right(), pitch.to_rad().0);
 
     camera.orientation = camera.orientation.slerp(&target_orientation, camera_factor);
     player.pitch = pitch.into();
@@ -98,6 +98,7 @@ pub fn handle_mouse_movement(
 
 pub fn update_camera_position(
     mut camera: ResMut<Camera>,
+    player: Res<Player>,
     input: Res<InputMap>,
     time: Res<Time>,
     settings: Res<PlayerSettings>,
@@ -108,38 +109,41 @@ pub fn update_camera_position(
 
     let direction = input_to_direction(&input);
 
-    let forward = camera.orientation * Camera::forward();
-    let right = camera.orientation * Camera::right();
-    let up = Camera::up();
+    let horizontal_movement = normalize_if_not_zero(get_horizontal(&direction));
+    let vertical_movement = Camera::up().into_inner() * direction.y;
+
+    let camera_horizontal_orientation =
+        UnitQuaternion::from_axis_angle(&Camera::up(), player.yaw.0);
+
+    let horizontal_direction = camera_horizontal_orientation * horizontal_movement;
 
     let delta_time = time.delta_seconds();
 
-    camera.position += forward * direction.z * settings.freecam_speed * delta_time;
-    camera.position += right * direction.x * settings.freecam_speed * delta_time;
-    camera.position += up * direction.y * settings.freecam_speed * delta_time;
+    camera.position += horizontal_direction * settings.freecam_speed * delta_time;
+    camera.position += vertical_movement * settings.freecam_speed * delta_time;
 }
 
 fn input_to_direction(input: &InputMap) -> Vector3<f32> {
     let mut direction: Vector3<f32> = Vector3::new(0.0, 0.0, 0.0);
     if input.is_pressed(VirtualKeyCode::W) {
-        direction.z += 1.0;
+        direction += Camera::forward().into_inner();
     }
     if input.is_pressed(VirtualKeyCode::S) {
-        direction.z += -1.0;
+        direction -= Camera::forward().into_inner();
     }
 
     if input.is_pressed(VirtualKeyCode::D) {
-        direction.x += 1.0;
+        direction += Camera::right().into_inner();
     }
     if input.is_pressed(VirtualKeyCode::A) {
-        direction.x += -1.0;
+        direction -= Camera::right().into_inner();
     }
 
     if input.is_pressed(VirtualKeyCode::Space) {
-        direction.y += 1.0;
+        direction += Camera::up().into_inner();
     }
     if input.is_pressed(VirtualKeyCode::LShift) {
-        direction.y += -1.0;
+        direction -= Camera::up().into_inner();
     }
     direction
 }
@@ -171,10 +175,9 @@ pub fn update_player(
     let last_velocity = player.velocity;
     let horizontal_input: Vector3<f32> = normalize_if_not_zero(get_horizontal(&input_direction));
     let vertical_input = input_direction.y;
-    //let (_, _, yaw) = camera.orientation.euler_angles();
     let yaw = player.yaw;
 
-    let mut velocity = UnitQuaternion::from_axis_angle(&Vector::y_axis(), yaw.0) * horizontal_input;
+    let mut velocity = UnitQuaternion::from_axis_angle(&Camera::up(), yaw.0) * horizontal_input;
 
     if player.jump_available {
         velocity = move_ground(&velocity, get_horizontal(&last_velocity), &settings, &time);

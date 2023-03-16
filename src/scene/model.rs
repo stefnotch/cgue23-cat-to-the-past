@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use bevy_ecs::prelude::*;
 
-use super::{loader::Asset, material::Material, mesh::Mesh};
+use super::{material::Material, mesh::Mesh};
 
 #[derive(Component)]
 pub struct Model {
