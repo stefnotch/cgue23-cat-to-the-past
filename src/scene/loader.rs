@@ -1,6 +1,7 @@
+use crate::physics_context::BoxCollider;
 use crate::scene::light::{Light, PointLight};
-use crate::scene::mesh::MeshVertex;
-use crate::scene::model::Model;
+use crate::scene::mesh::{BoundingBox, MeshVertex};
+use crate::scene::model::{Model, Primitive};
 use crate::scene::transform::{Transform, TransformBuilder};
 use bevy_ecs::prelude::*;
 use gltf::khr_lights_punctual::Kind;
@@ -83,13 +84,39 @@ impl AssetServer {
 
         println!("{:?}", scene_loading_result.lights);
 
-        for light in scene_loading_result.lights {
-            commands.spawn(light);
+        let sphere = Mesh::sphere(10, 16, 0.1, memory_allocator);
+
+        for (transform, light) in scene_loading_result.lights {
+            commands.spawn((
+                light,
+                Model {
+                    primitives: vec![Primitive {
+                        mesh: sphere.clone(),
+                        material: Arc::new(Material {
+                            color: Vector3::new(1.0, 1.0, 1.0),
+                            ka: 1.0,
+                            kd: 0.0,
+                            ks: 0.0,
+                            alpha: 1.0,
+                        }),
+                    }],
+                },
+                transform,
+            ));
         }
 
         for (transform, model) in scene_loading_result.models {
-            // TODO: Add colliders
-            commands.spawn((model, transform));
+            let bounding_box = model
+                .primitives
+                .iter()
+                .map(|primitive| &primitive.mesh.bounding_box)
+                .fold(BoundingBox::empty(), |a, b| (a.combine(b)));
+
+            let box_collider = BoxCollider {
+                size: transform.scale.clone().component_mul(&bounding_box.size()),
+            };
+
+            commands.spawn((model, transform, box_collider));
         }
 
         // https://github.com/flomonster/easy-gltf/blob/master/src/utils/gltf_data.rs
@@ -132,9 +159,10 @@ impl AssetServer {
         // skip loading camera (hardcoded)
 
         if let Some(light) = node.light() {
-            scene_loading_result
-                .lights
-                .push(Self::load_light(light, &global_transform));
+            scene_loading_result.lights.push((
+                global_transform.clone(),
+                Self::load_light(light, &global_transform),
+            ));
         }
 
         if let Some(mesh) = node.mesh() {
@@ -151,7 +179,6 @@ impl AssetServer {
                 todo!("directional lights are not supported yet")
             }
             Kind::Point => Light::Point(PointLight {
-                position: Point3::from(global_transform.translation.vector),
                 // TODO: validate implementation (might have mistaken column and row)
                 color: Vector3::from_column_slice(&light.color()),
                 range: light.range().unwrap_or_else(|| 20.0f32),
@@ -214,7 +241,7 @@ struct SceneLoadingData<'a> {
 }
 
 struct SceneLoadingResult {
-    lights: Vec<Light>,
+    lights: Vec<(Transform, Light)>,
     models: Vec<(Transform, Model)>,
 }
 impl SceneLoadingResult {
@@ -279,7 +306,14 @@ impl<'a> SceneLoadingData<'a> {
                 .read_indices()
                 .map(|indices| indices.into_u32().collect())
                 .unwrap_or_else(|| (0..vertices.len()).map(|index| index as u32).collect());
-            Mesh::new(vertices, indices, self.allocator)
+
+            let gltf_bounding_box = primitive.bounding_box();
+            let bounding_box = BoundingBox::<Vector3<f32>>::new(
+                gltf_bounding_box.min.into(),
+                gltf_bounding_box.max.into(),
+            );
+
+            Mesh::new(vertices, indices, bounding_box, self.allocator)
         }
     }
 }

@@ -96,8 +96,8 @@ pub fn render(
     mut renderer: NonSendMut<Renderer>,
     context: Res<Context>,
     camera: Res<Camera>,
-    query: Query<(&Transform, &Model)>,
-    query_lights: Query<&Light>, // TODO: only query changed lights
+    query_models: Query<(&Transform, &Model)>,
+    query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
 ) {
     // On Windows, this can occur from minimizing the application.
     let surface = context.surface();
@@ -171,8 +171,8 @@ pub fn render(
         .unwrap()
         .join(acquire_future);
 
-    let models = query.iter().collect();
-    let lights: Vec<&Light> = query_lights.iter().collect();
+    let models = query_models.iter().collect();
+    let lights = query_lights.iter().collect();
 
     let future = renderer.scene_renderer.render(
         &context,

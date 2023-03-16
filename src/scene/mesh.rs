@@ -16,12 +16,49 @@ pub struct MeshVertex {
 
 vulkano::impl_vertex!(MeshVertex, position, normal);
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct BoundingBox<T> {
+    /// Minimum value.
+    pub min: T,
+
+    /// Maximum value.
+    pub max: T,
+}
+
+impl BoundingBox<Vector3<f32>> {
+    pub fn combine(&self, other: &BoundingBox<Vector3<f32>>) -> BoundingBox<Vector3<f32>> {
+        BoundingBox {
+            min: self.min.inf(&other.min),
+            max: self.max.sup(&other.max),
+        }
+    }
+
+    pub fn empty() -> BoundingBox<Vector3<f32>> {
+        BoundingBox {
+            min: Vector3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
+            max: Vector3::new(-f32::INFINITY, -f32::INFINITY, -f32::INFINITY),
+        }
+    }
+
+    pub fn size(&self) -> Vector3<f32> {
+        self.max - self.min
+    }
+}
+
+impl<T> BoundingBox<T> {
+    pub fn new(min: T, max: T) -> Self {
+        Self { min, max }
+    }
+}
+
 pub struct Mesh {
     pub vertices: Vec<MeshVertex>,
     pub indices: Vec<u32>,
 
     pub vertex_buffer: Arc<CpuAccessibleBuffer<[MeshVertex]>>,
     pub index_buffer: Arc<CpuAccessibleBuffer<[u32]>>,
+
+    pub bounding_box: BoundingBox<Vector3<f32>>,
 }
 impl Asset for Mesh {}
 
@@ -29,6 +66,7 @@ impl Mesh {
     pub fn new(
         vertices: Vec<MeshVertex>,
         indices: Vec<u32>,
+        bounding_box: BoundingBox<Vector3<f32>>,
         allocator: &(impl MemoryAllocator + ?Sized),
     ) -> Arc<Self> {
         let (vertex_buffer, index_buffer) = Mesh::setup_buffer(&vertices, &indices, allocator);
@@ -38,6 +76,7 @@ impl Mesh {
             indices,
             vertex_buffer,
             index_buffer,
+            bounding_box,
         })
     }
 
@@ -141,6 +180,10 @@ impl Mesh {
 
             vertex_buffer,
             index_buffer,
+            bounding_box: BoundingBox::new(
+                Vector3::new(-width / 2.0, -height / 2.0, -depth / 2.0),
+                Vector3::new(width / 2.0, height / 2.0, depth / 2.0),
+            ),
         })
     }
 
@@ -148,7 +191,7 @@ impl Mesh {
         longitude_segments: u32,
         latitude_segments: u32,
         radius: f32,
-        allocator: &(impl MemoryAllocator + ?Sized),
+        allocator: &(impl MemoryAllocator),
     ) -> Arc<Self> {
         let mut vertices: Vec<MeshVertex> = vec![];
 
@@ -194,25 +237,25 @@ impl Mesh {
 
         // top and bottom ring
         for j in 0..(num_longitude_vertices - 1) {
-            indices.push(0);
-            indices.push(calc_index(0, j + 1));
             indices.push(calc_index(0, j));
+            indices.push(calc_index(0, j + 1));
+            indices.push(0);
 
-            indices.push(1);
-            indices.push(calc_index(latitude_segments - 2, j));
             indices.push(calc_index(latitude_segments - 2, j + 1));
+            indices.push(calc_index(latitude_segments - 2, j));
+            indices.push(1);
         }
 
         // rest of the sphere
         for i in 0..(num_latitude_vertices - 2) - 1 {
             for j in 0..num_longitude_vertices - 1 {
+                indices.push(calc_index(i + 1, j));
+                indices.push(calc_index(i, j + 1));
                 indices.push(calc_index(i, j));
-                indices.push(calc_index(i, j + 1));
-                indices.push(calc_index(i + 1, j));
 
-                indices.push(calc_index(i + 1, j + 1));
-                indices.push(calc_index(i + 1, j));
                 indices.push(calc_index(i, j + 1));
+                indices.push(calc_index(i + 1, j));
+                indices.push(calc_index(i + 1, j + 1));
             }
         }
 
@@ -224,45 +267,10 @@ impl Mesh {
 
             vertex_buffer,
             index_buffer,
-        })
-    }
-
-    pub fn plane_horizontal(
-        width: f32,
-        height: f32,
-        allocator: &(impl MemoryAllocator + ?Sized),
-    ) -> Arc<Self> {
-        let unit_y = Vector3::new(0.0, 1.0, 0.0);
-
-        let vertices = vec![
-            MeshVertex {
-                position: Vector3::new(-0.5 * width, 0.0, -0.5 * height).into(),
-                normal: unit_y.into(),
-            },
-            MeshVertex {
-                position: Vector3::new(0.5 * width, 0.0, -0.5 * height).into(),
-                normal: unit_y.into(),
-            },
-            MeshVertex {
-                position: Vector3::new(0.5 * width, 0.0, 0.5 * height).into(),
-                normal: unit_y.into(),
-            },
-            MeshVertex {
-                position: Vector3::new(-0.5 * width, 0.0, 0.5 * height).into(),
-                normal: unit_y.into(),
-            },
-        ];
-
-        let indices: Vec<u32> = vec![0, 1, 2, 2, 3, 0];
-
-        let (vertex_buffer, index_buffer) = Mesh::setup_buffer(&vertices, &indices, allocator);
-
-        Arc::new(Mesh {
-            vertices,
-            indices,
-
-            vertex_buffer,
-            index_buffer,
+            bounding_box: BoundingBox::new(
+                Vector3::new(-radius, -radius, -radius),
+                Vector3::new(radius, radius, radius),
+            ),
         })
     }
 

@@ -186,7 +186,7 @@ impl SceneRenderer {
         context: &Context,
         camera: &Camera,
         models: Vec<(&Transform, &Model)>,
-        lights: Vec<&Light>,
+        lights: Vec<(&Transform, &Light)>,
         future: F,
         swapchain_frame_index: u32,
         viewport: &Viewport,
@@ -232,10 +232,10 @@ impl SceneRenderer {
         let entity_set_layout = self.pipeline.layout().set_layouts().get(2).unwrap();
 
         let uniform_subbuffer_scene = {
-            let Light::Point(light) = lights[0];
+            let (transform, Light::Point(light)) = lights[0];
 
             let uniform_data = vs::ty::Scene {
-                pointLight: light.into(),
+                pointLight: make_shader_point_light(light, transform),
             };
 
             self.uniform_buffer_pool_scene
@@ -352,15 +352,13 @@ mod vs {
     }
 }
 
-impl From<&PointLight> for vs::ty::PointLight {
-    fn from(value: &PointLight) -> Self {
-        vs::ty::PointLight {
-            position: value.position.into(),
-            color: value.color.into(),
-            range: value.range,
-            intensity: value.intensity,
-            _dummy0: Default::default(),
-        }
+fn make_shader_point_light(point_light: &PointLight, transform: &Transform) -> vs::ty::PointLight {
+    vs::ty::PointLight {
+        position: transform.translation.into(),
+        color: point_light.color.into(),
+        range: point_light.range,
+        intensity: point_light.intensity,
+        _dummy0: Default::default(),
     }
 }
 
