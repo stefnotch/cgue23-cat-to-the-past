@@ -33,6 +33,7 @@ layout(set = 2, binding = 0) uniform Material {
     float alpha;
 } material;
 
+layout(set = 2, binding = 1) uniform sampler2D base_color_texture;
 
 layout(set = 3, binding = 0) uniform Entity {
     mat4 model;
