@@ -64,6 +64,7 @@ impl AssetServer {
         path: P,
         commands: &mut Commands,
         memory_allocator: &Arc<StandardMemoryAllocator>,
+        context: &Context,
     ) -> Result<(), Box<dyn std::error::Error>>
     where
         P: AsRef<Path>,
@@ -89,6 +90,7 @@ impl AssetServer {
                 &mut scene_loading_data,
                 &mut scene_loading_result,
                 &Transform::default(),
+                context,
             );
         }
 
@@ -102,6 +104,7 @@ impl AssetServer {
                         mesh: sphere.clone(),
                         material: Arc::new(Material {
                             color: Vector3::new(1.0, 1.0, 1.0),
+                            base_color_texture: None,
                             ka: 1.0,
                             kd: 0.0,
                             ks: 0.0,
@@ -155,6 +158,7 @@ impl AssetServer {
         scene_loading_data: &mut SceneLoadingData,
         scene_loading_result: &mut SceneLoadingResult,
         parent_transform: &Transform,
+        context: &Context,
     ) {
         let local_transform: Transform = node.transform().into();
         let global_transform = parent_transform * local_transform;
@@ -165,6 +169,7 @@ impl AssetServer {
                 scene_loading_data,
                 scene_loading_result,
                 &global_transform,
+                context,
             );
         }
 
@@ -179,7 +184,7 @@ impl AssetServer {
         if let Some(mesh) = node.mesh() {
             scene_loading_result.models.push((
                 global_transform.clone(),
-                Self::load_model(mesh, scene_loading_data),
+                Self::load_model(mesh, scene_loading_data, context),
             ));
         }
     }
@@ -200,13 +205,17 @@ impl AssetServer {
         }
     }
 
-    fn load_model(mesh: gltf::Mesh, scene_loading_data: &mut SceneLoadingData) -> Model {
+    fn load_model(
+        mesh: gltf::Mesh,
+        scene_loading_data: &mut SceneLoadingData,
+        context: &Context,
+    ) -> Model {
         let mut model = Model {
             primitives: Vec::new(),
         };
 
         for primitive in mesh.primitives() {
-            let material = scene_loading_data.get_material(&primitive);
+            let material = scene_loading_data.get_material(&primitive, context);
             let mesh = scene_loading_data.get_mesh(&primitive);
 
             model.primitives.push(Primitive { mesh, material })
@@ -265,6 +274,7 @@ impl<'a> SceneLoadingData<'a> {
     ) -> Self {
         let material = Arc::new(Material {
             color: Vector3::new(1.0, 0.0, 1.0),
+            base_color_texture: None,
             ka: 0.0,
             kd: 1.0,
             ks: 0.0,
@@ -334,7 +344,7 @@ impl<'a> SceneLoadingData<'a> {
             .clone()
     }
 
-    fn get_material(&mut self, primitive: &gltf::Primitive) -> Arc<Material> {
+    fn get_material(&mut self, primitive: &gltf::Primitive, context: &Context) -> Arc<Material> {
         let gltf_material = primitive.material();
 
         if let Some(material_index) = gltf_material.index() {
@@ -346,6 +356,13 @@ impl<'a> SceneLoadingData<'a> {
                         color: Vector3::from_row_slice(
                             &gltf_material_pbr.base_color_factor()[0..3],
                         ),
+                        base_color_texture: gltf_material_pbr.base_color_texture().map(|info| {
+                            self.get_texture(
+                                &info.texture(),
+                                self.get_sampler(&info.texture(), context),
+                                context,
+                            )
+                        }),
                         ka: 0.1,
                         kd: 0.4,
                         ks: 0.0,
@@ -367,7 +384,11 @@ impl<'a> SceneLoadingData<'a> {
         }
     }
 
-    fn get_sampler(&self, gltf_texture: gltf::texture::Texture, context: &Context) -> Arc<Sampler> {
+    fn get_sampler(
+        &self,
+        gltf_texture: &gltf::texture::Texture,
+        context: &Context,
+    ) -> Arc<Sampler> {
         let sampler = gltf_texture.sampler();
 
         let min_filter = sampler.min_filter().unwrap_or(MinFilter::Linear);

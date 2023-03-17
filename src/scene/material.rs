@@ -14,6 +14,7 @@ use super::loader::Asset;
 #[derive(Component)]
 pub struct Material {
     pub color: Vector3<f32>,
+    pub base_color_texture: Option<Arc<Texture>>,
     pub ka: f32,
     pub kd: f32,
     pub ks: f32,
