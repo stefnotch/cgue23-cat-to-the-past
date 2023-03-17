@@ -36,7 +36,7 @@ impl Texture {
 
     pub fn new_one_by_one(sampler: Arc<Sampler>, context: &Context) -> Arc<Texture> {
         Self::new(
-            vec![255u8, 255, 255, 255],
+            vec![255u8, 255u8, 255u8, 255u8],
             1,
             1,
             Format::R8G8B8A8_UNORM,

@@ -64,15 +64,15 @@ vec3 specular(float ks, float alpha, vec3 r, vec3 v, vec3 is) {
     return ks * pow(max(dot(v, r), 0), alpha) * is;
 }
 
-vec3 phong(PointLight pointLight, vec3 n, vec3 v, vec3 worldPos) {
+vec3 phong(PointLight pointLight, vec3 n, vec3 v, vec3 worldPos, vec3 baseColor) {
     vec3 positionToLight = pointLight.position - worldPos;
     vec3 l = normalize(positionToLight);
-    float d_squared = dot(positionToLight, positionToLight);
+    float dSquared = dot(positionToLight, positionToLight);
     vec3 r = reflect(-l,n);
 
-    float reciAttenuation = (1.0 / d_squared) * pointLight.intensity;
+    float reciAttenuation = (1.0 / dSquared) * pointLight.intensity;
 
-    return (diffuse(material.kd, n, l, pointLight.color * material.color) +
+    return (diffuse(material.kd, n, l, pointLight.color * baseColor) +
         specular(material.ks, material.alpha, r, v, pointLight.color)) * reciAttenuation;
 }
 
@@ -82,9 +82,9 @@ void main() {
     vec3 n = normalize(v_normal);
     vec3 v = normalize(camera.position - worldPos); // world space
 
-    f_color = vec4(ambient(material.ka, ambientLightColor * material.color) +
-        phong(scene.pointLight, n, v, worldPos)
-    , 1.0);
+    vec3 baseColor = texture(base_color_texture, v_uv).rgb * material.color;
 
-    f_color = vec4(texture(base_color_texture, v_uv).xyz, 1.0);
+    f_color = vec4(ambient(material.ka, ambientLightColor * baseColor) +
+        phong(scene.pointLight, n, v, worldPos, baseColor)
+    , 1.0);
 }
