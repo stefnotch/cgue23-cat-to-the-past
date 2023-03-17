@@ -236,7 +236,7 @@ impl From<gltf::scene::Transform> for Transform {
 
 struct SceneLoadingData<'a> {
     gltf_buffers: Vec<gltf::buffer::Data>,
-    gltf_images: Vec<gltf::image::Data>,
+    gltf_images: HashMap<usize, gltf::image::Data>,
     meshes: HashMap<MeshKey, Arc<Mesh>>,
     materials: HashMap<usize, Arc<Material>>,
     missing_material: Arc<Material>,
@@ -270,6 +270,8 @@ impl<'a> SceneLoadingData<'a> {
             ks: 0.0,
             alpha: 1.0,
         });
+
+        let images = images.into_iter().enumerate().collect();
 
         Self {
             gltf_buffers: buffers,
@@ -393,13 +395,15 @@ impl<'a> SceneLoadingData<'a> {
     }
 
     fn get_texture(
-        &self,
+        &mut self,
         gltf_texture: &gltf::texture::Texture,
         sampler: Arc<Sampler>,
         context: &Context,
     ) -> Arc<Texture> {
         Texture::from_gltf_image(
-            &self.gltf_images[gltf_texture.source().index() as usize],
+            self.gltf_images
+                .remove(&(gltf_texture.source().index() as usize))
+                .unwrap(),
             sampler,
             context,
         )

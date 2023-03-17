@@ -1,6 +1,7 @@
 use super::loader::Asset;
 use crate::context::Context;
 use std::sync::Arc;
+use vulkano::buffer::BufferContents;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferUsage, PrimaryCommandBufferAbstract,
@@ -20,10 +21,44 @@ pub struct Texture {
 
 impl Texture {
     pub fn from_gltf_image(
-        image_data: &gltf::image::Data,
+        image_data: gltf::image::Data,
         sampler: Arc<Sampler>,
         context: &Context,
     ) -> Arc<Texture> {
+        Self::new(
+            image_data.pixels,
+            image_data.width,
+            image_data.height,
+            gltf_image_format_to_vulkan_format(&image_data.format),
+            sampler,
+            context,
+        )
+    }
+
+    pub fn new_one_by_one(sampler: Arc<Sampler>, context: &Context) -> Arc<Texture> {
+        Self::new(
+            vec![1.0, 1.0, 1.0],
+            1,
+            1,
+            Format::R8G8B8_UNORM,
+            sampler,
+            context,
+        )
+    }
+
+    pub fn new<I, Px>(
+        data_iterator: I,
+        width: u32,
+        height: u32,
+        format: Format,
+        sampler: Arc<Sampler>,
+        context: &Context,
+    ) -> Arc<Texture>
+    where
+        [Px]: BufferContents,
+        I: IntoIterator<Item = Px>,
+        I::IntoIter: ExactSizeIterator,
+    {
         let future = sync::now(context.device()).boxed();
 
         let command_buffer_allocator =
@@ -40,17 +75,17 @@ impl Texture {
 
         let texture = {
             let dimensions = ImageDimensions::Dim2d {
-                width: image_data.width,
-                height: image_data.height,
+                width,
+                height,
                 array_layers: 1,
             };
 
             let image = ImmutableImage::from_iter(
                 &memory_allocator,
-                image_data.pixels.clone(),
+                data_iterator,
                 dimensions,
                 MipmapsCount::One,
-                gltf_image_format_to_vulkan_format(&image_data.format),
+                format,
                 &mut command_buffer_builder,
             )
             .unwrap();
