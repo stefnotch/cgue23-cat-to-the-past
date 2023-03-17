@@ -1,6 +1,7 @@
 use bevy_ecs::query::Without;
 use scene::loader::AssetServer;
 use std::sync::Arc;
+use std::time::Instant;
 
 use bevy_ecs::system::{Commands, Query, Res};
 use context::Context;
@@ -30,25 +31,30 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
         vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
     );
 
-    // commands.spawn((
-    //     Light::Point(PointLight {
-    //         color: Vector3::new(1.0, 1.0, 1.0),
-    //         range: 0.0,
-    //         intensity: 2.0,
-    //     }),
-    //     TransformBuilder::new()
-    //         .translation(Translation3::new(0.0, 1.0, 0.0))
-    //         .build(),
-    // ));
+    commands.spawn((
+        Light::Point(PointLight {
+            color: Vector3::new(1.0, 1.0, 1.0),
+            range: 0.0,
+            intensity: 2.0,
+        }),
+        TransformBuilder::new()
+            .translation(Translation3::new(0.0, 1.0, 0.0))
+            .build(),
+    ));
 
+    let before = Instant::now();
     asset_server
         .load_default_scene(
-            "./assets/scene/testing/only_floor_v3/untitled.gltf",
+            "./assets/scene/testing/sponza/sponza.glb",
             &mut commands,
             &memory_allocator,
             &context,
         )
         .unwrap();
+    println!(
+        "Loading the scene took {}sec",
+        before.elapsed().as_secs_f64()
+    );
 
     // let cube = Mesh::cube(1.0, 1.0, 1.0, &memory_allocator);
     //
@@ -148,10 +154,10 @@ fn main() {
 
     // TODO: read from file
     let config = AppConfig {
-        resolution: (1280, 720),
-        fullscreen: false,
+        resolution: (1920, 1080),
+        fullscreen: true,
         brightness: 1.0,
-        refresh_rate: 60,
+        refresh_rate: 144,
     };
 
     let player_settings = PlayerSettings::new(5.0, 1.0, 9.81);

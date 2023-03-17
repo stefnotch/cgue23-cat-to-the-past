@@ -8,7 +8,7 @@ use crate::scene::transform::Transform;
 use bevy_ecs::prelude::*;
 use gltf::khr_lights_punctual::Kind;
 use gltf::mesh::util::ReadTexCoords::F32;
-use gltf::texture::{MagFilter, MinFilter};
+use gltf::texture::{MagFilter, MinFilter, WrappingMode};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
 use nalgebra::{Quaternion, Translation3, UnitQuaternion, Vector3};
 use std::hash::{Hash, Hasher};
@@ -18,7 +18,7 @@ use std::time::Instant;
 use std::{collections::HashMap, path::Path};
 use uuid::Uuid;
 use vulkano::memory::allocator::{MemoryAllocator, StandardMemoryAllocator};
-use vulkano::sampler::{Filter, Sampler, SamplerCreateInfo};
+use vulkano::sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo};
 
 use super::material::Material;
 use super::mesh::Mesh;
@@ -392,6 +392,12 @@ impl<'a> SceneLoadingData<'a> {
         let mag_filter =
             gltf_max_filter_to_vulkano(sampler.mag_filter().unwrap_or(MagFilter::Linear));
 
+        let address_mode: [SamplerAddressMode; 3] = [
+            gltf_wrapping_mode_to_vulkano(sampler.wrap_s()),
+            gltf_wrapping_mode_to_vulkano(sampler.wrap_s()),
+            SamplerAddressMode::ClampToEdge,
+        ];
+
         let sampler_key = SamplerKey {
             min_filter,
             mag_filter,
@@ -405,6 +411,7 @@ impl<'a> SceneLoadingData<'a> {
                     SamplerCreateInfo {
                         mag_filter,
                         min_filter,
+                        address_mode,
                         ..SamplerCreateInfo::default()
                     },
                 )
@@ -426,6 +433,14 @@ impl<'a> SceneLoadingData<'a> {
             sampler,
             context,
         )
+    }
+}
+
+fn gltf_wrapping_mode_to_vulkano(wrapping_mode: WrappingMode) -> SamplerAddressMode {
+    match wrapping_mode {
+        WrappingMode::ClampToEdge => SamplerAddressMode::ClampToEdge,
+        WrappingMode::MirroredRepeat => SamplerAddressMode::MirroredRepeat,
+        WrappingMode::Repeat => SamplerAddressMode::Repeat,
     }
 }
 
