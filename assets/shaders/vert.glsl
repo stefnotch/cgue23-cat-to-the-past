@@ -2,9 +2,11 @@
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
+layout(location = 2) in vec2 uv;
 
 layout(location = 0) out vec3 v_position;
 layout(location = 1) out vec3 v_normal;
+layout(location = 2) out vec2 v_uv;
 
 struct Material {
     vec3 color;
@@ -45,4 +47,5 @@ void main() {
 
     v_position = worldPos;
     v_normal = n;
+    v_uv = uv;
 }
