@@ -1,3 +1,4 @@
+use crate::context::Context;
 use crate::physics_context::BoxCollider;
 use crate::scene::light::{Light, PointLight};
 use crate::scene::material::NewMaterial;
@@ -6,12 +7,18 @@ use crate::scene::model::{Model, Primitive};
 use crate::scene::transform::Transform;
 use bevy_ecs::prelude::*;
 use gltf::khr_lights_punctual::Kind;
+use gltf::mesh::util::ReadTexCoords::F32;
+use gltf::texture::{MagFilter, MinFilter};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
 use nalgebra::{Quaternion, Translation3, UnitQuaternion, Vector3};
+use std::hash::{Hash, Hasher};
+use std::iter::repeat;
 use std::sync::Arc;
+use std::time::Instant;
 use std::{collections::HashMap, path::Path};
 use uuid::Uuid;
 use vulkano::memory::allocator::{MemoryAllocator, StandardMemoryAllocator};
+use vulkano::sampler::{Filter, Sampler, SamplerCreateInfo};
 
 use super::material::Material;
 use super::mesh::Mesh;
@@ -61,6 +68,7 @@ impl AssetServer {
     where
         P: AsRef<Path>,
     {
+        // TODO: open issue on gltf repository (working with buffers and images is unintuitive and not very good documented)
         let (doc, buffers, images) = import(path)?;
 
         if doc.scenes().len() > 1 {
@@ -116,6 +124,7 @@ impl AssetServer {
                 .sum::<usize>()
         );
 
+        let before = Instant::now();
         for (transform, model) in scene_loading_result.models {
             let bounding_box = model
                 .primitives
@@ -129,6 +138,10 @@ impl AssetServer {
 
             commands.spawn((model, transform, box_collider));
         }
+        println!(
+            "Spawning entities took {}sec",
+            before.elapsed().as_secs_f64()
+        );
 
         Ok(())
     }
@@ -227,7 +240,8 @@ struct SceneLoadingData<'a> {
     gltf_images: Vec<gltf::image::Data>,
     meshes: HashMap<MeshKey, Arc<Mesh>>,
     materials: HashMap<usize, Arc<Material>>,
-    textures: Vec<Option<Texture>>,
+    missing_material: Arc<Material>,
+    samplers: HashMap<SamplerKey, Arc<Sampler>>,
     allocator: &'a dyn MemoryAllocator,
 }
 
@@ -250,17 +264,21 @@ impl<'a> SceneLoadingData<'a> {
         buffers: Vec<gltf::buffer::Data>,
         images: Vec<gltf::image::Data>,
     ) -> Self {
-        let mut textures = vec![];
-        for _ in 0..images.len() {
-            textures.push(None);
-        }
+        let material = Arc::new(Material {
+            color: Vector3::new(1.0, 0.0, 1.0),
+            ka: 0.0,
+            kd: 1.0,
+            ks: 0.0,
+            alpha: 1.0,
+        });
 
         Self {
             gltf_buffers: buffers,
             gltf_images: images,
             meshes: HashMap::new(),
             materials: HashMap::new(),
-            textures,
+            missing_material: material,
+            samplers: HashMap::new(),
             allocator: memory_allocator,
         }
     }
@@ -272,70 +290,121 @@ impl<'a> SceneLoadingData<'a> {
             index_buffer_id: primitive.indices().unwrap().index(),
             vertex_buffer_positions_id: primitive.get(&Semantic::Positions).unwrap().index(),
             vertex_buffer_normals_id: primitive.get(&Semantic::Normals).unwrap().index(),
-            // TODO: Fallback for missing UVs
-            vertex_buffer_uvs_id: primitive.get(&Semantic::TexCoords(0)).unwrap().index(),
+            vertex_buffer_uvs_id: primitive.get(&Semantic::TexCoords(0)).map(|a| a.index()),
         };
 
-        if let Some(mesh) = self.meshes.get(&mesh_key) {
-            return mesh.clone();
-        } else {
-            let reader = primitive.reader(|buffer| Some(&self.gltf_buffers[buffer.index()]));
-            let positions = reader.read_positions().unwrap();
-            let normals = reader.read_normals().unwrap();
-            // let uvs = reader.read_tex_coords(0).unwrap();
-            let mut vertices = vec![];
+        self.meshes
+            .entry(mesh_key)
+            .or_insert_with(|| {
+                let reader = primitive.reader(|buffer| Some(&self.gltf_buffers[buffer.index()]));
+                let positions = reader.read_positions().unwrap();
+                let normals = reader.read_normals().unwrap();
+                let uvs: Box<dyn Iterator<Item = _>> =
+                    if let Some(read_tex_coords) = reader.read_tex_coords(0) {
+                        Box::new(read_tex_coords.into_f32())
+                    } else {
+                        Box::new(repeat([0.0f32, 0.0f32]))
+                    };
 
-            // zippy zip https://stackoverflow.com/a/71494478/3492994
-            for (position, normal) in positions.zip(normals) {
-                vertices.push(MeshVertex {
-                    position,
-                    normal,
-                    // uv: Vector2::from(uv),
-                });
-            }
+                let mut vertices = vec![];
 
-            let indices = reader
-                .read_indices()
-                .map(|indices| indices.into_u32().collect())
-                .unwrap_or_else(|| (0..vertices.len()).map(|index| index as u32).collect());
+                // zippy zip https://stackoverflow.com/a/71494478/3492994
+                for (position, (normal, uv)) in positions.zip(normals.zip(uvs)) {
+                    vertices.push(MeshVertex {
+                        position,
+                        normal,
+                        uv,
+                    });
+                }
 
-            let gltf_bounding_box = primitive.bounding_box();
-            let bounding_box = BoundingBox::<Vector3<f32>>::new(
-                gltf_bounding_box.min.into(),
-                gltf_bounding_box.max.into(),
-            );
+                let indices = reader
+                    .read_indices()
+                    .map(|indices| indices.into_u32().collect())
+                    .unwrap_or_else(|| (0..vertices.len()).map(|index| index as u32).collect());
 
-            Mesh::new(vertices, indices, bounding_box, self.allocator)
-        }
+                let gltf_bounding_box = primitive.bounding_box();
+                let bounding_box = BoundingBox::<Vector3<f32>>::new(
+                    gltf_bounding_box.min.into(),
+                    gltf_bounding_box.max.into(),
+                );
+
+                Mesh::new(vertices, indices, bounding_box, self.allocator)
+            })
+            .clone()
     }
 
-    fn get_material(&self, primitive: &gltf::Primitive) -> Arc<Material> {
+    fn get_material(&mut self, primitive: &gltf::Primitive) -> Arc<Material> {
         let gltf_material = primitive.material();
 
-        if let Some(material) = self.materials.get(&gltf_material.index().unwrap()) {
-            return material.clone();
+        if let Some(material_index) = gltf_material.index() {
+            self.materials
+                .entry(material_index)
+                .or_insert_with(|| {
+                    let gltf_material_pbr = gltf_material.pbr_metallic_roughness();
+                    let material = Material {
+                        color: Vector3::from_row_slice(
+                            &gltf_material_pbr.base_color_factor()[0..3],
+                        ),
+                        ka: 0.1,
+                        kd: 0.4,
+                        ks: 0.0,
+                        alpha: 1.0,
+                    };
+                    // let material = NewMaterial {
+                    //     base_color: Vector3::from_row_slice(&gltf_material_pbr.base_color_factor()[0..2]),
+                    //     base_color_texture: None,
+                    //     normal_texture: None,
+                    //     emissivity: gltf_material.emissive_factor().into(),
+                    //     metallic_factor: gltf_material_pbr.metallic_factor(),
+                    //     roughness_factor: gltf_material_pbr.roughness_factor(),
+                    // };
+                    Arc::new(material)
+                })
+                .clone()
         } else {
-            let gltf_material_pbr = gltf_material.pbr_metallic_roughness();
-            let material = Material {
-                color: Vector3::from_row_slice(&gltf_material_pbr.base_color_factor()[0..3]),
-                ka: 0.1,
-                kd: 0.4,
-                ks: 0.0,
-                alpha: 1.0,
-            };
-            // let material = NewMaterial {
-            //     base_color: Vector3::from_row_slice(&gltf_material_pbr.base_color_factor()[0..2]),
-            //     base_color_texture: None,
-            //     normal_texture: None,
-            //     emissivity: gltf_material.emissive_factor().into(),
-            //     metallic_factor: gltf_material_pbr.metallic_factor(),
-            //     roughness_factor: gltf_material_pbr.roughness_factor(),
-            // };
-            Arc::new(material)
+            self.missing_material.clone()
         }
     }
 
-    // fn get_texture(&self) -> Arc<Texture> {}
+    fn get_sampler(&self, gltf_texture: gltf::texture::Texture, context: &Context) -> Arc<Sampler> {
+        let sampler = gltf_texture.sampler();
+
+        let min_filter = sampler.min_filter().unwrap_or(MinFilter::Linear);
+        let mag_filter = sampler.mag_filter().unwrap_or(MagFilter::Linear);
+
+        let sampler_key = SamplerKey {
+            min_filter,
+            mag_filter,
+        };
+
+        if let Some(sampler) = self.samplers.get(&sampler_key) {
+            return sampler.clone();
+        } else {
+            Sampler::new(
+                context.device(),
+                SamplerCreateInfo {
+                    // TODO: use right filter
+                    mag_filter: Filter::Linear,
+                    min_filter: Filter::Linear,
+                    ..SamplerCreateInfo::default()
+                },
+            )
+            .unwrap()
+        }
+    }
+
+    fn get_texture(
+        &self,
+        gltf_texture: &gltf::texture::Texture,
+        sampler: Arc<Sampler>,
+        context: &Context,
+    ) -> Arc<Texture> {
+        Texture::from_gltf_image(
+            &self.gltf_images[gltf_texture.source().index() as usize],
+            sampler,
+            context,
+        )
+    }
 }
 
 #[derive(Hash, Eq, PartialEq, Debug)]
@@ -343,5 +412,19 @@ struct MeshKey {
     index_buffer_id: usize,
     vertex_buffer_positions_id: usize,
     vertex_buffer_normals_id: usize,
-    vertex_buffer_uvs_id: usize,
+    vertex_buffer_uvs_id: Option<usize>,
+}
+
+#[derive(Eq, PartialEq, Debug)]
+struct SamplerKey {
+    min_filter: MinFilter,
+    mag_filter: MagFilter,
+}
+
+impl Hash for SamplerKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // TODO: validate implementation
+        self.min_filter.as_gl_enum().hash(state);
+        self.mag_filter.as_gl_enum().hash(state);
+    }
 }

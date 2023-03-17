@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use nalgebra::Vector3;
+use nalgebra::{Vector2, Vector3};
 use std::f32::consts::PI;
 use std::sync::Arc;
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
@@ -12,9 +12,10 @@ use super::loader::Asset;
 pub struct MeshVertex {
     pub(super) position: [f32; 3],
     pub(super) normal: [f32; 3],
+    pub(super) uv: [f32; 2],
 }
 
-vulkano::impl_vertex!(MeshVertex, position, normal);
+vulkano::impl_vertex!(MeshVertex, position, normal, uv);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BoundingBox<T> {
@@ -144,12 +145,20 @@ impl Mesh {
             },
         ];
 
+        let uvs_face: [Vector2<f32>; 4] = [
+            Vector2::new(0.0, 1.0),
+            Vector2::new(1.0, 1.0),
+            Vector2::new(1.0, 0.0),
+            Vector2::new(0.0, 0.0),
+        ];
+
         let vertices: Vec<MeshVertex> = faces
             .iter()
             .flat_map(|face| {
                 face.position_indices.map(|i| MeshVertex {
                     position: positions[i].into(),
                     normal: face.normal.into(),
+                    uv: uvs_face[i].into(),
                 })
             })
             .collect();
@@ -202,67 +211,51 @@ impl Mesh {
     ) -> Arc<Self> {
         let mut vertices: Vec<MeshVertex> = vec![];
 
-        // top and bottom vertices
-        vertices.push(MeshVertex {
-            position: [0.0, radius, 0.0],
-            normal: [0.0, 1.0, 0.0],
-        });
-        vertices.push(MeshVertex {
-            position: [0.0, -radius, 0.0],
-            normal: [0.0, -1.0, 0.0],
-        });
-
-        // for each axis: n segments -> n+1 vertices
         let num_latitude_vertices = latitude_segments + 1;
-        let num_longitude_vertices = longitude_segments + 1;
+        let num_longitude_vertices = longitude_segments + 2;
 
-        // vertices and rings
-        // top and bottom vertex already generated -> skip one latitude vertex at the front and back
-        for i in 1..num_latitude_vertices - 1 {
+        // vertices
+        for i in 0..num_latitude_vertices {
             let vertical_angle: f32 = i as f32 * PI / latitude_segments as f32;
-            // wrap around -> left and right share a vertex -> generate vertex once
-            for j in 0..num_longitude_vertices - 1 {
+            for j in 0..num_longitude_vertices {
                 let horizontal_angle: f32 = j as f32 * (2.0 * PI) / longitude_segments as f32;
+
                 let position = Vector3::new(
+                    radius * vertical_angle.sin() * horizontal_angle.cos(),
                     radius * vertical_angle.sin() * horizontal_angle.sin(),
                     radius * vertical_angle.cos(),
-                    radius * vertical_angle.sin() * horizontal_angle.cos(),
                 );
+
                 let normal: Vector3<f32> = position.normalize();
+                let uv = Vector2::new(
+                    1.0 - j as f32 / (num_longitude_vertices - 1) as f32,
+                    i as f32 / (num_latitude_vertices - 1) as f32,
+                );
                 vertices.push(MeshVertex {
                     position: position.into(),
                     normal: normal.into(),
+                    uv: uv.into(),
                 });
             }
         }
 
         let mut indices: Vec<u32> = vec![];
 
-        let calc_index = |i: u32, j: u32| {
-            ((i % latitude_segments) * longitude_segments + (j % longitude_segments)) + 2
-        };
+        let calc_index = |i: u32, j: u32| i * num_longitude_vertices + j;
 
-        // top and bottom ring
-        for j in 0..(num_longitude_vertices - 1) {
-            indices.push(calc_index(0, j));
-            indices.push(calc_index(0, j + 1));
-            indices.push(0);
+        for i in 0..latitude_segments {
+            for j in 0..longitude_segments {
+                if i != 0 {
+                    indices.push(calc_index(i + 1, j));
+                    indices.push(calc_index(i, j + 1));
+                    indices.push(calc_index(i, j));
+                }
 
-            indices.push(calc_index(latitude_segments - 2, j + 1));
-            indices.push(calc_index(latitude_segments - 2, j));
-            indices.push(1);
-        }
-
-        // rest of the sphere
-        for i in 0..(num_latitude_vertices - 2) - 1 {
-            for j in 0..num_longitude_vertices - 1 {
-                indices.push(calc_index(i + 1, j));
-                indices.push(calc_index(i, j + 1));
-                indices.push(calc_index(i, j));
-
-                indices.push(calc_index(i, j + 1));
-                indices.push(calc_index(i + 1, j));
-                indices.push(calc_index(i + 1, j + 1));
+                if i != latitude_segments - 1 {
+                    indices.push(calc_index(i, j + 1));
+                    indices.push(calc_index(i + 1, j));
+                    indices.push(calc_index(i + 1, j + 1));
+                }
             }
         }
 

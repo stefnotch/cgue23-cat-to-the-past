@@ -41,6 +41,7 @@ pub struct SceneRenderer {
     uniform_buffer_pool_camera: CpuBufferPool<vs::ty::Camera>,
     uniform_buffer_pool_scene: CpuBufferPool<vs::ty::Scene>,
     uniform_buffer_pool_entity: CpuBufferPool<vs::ty::Entity>,
+    // uniform_buffer_pool_material: CpuBufferPool<vs::ty::Material>,
 }
 
 impl SceneRenderer {
@@ -83,6 +84,15 @@ impl SceneRenderer {
             MemoryUsage::Upload,
         );
 
+        // let uniform_buffer_pool_material = CpuBufferPool::<vs::ty::Material>::new(
+        //     memory_allocator.clone(),
+        //     BufferUsage {
+        //         uniform_buffer: true,
+        //         ..Default::default()
+        //     },
+        //     MemoryUsage::Upload
+        // );
+
         let render_pass = vulkano::single_pass_renderpass!(
             context.device(),
             attachments: {
@@ -108,7 +118,9 @@ impl SceneRenderer {
 
         let pipeline = GraphicsPipeline::start()
             .rasterization_state(
-                RasterizationState::new().cull_mode(CullMode::Back), // .polygon_mode(PolygonMode::Line),
+                RasterizationState::new()
+                    .cull_mode(CullMode::Back)
+                    .polygon_mode(PolygonMode::Fill),
             )
             // .rasterization_state(RasterizationState::new().cull_mode(CullMode::Back))
             .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
@@ -154,6 +166,7 @@ impl SceneRenderer {
             uniform_buffer_pool_scene,
             uniform_buffer_pool_camera,
             uniform_buffer_pool_entity,
+            // uniform_buffer_pool_material
         }
     }
 }
@@ -231,6 +244,7 @@ impl SceneRenderer {
         let scene_set_layout = self.pipeline.layout().set_layouts().get(0).unwrap();
         let camera_set_layout = self.pipeline.layout().set_layouts().get(1).unwrap();
         let entity_set_layout = self.pipeline.layout().set_layouts().get(2).unwrap();
+        // let material_set_layout = self.pipeline.layout().set_layouts().get(3).unwrap();
 
         let uniform_subbuffer_scene = {
             let (transform, Light::Point(light)) = lights[0];

@@ -1,20 +1,29 @@
 use super::loader::Asset;
 use crate::context::Context;
 use std::sync::Arc;
-use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
-use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage};
+use vulkano::command_buffer::{
+    AutoCommandBufferBuilder, CommandBufferUsage, PrimaryCommandBufferAbstract,
+};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
-use vulkano::image::{ImageDimensions, StorageImage};
+use vulkano::image::{ImageDimensions, ImmutableImage, MipmapsCount};
 use vulkano::memory::allocator::StandardMemoryAllocator;
+use vulkano::sampler::Sampler;
 use vulkano::sync;
 use vulkano::sync::GpuFuture;
 
-pub struct Texture {}
+pub struct Texture {
+    pub image_view: Arc<ImageView<ImmutableImage>>,
+    pub sampler: Arc<Sampler>,
+}
 
 impl Texture {
-    pub fn from_gltf_image(image_data: gltf::image::Data, context: &Context) -> Arc<Texture> {
+    pub fn from_gltf_image(
+        image_data: &gltf::image::Data,
+        sampler: Arc<Sampler>,
+        context: &Context,
+    ) -> Arc<Texture> {
         let future = sync::now(context.device()).boxed();
 
         let command_buffer_allocator =
@@ -36,24 +45,17 @@ impl Texture {
                 array_layers: 1,
             };
 
-            let image = StorageImage::new(
+            let image = ImmutableImage::from_iter(
                 &memory_allocator,
+                image_data.pixels.clone(),
                 dimensions,
+                MipmapsCount::One,
                 gltf_image_format_to_vulkan_format(&image_data.format),
-                [context.queue_family_index()],
+                &mut command_buffer_builder,
             )
             .unwrap();
 
-            let buffer = CpuAccessibleBuffer::from_iter(
-                &memory_allocator,
-                BufferUsage {
-                    transfer_src: true,
-                    ..BufferUsage::empty()
-                },
-                false,
-                image_data.pixels,
-            )
-            .unwrap();
+            ImageView::new_default(image).unwrap()
         };
 
         let command_buffer = command_buffer_builder.build().unwrap();
@@ -66,7 +68,10 @@ impl Texture {
 
         future.wait(None).unwrap();
 
-        Arc::new(Texture {})
+        Arc::new(Texture {
+            image_view: texture,
+            sampler,
+        })
     }
 }
 
