@@ -190,8 +190,7 @@ impl AssetServer {
                 todo!("directional lights are not supported yet")
             }
             Kind::Point => Light::Point(PointLight {
-                // TODO: validate implementation (might have mistaken column and row)
-                color: Vector3::from_column_slice(&light.color()),
+                color: light.color().into(),
                 range: light.range().unwrap_or_else(|| 20.0f32),
                 intensity: light.intensity(),
             }),

@@ -8,14 +8,6 @@ layout(location = 0) out vec4 f_color;
 
 // TODO: import structs to reduce code duplication and to keep the structs in sync in both vertex and fragment shader
 
-struct Material {
-    vec3 color;
-    float ka;
-    float kd;
-    float ks;
-    float alpha;
-};
-
 struct PointLight {
     vec3 position;
     vec3 color;
@@ -33,10 +25,18 @@ layout(set = 1, binding = 0) uniform Camera {
     vec3 position;
 } camera;
 
-layout(set = 2, binding = 0) uniform Entity {
+layout(set = 2, binding = 0) uniform Material {
+    vec3 color;
+    float ka;
+    float kd;
+    float ks;
+    float alpha;
+} material;
+
+
+layout(set = 3, binding = 0) uniform Entity {
     mat4 model;
     mat4 normalMatrix;
-    Material material;
 } entity;
 
 vec3 ambientLightColor = vec3(1.0, 1.0, 1.0);
@@ -63,7 +63,7 @@ vec3 specular(float ks, float alpha, vec3 r, vec3 v, vec3 is) {
     return ks * pow(max(dot(v, r), 0), alpha) * is;
 }
 
-vec3 phong(Material material, PointLight pointLight, vec3 n, vec3 v, vec3 worldPos) {
+vec3 phong(PointLight pointLight, vec3 n, vec3 v, vec3 worldPos) {
     vec3 positionToLight = pointLight.position - worldPos;
     vec3 l = normalize(positionToLight);
     float d_squared = dot(positionToLight, positionToLight);
@@ -81,8 +81,8 @@ void main() {
     vec3 n = normalize(v_normal);
     vec3 v = normalize(camera.position - worldPos); // world space
 
-    f_color = vec4(ambient(entity.material.ka, ambientLightColor * entity.material.color) +
-        phong(entity.material, scene.pointLight, n, v, worldPos)
+    f_color = vec4(ambient(material.ka, ambientLightColor * material.color) +
+        phong(scene.pointLight, n, v, worldPos)
     , 1.0);
 
 //    f_color = vec4(v_uv, 0.0, 1.0);

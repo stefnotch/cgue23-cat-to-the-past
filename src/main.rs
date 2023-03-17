@@ -30,16 +30,16 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
         vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
     );
 
-    commands.spawn((
-        Light::Point(PointLight {
-            color: Vector3::new(1.0, 1.0, 1.0),
-            range: 0.0,
-            intensity: 2.0,
-        }),
-        TransformBuilder::new()
-            .translation(Translation3::new(0.0, 1.0, 0.0))
-            .build(),
-    ));
+    // commands.spawn((
+    //     Light::Point(PointLight {
+    //         color: Vector3::new(1.0, 1.0, 1.0),
+    //         range: 0.0,
+    //         intensity: 2.0,
+    //     }),
+    //     TransformBuilder::new()
+    //         .translation(Translation3::new(0.0, 1.0, 0.0))
+    //         .build(),
+    // ));
 
     asset_server
         .load_default_scene(

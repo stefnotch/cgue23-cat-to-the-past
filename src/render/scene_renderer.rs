@@ -41,7 +41,7 @@ pub struct SceneRenderer {
     uniform_buffer_pool_camera: CpuBufferPool<vs::ty::Camera>,
     uniform_buffer_pool_scene: CpuBufferPool<vs::ty::Scene>,
     uniform_buffer_pool_entity: CpuBufferPool<vs::ty::Entity>,
-    // uniform_buffer_pool_material: CpuBufferPool<vs::ty::Material>,
+    uniform_buffer_pool_material: CpuBufferPool<vs::ty::Material>,
 }
 
 impl SceneRenderer {
@@ -84,14 +84,14 @@ impl SceneRenderer {
             MemoryUsage::Upload,
         );
 
-        // let uniform_buffer_pool_material = CpuBufferPool::<vs::ty::Material>::new(
-        //     memory_allocator.clone(),
-        //     BufferUsage {
-        //         uniform_buffer: true,
-        //         ..Default::default()
-        //     },
-        //     MemoryUsage::Upload
-        // );
+        let uniform_buffer_pool_material = CpuBufferPool::<vs::ty::Material>::new(
+            memory_allocator.clone(),
+            BufferUsage {
+                uniform_buffer: true,
+                ..Default::default()
+            },
+            MemoryUsage::Upload,
+        );
 
         let render_pass = vulkano::single_pass_renderpass!(
             context.device(),
@@ -166,7 +166,7 @@ impl SceneRenderer {
             uniform_buffer_pool_scene,
             uniform_buffer_pool_camera,
             uniform_buffer_pool_entity,
-            // uniform_buffer_pool_material
+            uniform_buffer_pool_material,
         }
     }
 }
@@ -243,8 +243,8 @@ impl SceneRenderer {
         // TODO: models with different pipelines
         let scene_set_layout = self.pipeline.layout().set_layouts().get(0).unwrap();
         let camera_set_layout = self.pipeline.layout().set_layouts().get(1).unwrap();
-        let entity_set_layout = self.pipeline.layout().set_layouts().get(2).unwrap();
-        // let material_set_layout = self.pipeline.layout().set_layouts().get(3).unwrap();
+        let material_set_layout = self.pipeline.layout().set_layouts().get(2).unwrap();
+        let entity_set_layout = self.pipeline.layout().set_layouts().get(3).unwrap();
 
         let uniform_subbuffer_scene = {
             let (transform, Light::Point(light)) = lights[0];
@@ -300,44 +300,63 @@ impl SceneRenderer {
 
         let before = Instant::now();
         for (transform, model) in models {
+            // descriptor set
+            let uniform_subbuffer_entity = {
+                let model_matrix = transform.to_matrix();
+                let normal_model_matrix = model_matrix.try_inverse().unwrap().transpose();
+
+                let uniform_data = vs::ty::Entity {
+                    model: model_matrix.into(),
+                    normalMatrix: normal_model_matrix.into(),
+                };
+
+                self.uniform_buffer_pool_entity
+                    .from_data(uniform_data)
+                    .unwrap()
+            };
+
+            // TODO: Don't create a new descriptor set every frame
+            /*
+                let e = WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer);
+            set.resources().update(&e);
+             */
+            let entity_descriptor_set = PersistentDescriptorSet::new(
+                &self.descriptor_set_allocator,
+                entity_set_layout.clone(),
+                [WriteDescriptorSet::buffer(0, uniform_subbuffer_entity)],
+            )
+            .unwrap();
+
+            builder.bind_descriptor_sets(
+                PipelineBindPoint::Graphics,
+                self.pipeline.layout().clone(),
+                3,
+                entity_descriptor_set.clone(),
+            );
+
             for primitive in &model.primitives {
                 // descriptor set
-                let uniform_subbuffer_entity = {
-                    let model_matrix = transform.to_matrix();
-                    let normal_model_matrix = model_matrix.try_inverse().unwrap().transpose();
+                let uniform_subbuffer_material = {
+                    let uniform_data = primitive.material.as_ref().into();
 
-                    let uniform_data = vs::ty::Entity {
-                        model: model_matrix.into(),
-                        normalMatrix: normal_model_matrix.into(),
-                        material: primitive.material.as_ref().into(),
-                    };
-
-                    self.uniform_buffer_pool_entity
+                    self.uniform_buffer_pool_material
                         .from_data(uniform_data)
                         .unwrap()
                 };
 
-                // TODO: Don't create a new descriptor set every frame
-                /*
-                    let e = WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer);
-                set.resources().update(&e);
-                 */
-                let entity_descriptor_set = PersistentDescriptorSet::new(
+                let material_descriptor_set = PersistentDescriptorSet::new(
                     &self.descriptor_set_allocator,
-                    entity_set_layout.clone(),
-                    [WriteDescriptorSet::buffer(0, uniform_subbuffer_entity)],
+                    material_set_layout.clone(),
+                    [WriteDescriptorSet::buffer(0, uniform_subbuffer_material)],
                 )
                 .unwrap();
-
-                // set.resources()
-                //     .update(&WriteDescriptorSet::buffer(0, uniform_buffer_subbuffer));
 
                 builder
                     .bind_descriptor_sets(
                         PipelineBindPoint::Graphics,
                         self.pipeline.layout().clone(),
                         2,
-                        entity_descriptor_set.clone(),
+                        material_descriptor_set.clone(),
                     )
                     .bind_index_buffer(primitive.mesh.index_buffer.clone())
                     .bind_vertex_buffers(0, primitive.mesh.vertex_buffer.clone())

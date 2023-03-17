@@ -8,14 +8,6 @@ layout(location = 0) out vec3 v_position;
 layout(location = 1) out vec3 v_normal;
 layout(location = 2) out vec2 v_uv;
 
-struct Material {
-    vec3 color;
-    float ka;
-    float kd;
-    float ks;
-    float alpha;
-};
-
 struct PointLight {
     vec3 position;
     vec3 color;
@@ -33,10 +25,17 @@ layout(set = 1, binding = 0) uniform Camera {
     vec3 position;
 } camera;
 
-layout(set = 2, binding = 0) uniform Entity {
+layout(set = 2, binding = 0) uniform Material {
+    vec3 color;
+    float ka;
+    float kd;
+    float ks;
+    float alpha;
+} material;
+
+layout(set = 3, binding = 0) uniform Entity {
     mat4 model;
     mat4 normalMatrix;
-    Material material;
 } entity;
 
 void main() {
