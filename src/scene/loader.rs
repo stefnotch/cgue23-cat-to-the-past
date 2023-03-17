@@ -348,71 +348,69 @@ impl<'a> SceneLoadingData<'a> {
         let gltf_material = primitive.material();
 
         if let Some(material_index) = gltf_material.index() {
-            self.materials
-                .entry(material_index)
-                .or_insert_with(|| {
-                    let gltf_material_pbr = gltf_material.pbr_metallic_roughness();
-                    let material = Material {
-                        color: Vector3::from_row_slice(
-                            &gltf_material_pbr.base_color_factor()[0..3],
-                        ),
-                        base_color_texture: gltf_material_pbr.base_color_texture().map(|info| {
-                            self.get_texture(
-                                &info.texture(),
-                                self.get_sampler(&info.texture(), context),
-                                context,
-                            )
-                        }),
-                        ka: 0.1,
-                        kd: 0.4,
-                        ks: 0.0,
-                        alpha: 1.0,
-                    };
-                    // let material = NewMaterial {
-                    //     base_color: Vector3::from_row_slice(&gltf_material_pbr.base_color_factor()[0..2]),
-                    //     base_color_texture: None,
-                    //     normal_texture: None,
-                    //     emissivity: gltf_material.emissive_factor().into(),
-                    //     metallic_factor: gltf_material_pbr.metallic_factor(),
-                    //     roughness_factor: gltf_material_pbr.roughness_factor(),
-                    // };
-                    Arc::new(material)
-                })
-                .clone()
+            if let Some(material) = self.materials.get(&material_index) {
+                material.clone()
+            } else {
+                let gltf_material_pbr = gltf_material.pbr_metallic_roughness();
+                let material = Arc::new(Material {
+                    color: Vector3::from_row_slice(&gltf_material_pbr.base_color_factor()[0..3]),
+                    base_color_texture: gltf_material_pbr.base_color_texture().map(|info| {
+                        let sampler = self.get_sampler(&info.texture(), context);
+                        self.get_texture(&info.texture(), sampler, context)
+                    }),
+                    ka: 0.1,
+                    kd: 0.4,
+                    ks: 0.0,
+                    alpha: 1.0,
+                });
+                // let material = NewMaterial {
+                //     base_color: Vector3::from_row_slice(&gltf_material_pbr.base_color_factor()[0..2]),
+                //     base_color_texture: None,
+                //     normal_texture: None,
+                //     emissivity: gltf_material.emissive_factor().into(),
+                //     metallic_factor: gltf_material_pbr.metallic_factor(),
+                //     roughness_factor: gltf_material_pbr.roughness_factor(),
+                // };
+
+                self.materials.insert(material_index, material.clone());
+                material.clone()
+            }
         } else {
             self.missing_material.clone()
         }
     }
 
     fn get_sampler(
-        &self,
+        &mut self,
         gltf_texture: &gltf::texture::Texture,
         context: &Context,
     ) -> Arc<Sampler> {
         let sampler = gltf_texture.sampler();
 
-        let min_filter = sampler.min_filter().unwrap_or(MinFilter::Linear);
-        let mag_filter = sampler.mag_filter().unwrap_or(MagFilter::Linear);
+        let min_filter =
+            gltf_min_filter_to_vulkano(sampler.min_filter().unwrap_or(MinFilter::Linear));
+        let mag_filter =
+            gltf_max_filter_to_vulkano(sampler.mag_filter().unwrap_or(MagFilter::Linear));
 
         let sampler_key = SamplerKey {
             min_filter,
             mag_filter,
         };
 
-        if let Some(sampler) = self.samplers.get(&sampler_key) {
-            return sampler.clone();
-        } else {
-            Sampler::new(
-                context.device(),
-                SamplerCreateInfo {
-                    // TODO: use right filter
-                    mag_filter: Filter::Linear,
-                    min_filter: Filter::Linear,
-                    ..SamplerCreateInfo::default()
-                },
-            )
-            .unwrap()
-        }
+        self.samplers
+            .entry(sampler_key)
+            .or_insert_with(|| {
+                Sampler::new(
+                    context.device(),
+                    SamplerCreateInfo {
+                        mag_filter,
+                        min_filter,
+                        ..SamplerCreateInfo::default()
+                    },
+                )
+                .unwrap()
+            })
+            .clone()
     }
 
     fn get_texture(
@@ -431,6 +429,24 @@ impl<'a> SceneLoadingData<'a> {
     }
 }
 
+fn gltf_max_filter_to_vulkano(linear: MagFilter) -> Filter {
+    match linear {
+        MagFilter::Nearest => Filter::Nearest,
+        MagFilter::Linear => Filter::Linear,
+    }
+}
+
+fn gltf_min_filter_to_vulkano(gltf_min_filter: MinFilter) -> Filter {
+    match gltf_min_filter {
+        MinFilter::Nearest => Filter::Nearest,
+        MinFilter::Linear => Filter::Linear,
+        MinFilter::NearestMipmapNearest => Filter::Nearest,
+        MinFilter::LinearMipmapNearest => Filter::Linear,
+        MinFilter::NearestMipmapLinear => Filter::Linear,
+        MinFilter::LinearMipmapLinear => Filter::Linear,
+    }
+}
+
 #[derive(Hash, Eq, PartialEq, Debug)]
 struct MeshKey {
     index_buffer_id: usize,
@@ -439,16 +455,8 @@ struct MeshKey {
     vertex_buffer_uvs_id: Option<usize>,
 }
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Hash)]
 struct SamplerKey {
-    min_filter: MinFilter,
-    mag_filter: MagFilter,
-}
-
-impl Hash for SamplerKey {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        // TODO: validate implementation
-        self.min_filter.as_gl_enum().hash(state);
-        self.mag_filter.as_gl_enum().hash(state);
-    }
+    min_filter: Filter,
+    mag_filter: Filter,
 }
