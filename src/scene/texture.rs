@@ -114,8 +114,8 @@ fn gltf_image_format_to_vulkan_format(
     format: &gltf::image::Format,
 ) -> (Vec<u8>, Format) {
     match format {
-        gltf::image::Format::R8 => (image, Format::R8_UINT),
-        gltf::image::Format::R8G8 => (image, Format::R8G8_UINT),
+        gltf::image::Format::R8 => (image, Format::R8_UNORM),
+        gltf::image::Format::R8G8 => (image, Format::R8G8_UNORM),
         gltf::image::Format::R8G8B8 => {
             // rarely supported format
             let mut image_with_alpha = Vec::new();
@@ -125,16 +125,16 @@ fn gltf_image_format_to_vulkan_format(
                 image_with_alpha.push(image[i * 3 + 2]);
                 image_with_alpha.push(255);
             }
-            (image_with_alpha, Format::R8G8B8A8_UINT)
+            (image_with_alpha, Format::R8G8B8A8_UNORM)
         }
-        gltf::image::Format::R8G8B8A8 => (image, Format::R8G8B8A8_UINT),
-        gltf::image::Format::R16 => (image, Format::R16_UINT),
-        gltf::image::Format::R16G16 => (image, Format::R16G16_UINT),
+        gltf::image::Format::R8G8B8A8 => (image, Format::R8G8B8A8_UNORM),
+        gltf::image::Format::R16 => (image, Format::R16_UNORM),
+        gltf::image::Format::R16G16 => (image, Format::R16G16_UNORM),
         gltf::image::Format::R16G16B16 => {
             // rarely supported format
             todo!()
         }
-        gltf::image::Format::R16G16B16A16 => (image, Format::R16G16B16A16_UINT),
+        gltf::image::Format::R16G16B16A16 => (image, Format::R16G16B16A16_UNORM),
         gltf::image::Format::R32G32B32FLOAT => {
             // rarely supported format
             todo!()
