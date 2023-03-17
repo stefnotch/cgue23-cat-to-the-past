@@ -86,5 +86,5 @@ void main() {
         phong(scene.pointLight, n, v, worldPos)
     , 1.0);
 
-//    f_color = vec4(v_uv, 0.0, 1.0);
+    f_color = vec4(texture(base_color_texture, v_uv).xyz, 1.0);
 }
