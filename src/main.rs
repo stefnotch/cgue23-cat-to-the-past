@@ -46,6 +46,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
             "./assets/scene/only_floor_v3/untitled.gltf",
             &mut commands,
             &memory_allocator,
+            &context,
         )
         .unwrap();
 
