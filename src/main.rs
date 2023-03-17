@@ -43,7 +43,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
 
     asset_server
         .load_default_scene(
-            "./assets/scene/only_floor_v2.gltf",
+            "./assets/scene/only_floor_v3/untitled.gltf",
             &mut commands,
             &memory_allocator,
         )
