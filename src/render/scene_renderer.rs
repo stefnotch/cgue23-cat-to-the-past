@@ -2,6 +2,7 @@ use crate::camera::Camera;
 use crate::context::Context;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::Model;
+use crate::scene::texture::Texture;
 use crate::scene::transform::Transform;
 
 use crate::scene::light::{Light, PointLight};
@@ -28,6 +29,7 @@ use vulkano::pipeline::graphics::vertex_input::BuffersDefinition;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
+use vulkano::sampler::{Filter, Sampler, SamplerCreateInfo};
 use vulkano::sync::GpuFuture;
 
 pub struct SceneRenderer {
@@ -42,6 +44,9 @@ pub struct SceneRenderer {
     uniform_buffer_pool_scene: CpuBufferPool<vs::ty::Scene>,
     uniform_buffer_pool_entity: CpuBufferPool<vs::ty::Entity>,
     uniform_buffer_pool_material: CpuBufferPool<vs::ty::Material>,
+
+    /// The 1x1 white texture used when a model is missing a texture
+    missing_texture: Arc<Texture>,
 }
 
 impl SceneRenderer {
@@ -155,6 +160,18 @@ impl SceneRenderer {
             })
             .collect();
 
+        let missing_texture = Texture::new_one_by_one(
+            Sampler::new(
+                context.device(),
+                SamplerCreateInfo {
+                    mag_filter: Filter::Nearest,
+                    min_filter: Filter::Nearest,
+                    ..SamplerCreateInfo::default()
+                },
+            )
+            .unwrap(),
+            &context,
+        );
         SceneRenderer {
             render_pass,
             pipeline,
@@ -167,6 +184,7 @@ impl SceneRenderer {
             uniform_buffer_pool_camera,
             uniform_buffer_pool_entity,
             uniform_buffer_pool_material,
+            missing_texture,
         }
     }
 }
@@ -344,10 +362,23 @@ impl SceneRenderer {
                         .unwrap()
                 };
 
+                let texture = primitive
+                    .material
+                    .base_color_texture
+                    .clone()
+                    .unwrap_or(self.missing_texture.clone());
+
                 let material_descriptor_set = PersistentDescriptorSet::new(
                     &self.descriptor_set_allocator,
                     material_set_layout.clone(),
-                    [WriteDescriptorSet::buffer(0, uniform_subbuffer_material)],
+                    [
+                        WriteDescriptorSet::buffer(0, uniform_subbuffer_material),
+                        WriteDescriptorSet::image_view_sampler(
+                            1,
+                            texture.image_view.clone(),
+                            texture.sampler.clone(),
+                        ),
+                    ],
                 )
                 .unwrap();
 
