@@ -25,22 +25,21 @@ impl Texture {
         sampler: Arc<Sampler>,
         context: &Context,
     ) -> Arc<Texture> {
-        Self::new(
-            image_data.pixels,
-            image_data.width,
-            image_data.height,
-            gltf_image_format_to_vulkan_format(&image_data.format),
-            sampler,
-            context,
-        )
+        // Widely supported formats https://vulkan.gpuinfo.org/listlineartilingformats.php
+
+        let width = image_data.width;
+        let height = image_data.height;
+        let (image, format) =
+            gltf_image_format_to_vulkan_format(image_data.pixels, &image_data.format);
+        Self::new(image, width, height, format, sampler, context)
     }
 
     pub fn new_one_by_one(sampler: Arc<Sampler>, context: &Context) -> Arc<Texture> {
         Self::new(
-            vec![1.0, 1.0, 1.0],
+            vec![255, 255, 255, 255],
             1,
             1,
-            Format::R8G8B8_UNORM,
+            Format::R8G8B8A8_UNORM,
             sampler,
             context,
         )
@@ -110,18 +109,37 @@ impl Texture {
     }
 }
 
-fn gltf_image_format_to_vulkan_format(format: &gltf::image::Format) -> Format {
+fn gltf_image_format_to_vulkan_format(
+    image: Vec<u8>,
+    format: &gltf::image::Format,
+) -> (Vec<u8>, Format) {
     match format {
-        gltf::image::Format::R8 => Format::R8_UINT,
-        gltf::image::Format::R8G8 => Format::R8G8_UINT,
-        gltf::image::Format::R8G8B8 => Format::R8G8B8_UINT,
-        gltf::image::Format::R8G8B8A8 => Format::R8G8B8A8_UINT,
-        gltf::image::Format::R16 => Format::R16_UINT,
-        gltf::image::Format::R16G16 => Format::R16G16_UINT,
-        gltf::image::Format::R16G16B16 => Format::R16G16B16_UINT,
-        gltf::image::Format::R16G16B16A16 => Format::R16G16B16A16_UINT,
-        gltf::image::Format::R32G32B32FLOAT => Format::R32G32B32_SFLOAT,
-        gltf::image::Format::R32G32B32A32FLOAT => Format::R32G32B32A32_SFLOAT,
+        gltf::image::Format::R8 => (image, Format::R8_UINT),
+        gltf::image::Format::R8G8 => (image, Format::R8G8_UINT),
+        gltf::image::Format::R8G8B8 => {
+            // rarely supported format
+            let mut image_with_alpha = Vec::new();
+            for i in 0..image.len() / 3 {
+                image_with_alpha.push(image[i * 3]);
+                image_with_alpha.push(image[i * 3 + 1]);
+                image_with_alpha.push(image[i * 3 + 2]);
+                image_with_alpha.push(255);
+            }
+            (image_with_alpha, Format::R8G8B8A8_UINT)
+        }
+        gltf::image::Format::R8G8B8A8 => (image, Format::R8G8B8A8_UINT),
+        gltf::image::Format::R16 => (image, Format::R16_UINT),
+        gltf::image::Format::R16G16 => (image, Format::R16G16_UINT),
+        gltf::image::Format::R16G16B16 => {
+            // rarely supported format
+            todo!()
+        }
+        gltf::image::Format::R16G16B16A16 => (image, Format::R16G16B16A16_UINT),
+        gltf::image::Format::R32G32B32FLOAT => {
+            // rarely supported format
+            todo!()
+        }
+        gltf::image::Format::R32G32B32A32FLOAT => (image, Format::R32G32B32A32_SFLOAT),
     }
 }
 

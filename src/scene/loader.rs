@@ -345,6 +345,8 @@ impl<'a> SceneLoadingData<'a> {
     }
 
     fn get_material(&mut self, primitive: &gltf::Primitive, context: &Context) -> Arc<Material> {
+        return self.missing_material.clone();
+
         let gltf_material = primitive.material();
 
         if let Some(material_index) = gltf_material.index() {
