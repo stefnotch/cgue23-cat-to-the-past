@@ -4,13 +4,15 @@ use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Query, Res};
 use context::Context;
-use nalgebra::UnitQuaternion;
+use nalgebra::{Translation3, UnitQuaternion};
 use rapier3d::na::Vector3;
 
 use crate::application::{AppConfig, ApplicationBuilder};
 use crate::physics_context::BoxCollider;
 use crate::player::PlayerSettings;
-use crate::scene::transform::Transform;
+use crate::scene::light::{Light, PointLight};
+use crate::scene::transform::{Transform, TransformBuilder};
+use crate::time::Time;
 
 mod application;
 mod camera;
@@ -28,12 +30,16 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
         vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
     );
 
-    // commands.spawn(Light::Point(PointLight {
-    //     position: Point3::new(0.0, 1.0, 0.0),
-    //     color: Vector3::new(1.0, 1.0, 1.0),
-    //     range: 0.0,
-    //     intensity: 2.0,
-    // }));
+    // commands.spawn((
+    //     Light::Point(PointLight {
+    //         color: Vector3::new(1.0, 1.0, 1.0),
+    //         range: 0.0,
+    //         intensity: 2.0,
+    //     }),
+    //     TransformBuilder::new()
+    //         .translation(Translation3::new(0.0, 1.0, 0.0))
+    //         .build(),
+    // ));
 
     asset_server
         .load_default_scene(
@@ -131,6 +137,10 @@ fn _rotate_entites(mut query: Query<&mut Transform, Without<BoxCollider>>) {
     }
 }
 
+fn _print_fps(time: Res<Time>) {
+    println!("{}", 1.0 / time.delta_seconds())
+}
+
 fn main() {
     // TODO: remove this
     std::env::set_var("RUST_BACKTRACE", "1");
@@ -147,6 +157,7 @@ fn main() {
 
     let application = ApplicationBuilder::new(config)
         .with_startup_system(spawn_world)
+        // .with_system(print_fps)
         // .with_system(rotate_entites)
         .with_player_controller(player_settings)
         .build();

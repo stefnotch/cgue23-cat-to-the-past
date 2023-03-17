@@ -19,7 +19,7 @@
                         1,
                         1
                     ],
-                    "intensity" : 1000,
+                    "intensity" : 100,
                     "type" : "point",
                     "name" : "Light"
                 }

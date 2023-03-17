@@ -1,5 +1,6 @@
 use crate::physics_context::BoxCollider;
 use crate::scene::light::{Light, PointLight};
+use crate::scene::material::NewMaterial;
 use crate::scene::mesh::{BoundingBox, MeshVertex};
 use crate::scene::model::{Model, Primitive};
 use crate::scene::transform::Transform;
@@ -61,8 +62,6 @@ impl AssetServer {
         P: AsRef<Path>,
     {
         let (doc, buffers, images) = import(path)?;
-        let mut scene_loading_data = SceneLoadingData::new(memory_allocator, buffers, images);
-        let mut scene_loading_result = SceneLoadingResult::new();
 
         if doc.scenes().len() > 1 {
             return Err(Box::new(std::io::Error::new(
@@ -70,6 +69,9 @@ impl AssetServer {
                 "We shouldn't have more than one scene",
             )));
         }
+
+        let mut scene_loading_data = SceneLoadingData::new(memory_allocator, buffers, images);
+        let mut scene_loading_result = SceneLoadingResult::new();
 
         let scene = doc.default_scene().ok_or("Default scene is not set")?;
 
@@ -81,8 +83,6 @@ impl AssetServer {
                 &Transform::default(),
             );
         }
-
-        println!("{:?}", scene_loading_result.lights);
 
         let sphere = Mesh::sphere(10, 16, 0.1, memory_allocator);
 
@@ -105,6 +105,17 @@ impl AssetServer {
             ));
         }
 
+        println!(
+            "{}",
+            &scene_loading_result
+                .models
+                .iter()
+                .map(|(_, model)| &model.primitives)
+                .flatten()
+                .map(|primitive| primitive.mesh.vertices.len())
+                .sum::<usize>()
+        );
+
         for (transform, model) in scene_loading_result.models {
             let bounding_box = model
                 .primitives
@@ -118,18 +129,6 @@ impl AssetServer {
 
             commands.spawn((model, transform, box_collider));
         }
-
-        // https://github.com/flomonster/easy-gltf/blob/master/src/utils/gltf_data.rs
-
-        // TODO: https://github.com/bevyengine/bevy/blob/main/crates/bevy_gltf/src/loader.rs#L1027
-
-        // create our meshes and upload them to the GPU
-
-        // load textures
-
-        // load materials
-
-        // load primitives (reference stuff above) and create models
 
         Ok(())
     }
@@ -193,20 +192,12 @@ impl AssetServer {
         let mut model = Model {
             primitives: Vec::new(),
         };
-        for primitive in mesh.primitives() {
-            let mesh = scene_loading_data.get_mesh(primitive);
 
-            model.primitives.push(crate::scene::model::Primitive {
-                mesh,
-                // TODO: actually load a material
-                material: Arc::new(Material {
-                    color: Vector3::new(1.0, 0.0, 1.0),
-                    ka: 0.0,
-                    kd: 0.2,
-                    ks: 0.0,
-                    alpha: 1.0,
-                }),
-            })
+        for primitive in mesh.primitives() {
+            let material = scene_loading_data.get_material(&primitive);
+            let mesh = scene_loading_data.get_mesh(&primitive);
+
+            model.primitives.push(Primitive { mesh, material })
         }
 
         model
@@ -235,6 +226,7 @@ struct SceneLoadingData<'a> {
     gltf_buffers: Vec<gltf::buffer::Data>,
     gltf_images: Vec<gltf::image::Data>,
     meshes: HashMap<MeshKey, Arc<Mesh>>,
+    materials: HashMap<usize, Arc<Material>>,
     textures: Vec<Option<Texture>>,
     allocator: &'a dyn MemoryAllocator,
 }
@@ -267,13 +259,14 @@ impl<'a> SceneLoadingData<'a> {
             gltf_buffers: buffers,
             gltf_images: images,
             meshes: HashMap::new(),
+            materials: HashMap::new(),
             textures,
             allocator: memory_allocator,
         }
     }
 
-    fn get_mesh(&mut self, primitive: gltf::Primitive) -> Arc<Mesh> {
-        assert!(primitive.mode() == gltf::mesh::Mode::Triangles);
+    fn get_mesh(&mut self, primitive: &gltf::Primitive) -> Arc<Mesh> {
+        assert_eq!(primitive.mode(), gltf::mesh::Mode::Triangles);
 
         let mesh_key = MeshKey {
             index_buffer_id: primitive.indices().unwrap().index(),
@@ -315,6 +308,34 @@ impl<'a> SceneLoadingData<'a> {
             Mesh::new(vertices, indices, bounding_box, self.allocator)
         }
     }
+
+    fn get_material(&self, primitive: &gltf::Primitive) -> Arc<Material> {
+        let gltf_material = primitive.material();
+
+        if let Some(material) = self.materials.get(&gltf_material.index().unwrap()) {
+            return material.clone();
+        } else {
+            let gltf_material_pbr = gltf_material.pbr_metallic_roughness();
+            let material = Material {
+                color: Vector3::from_row_slice(&gltf_material_pbr.base_color_factor()[0..3]),
+                ka: 0.1,
+                kd: 0.4,
+                ks: 0.0,
+                alpha: 1.0,
+            };
+            // let material = NewMaterial {
+            //     base_color: Vector3::from_row_slice(&gltf_material_pbr.base_color_factor()[0..2]),
+            //     base_color_texture: None,
+            //     normal_texture: None,
+            //     emissivity: gltf_material.emissive_factor().into(),
+            //     metallic_factor: gltf_material_pbr.metallic_factor(),
+            //     roughness_factor: gltf_material_pbr.roughness_factor(),
+            // };
+            Arc::new(material)
+        }
+    }
+
+    // fn get_texture(&self) -> Arc<Texture> {}
 }
 
 #[derive(Hash, Eq, PartialEq, Debug)]

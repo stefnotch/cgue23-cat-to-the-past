@@ -8,6 +8,7 @@ use crate::scene::light::{Light, PointLight};
 use crate::scene::material::Material;
 use std::default::Default;
 use std::sync::Arc;
+use std::time::Instant;
 use vulkano::buffer::{BufferUsage, CpuBufferPool, TypedBufferAccess};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
@@ -22,7 +23,7 @@ use vulkano::image::{AttachmentImage, ImageViewAbstract, SwapchainImage};
 use vulkano::memory::allocator::{MemoryUsage, StandardMemoryAllocator};
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
-use vulkano::pipeline::graphics::rasterization::{CullMode, RasterizationState};
+use vulkano::pipeline::graphics::rasterization::{CullMode, PolygonMode, RasterizationState};
 use vulkano::pipeline::graphics::vertex_input::BuffersDefinition;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
@@ -283,6 +284,7 @@ impl SceneRenderer {
                 camera_descriptor_set.clone(),
             );
 
+        let before = Instant::now();
         for (transform, model) in models {
             for primitive in &model.primitives {
                 // descriptor set
@@ -329,6 +331,7 @@ impl SceneRenderer {
                     .unwrap();
             }
         }
+        // println!("elapsed time: {}ms", before.elapsed().as_millis());
 
         builder.end_render_pass().unwrap();
 
