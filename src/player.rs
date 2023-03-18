@@ -175,9 +175,10 @@ pub fn update_player(
     let last_velocity = player.velocity;
     let horizontal_input: Vector3<f32> = normalize_if_not_zero(get_horizontal(&input_direction));
     let vertical_input = input_direction.y;
-    let yaw = player.yaw;
+    let camera_horizontal_orientation =
+        UnitQuaternion::from_axis_angle(&Camera::up(), player.yaw.0 + 0.1);
 
-    let mut velocity = UnitQuaternion::from_axis_angle(&Camera::up(), yaw.0) * horizontal_input;
+    let mut velocity = camera_horizontal_orientation * horizontal_input;
 
     if player.jump_available {
         velocity = move_ground(&velocity, get_horizontal(&last_velocity), &settings, &time);
