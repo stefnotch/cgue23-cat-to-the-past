@@ -138,11 +138,6 @@ pub fn insert_collider_component(
         let scaled_bounds = collider.bounds.scale(&transform.scale);
         let half_size: Vector3<f32> = scaled_bounds.size() * 0.5;
         let collider_offset = scaled_bounds.min + half_size;
-        dbg!(&collider.bounds);
-        println!(
-            "Collider offset: {:?}, half size: {:?}, scale: {:?}",
-            collider_offset, half_size, transform.scale
-        );
         let physics_collider = ColliderBuilder::cuboid(half_size.x, half_size.y, half_size.z)
             .position(
                 transform.to_isometry()
