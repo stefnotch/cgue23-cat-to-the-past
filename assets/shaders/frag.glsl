@@ -66,7 +66,7 @@ float geometrySchlickBeckmann(vec3 n, vec3 x, float alpha) {
     float k = alpha / 2.0; // there are other options for this
     float nDotx = max(dot(n, x), 0.0);
 
-    return nDotx / (nDotx * (1.0 - k) + k);
+    return nDotx / max(nDotx * (1.0 - k) + k, 0.000001);
 }
 
 
@@ -140,5 +140,7 @@ void main() {
     float ka = 0.03;
     vec3 ambient = (ambientLightColor * ka) * albedo;
 
-    f_color = vec4(ambient + Lo, 1.0);
+    vec3 color = Lo + ambient;
+
+    f_color = vec4(color, 1.0);
 }
