@@ -432,11 +432,11 @@ fn make_shader_point_light(point_light: &PointLight, transform: &Transform) -> v
 impl From<&Material> for vs::ty::Material {
     fn from(value: &Material) -> Self {
         vs::ty::Material {
-            color: value.color.into(),
-            ka: value.ka,
-            kd: value.kd,
-            ks: value.ks,
-            alpha: value.alpha,
+            base_color: value.base_color.into(),
+            roughness: value.roughness_factor,
+            metallic: value.metallic_factor,
+            emissivity: value.emissivity.into(),
+            _dummy0: Default::default(),
         }
     }
 }

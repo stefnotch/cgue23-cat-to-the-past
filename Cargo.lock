@@ -342,7 +342,7 @@ dependencies = [
  "bevy_ecs",
  "bytemuck",
  "gltf",
- "nalgebra 0.32.2",
+ "nalgebra",
  "rapier3d",
  "uuid",
  "vulkano",
@@ -1084,45 +1084,18 @@ dependencies = [
 
 [[package]]
 name = "nalgebra"
-version = "0.31.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20bd243ab3dbb395b39ee730402d2e5405e448c75133ec49cc977762c4cba3d1"
-dependencies = [
- "approx",
- "matrixmultiply",
- "nalgebra-macros 0.1.0",
- "num-complex",
- "num-rational",
- "num-traits",
- "simba 0.7.3",
- "typenum",
-]
-
-[[package]]
-name = "nalgebra"
 version = "0.32.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d68d47bba83f9e2006d117a9a33af1524e655516b8919caac694427a6fb1e511"
 dependencies = [
  "approx",
  "matrixmultiply",
- "nalgebra-macros 0.2.0",
+ "nalgebra-macros",
  "num-complex",
  "num-rational",
  "num-traits",
- "simba 0.8.0",
+ "simba",
  "typenum",
-]
-
-[[package]]
-name = "nalgebra-macros"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01fcc0b8149b4632adc89ac3b7b31a12fb6099a0317a4eb2ebff574ef7de7218"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -1362,11 +1335,11 @@ dependencies = [
  "bitflags",
  "downcast-rs",
  "either",
- "nalgebra 0.32.2",
+ "nalgebra",
  "num-derive",
  "num-traits",
  "rustc-hash",
- "simba 0.8.0",
+ "simba",
  "slab",
  "smallvec",
  "spade",
@@ -1494,12 +1467,12 @@ dependencies = [
  "bitflags",
  "crossbeam",
  "downcast-rs",
- "nalgebra 0.32.2",
+ "nalgebra",
  "num-derive",
  "num-traits",
  "parry3d",
  "rustc-hash",
- "simba 0.8.0",
+ "simba",
  "vec_map",
 ]
 
@@ -1690,19 +1663,6 @@ dependencies = [
  "cmake",
  "libc",
  "roxmltree",
-]
-
-[[package]]
-name = "simba"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f3fd720c48c53cace224ae62bef1bbff363a70c68c4802a78b5cc6159618176"
-dependencies = [
- "approx",
- "num-complex",
- "num-traits",
- "paste",
- "wide",
 ]
 
 [[package]]
@@ -1948,7 +1908,6 @@ dependencies = [
  "indexmap",
  "lazy_static",
  "libloading",
- "nalgebra 0.31.4",
  "objc",
  "parking_lot",
  "proc-macro2",
