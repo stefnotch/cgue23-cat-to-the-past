@@ -12,6 +12,9 @@ use crate::application::{AppConfig, ApplicationBuilder};
 use crate::physics_context::BoxCollider;
 use crate::player::PlayerSettings;
 use crate::scene::light::{Light, PointLight};
+use crate::scene::material::Material;
+use crate::scene::mesh::Mesh;
+use crate::scene::model::{Model, Primitive};
 use crate::scene::transform::{Transform, TransformBuilder};
 use crate::time::Time;
 
@@ -31,30 +34,95 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
         vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
     );
 
+    let sphere = Mesh::sphere(64, 32, 1.0, &memory_allocator);
+
     commands.spawn((
+        Model {
+            primitives: vec![Primitive {
+                mesh: sphere.clone(),
+                material: Arc::new(Material {
+                    base_color: Vector3::new(1.0, 1.0, 1.0),
+                    base_color_texture: None,
+                    roughness_factor: 1.0,
+                    metallic_factor: 0.0,
+                    emissivity: Default::default(),
+                }),
+            }],
+        },
         Light::Point(PointLight {
             color: Vector3::new(1.0, 1.0, 1.0),
             range: 0.0,
-            intensity: 2.0,
+            intensity: 100.0,
         }),
         TransformBuilder::new()
-            .translation(Translation3::new(0.0, 1.0, 0.0))
+            .translation(Translation3::new(0.0, 0.0, 10.0))
+            .scale(Vector3::new(0.05, 0.05, 0.05))
             .build(),
     ));
 
-    let before = Instant::now();
-    asset_server
-        .load_default_scene(
-            "./assets/scene/testing/sponza/sponza.glb",
-            &mut commands,
-            &memory_allocator,
-            &context,
-        )
-        .unwrap();
-    println!(
-        "Loading the scene took {}sec",
-        before.elapsed().as_secs_f64()
-    );
+    let spacing: f32 = 1.25;
+
+    let n = 7;
+
+    for row in 0..n {
+        let metallic: f32 = row as f32 / (n as f32 - 1.0);
+        for col in 0..n {
+            let roughness: f32 = col as f32 / (n as f32 - 1.0);
+
+            commands.spawn((
+                Model {
+                    primitives: vec![Primitive {
+                        mesh: sphere.clone(),
+                        material: Arc::new(Material {
+                            base_color: Vector3::new(1.0, 0.0, 0.0),
+                            base_color_texture: None,
+                            roughness_factor: roughness,
+                            metallic_factor: metallic,
+                            emissivity: Default::default(),
+                        }),
+                    }],
+                },
+                TransformBuilder::new()
+                    .scale(Vector3::new(0.5, 0.5, 0.5))
+                    .translation(Translation3::new(
+                        (col - n / 2) as f32 * spacing,
+                        (row - n / 2) as f32 * spacing,
+                        0.0,
+                    ))
+                    .build(),
+            ));
+        }
+    }
+
+    // let before = Instant::now();
+    // asset_server
+    //     .load_default_scene(
+    //         "./assets/scene/testing/sponza/sponza.glb",
+    //         &mut commands,
+    //         &memory_allocator,
+    //         &context,
+    //     )
+    //     .unwrap();
+    // println!(
+    //     "Loading the scene took {}sec",
+    //     before.elapsed().as_secs_f64()
+    // );
+
+    // commands.spawn((
+    //     Model {
+    //         primitives: vec![Primitive {
+    //             mesh: sphere.clone(),
+    //             material: Arc::new(Material {
+    //                 base_color: Vector3::new(1.0, 0.0, 0.0),
+    //                 base_color_texture: None,
+    //                 roughness_factor: 0.8,
+    //                 metallic_factor: 0.1,
+    //                 emissivity: Default::default(),
+    //             }),
+    //         }],
+    //     },
+    //     Transform::default(),
+    // ));
 
     // let cube = Mesh::cube(1.0, 1.0, 1.0, &memory_allocator);
     //
@@ -154,10 +222,10 @@ fn main() {
 
     // TODO: read from file
     let config = AppConfig {
-        resolution: (1920, 1080),
-        fullscreen: true,
+        resolution: (1280, 720),
+        fullscreen: false,
         brightness: 1.0,
-        refresh_rate: 144,
+        refresh_rate: 60,
     };
 
     let player_settings = PlayerSettings::new(5.0, 1.0, 9.81);
