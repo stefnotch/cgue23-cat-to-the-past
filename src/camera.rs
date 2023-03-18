@@ -19,7 +19,7 @@ pub struct Camera {
 
 impl Camera {
     pub fn new(fov: Deg<f32>, aspect_ratio: f32, near: f32, far: f32) -> Self {
-        let position = Point3::new(0.0, 1.0, -6.0);
+        let position = Point3::new(0.0, 0.0, 8.0);
         let orientation = UnitQuaternion::identity();
 
         let fov = Rad::from(fov);

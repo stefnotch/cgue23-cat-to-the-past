@@ -155,11 +155,14 @@ impl Mesh {
         let vertices: Vec<MeshVertex> = faces
             .iter()
             .flat_map(|face| {
-                face.position_indices.map(|i| MeshVertex {
-                    position: positions[i].into(),
-                    normal: face.normal.into(),
-                    uv: uvs_face[i].into(),
-                })
+                face.position_indices
+                    .iter()
+                    .enumerate()
+                    .map(|(i, pos_index)| MeshVertex {
+                        position: positions[*pos_index].into(),
+                        normal: face.normal.into(),
+                        uv: uvs_face[i].into(),
+                    })
             })
             .collect();
 

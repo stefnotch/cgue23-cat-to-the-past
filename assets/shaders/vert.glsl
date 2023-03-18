@@ -26,11 +26,10 @@ layout(set = 1, binding = 0) uniform Camera {
 } camera;
 
 layout(set = 2, binding = 0) uniform Material {
-    vec3 color;
-    float ka;
-    float kd;
-    float ks;
-    float alpha;
+    vec3 base_color;
+    float roughness;
+    float metallic;
+    vec3 emissivity;
 } material;
 
 layout(set = 2, binding = 1) uniform sampler2D base_color_texture;
