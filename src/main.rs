@@ -14,6 +14,12 @@ use crate::player::PlayerSettings;
 use crate::scene::light::{Light, PointLight};
 use crate::scene::transform::{Transform, TransformBuilder};
 use crate::time::Time;
+#[cfg(feature = "trace")]
+use tracing_chrome::ChromeLayerBuilder;
+#[cfg(feature = "trace")]
+use tracing_subscriber::fmt::{format::DefaultFields, FormattedFields};
+#[cfg(feature = "trace")]
+use tracing_subscriber::{prelude::*, registry::Registry};
 
 mod application;
 mod camera;
@@ -45,7 +51,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
     let before = Instant::now();
     asset_server
         .load_default_scene(
-            "./assets/scene/testing/sponza/sponza.glb",
+            "./assets/scene/testing/only_floor_v3/untitled.gltf",
             &mut commands,
             &memory_allocator,
             &context,
@@ -148,7 +154,29 @@ fn _print_fps(time: Res<Time>) {
     println!("{}", 1.0 / time.delta_seconds())
 }
 
+#[cfg(feature = "trace")]
+fn start_tracing() -> tracing_chrome::FlushGuard {
+    let (chrome_layer, _guard) = ChromeLayerBuilder::new()
+        .name_fn(Box::new(|event_or_span| match event_or_span {
+            tracing_chrome::EventOrSpan::Event(event) => event.metadata().name().into(),
+            tracing_chrome::EventOrSpan::Span(span) => {
+                if let Some(fields) = span.extensions().get::<FormattedFields<DefaultFields>>() {
+                    format!("{}: {}", span.metadata().name(), fields.fields.as_str())
+                } else {
+                    span.metadata().name().into()
+                }
+            }
+        }))
+        .build();
+    tracing_subscriber::registry().with(chrome_layer).init();
+    // Maybe do app.world.insert_non_send_resource(guard); ?
+    _guard
+}
+
 fn main() {
+    #[cfg(feature = "trace")]
+    let _guard = start_tracing();
+
     // TODO: remove this
     std::env::set_var("RUST_BACKTRACE", "1");
 
