@@ -1,17 +1,15 @@
 use crate::context::Context;
 use crate::physics_context::BoxCollider;
 use crate::scene::light::{Light, PointLight};
-use crate::scene::material::NewMaterial;
 use crate::scene::mesh::{BoundingBox, MeshVertex};
 use crate::scene::model::{Model, Primitive};
 use crate::scene::transform::Transform;
 use bevy_ecs::prelude::*;
 use gltf::khr_lights_punctual::Kind;
-use gltf::mesh::util::ReadTexCoords::F32;
 use gltf::texture::{MagFilter, MinFilter, WrappingMode};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
 use nalgebra::{Quaternion, Translation3, UnitQuaternion, Vector3};
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::iter::repeat;
 use std::sync::Arc;
 use std::time::Instant;
@@ -103,12 +101,11 @@ impl AssetServer {
                     primitives: vec![Primitive {
                         mesh: sphere.clone(),
                         material: Arc::new(Material {
-                            color: Vector3::new(1.0, 1.0, 1.0),
+                            base_color: Vector3::new(1.0, 1.0, 1.0),
                             base_color_texture: None,
-                            ka: 1.0,
-                            kd: 0.0,
-                            ks: 0.0,
-                            alpha: 1.0,
+                            roughness_factor: 1.0,
+                            metallic_factor: 0.0,
+                            emissivity: Default::default(),
                         }),
                     }],
                 },
@@ -273,12 +270,11 @@ impl<'a> SceneLoadingData<'a> {
         images: Vec<gltf::image::Data>,
     ) -> Self {
         let material = Arc::new(Material {
-            color: Vector3::new(1.0, 0.0, 1.0),
+            base_color: Vector3::new(1.0, 0.0, 1.0),
             base_color_texture: None,
-            ka: 0.0,
-            kd: 1.0,
-            ks: 0.0,
-            alpha: 1.0,
+            roughness_factor: 0.0,
+            metallic_factor: 0.0,
+            emissivity: Default::default(),
         });
 
         let images = images.into_iter().enumerate().collect();
@@ -353,24 +349,17 @@ impl<'a> SceneLoadingData<'a> {
             } else {
                 let gltf_material_pbr = gltf_material.pbr_metallic_roughness();
                 let material = Arc::new(Material {
-                    color: Vector3::from_row_slice(&gltf_material_pbr.base_color_factor()[0..3]),
+                    base_color: Vector3::from_row_slice(
+                        &gltf_material_pbr.base_color_factor()[0..3],
+                    ),
                     base_color_texture: gltf_material_pbr.base_color_texture().map(|info| {
                         let sampler = self.get_sampler(&info.texture(), context);
                         self.get_texture(&info.texture(), sampler, context)
                     }),
-                    ka: 0.1,
-                    kd: 0.4,
-                    ks: 0.0,
-                    alpha: 1.0,
+                    roughness_factor: gltf_material_pbr.roughness_factor(),
+                    metallic_factor: gltf_material_pbr.metallic_factor(),
+                    emissivity: gltf_material.emissive_factor().into(),
                 });
-                // let material = NewMaterial {
-                //     base_color: Vector3::from_row_slice(&gltf_material_pbr.base_color_factor()[0..2]),
-                //     base_color_texture: None,
-                //     normal_texture: None,
-                //     emissivity: gltf_material.emissive_factor().into(),
-                //     metallic_factor: gltf_material_pbr.metallic_factor(),
-                //     roughness_factor: gltf_material_pbr.roughness_factor(),
-                // };
 
                 self.materials.insert(material_index, material.clone());
                 material.clone()
