@@ -148,8 +148,16 @@ fn _print_fps(time: Res<Time>) {
     println!("{}", 1.0 / time.delta_seconds())
 }
 
+#[cfg(feature = "tracing-chrome")]
+struct FlushGuard {
+    _guard: tracing_chrome::FlushGuard,
+}
+
+#[cfg(feature = "tracing-tracy")]
+struct FlushGuard {}
+
 #[cfg(feature = "trace")]
-fn start_tracing() -> tracing_chrome::FlushGuard {
+fn start_tracing() -> FlushGuard {
     pub use bevy_utils::tracing::{
         debug, debug_span, error, error_span, info, info_span, trace, trace_span, warn, warn_span,
         Level,
@@ -178,6 +186,7 @@ fn start_tracing() -> tracing_chrome::FlushGuard {
     let subscriber = subscriber.with(tracing_error::ErrorLayer::default());
 
     let guard = {
+        #[cfg(feature = "tracing-chrome")]
         let (chrome_layer, guard) = {
             let mut layer = tracing_chrome::ChromeLayerBuilder::new();
             if let Ok(path) = std::env::var("TRACE_CHROME") {
@@ -215,12 +224,19 @@ fn start_tracing() -> tracing_chrome::FlushGuard {
 
         let subscriber = subscriber.with(fmt_layer);
 
+        #[cfg(feature = "tracing-chrome")]
         let subscriber = subscriber.with(chrome_layer);
         #[cfg(feature = "tracing-tracy")]
         let subscriber = subscriber.with(tracy_layer);
 
         finished_subscriber = subscriber;
-        guard
+
+        #[cfg(feature = "tracing-chrome")]
+        let flush_guard = FlushGuard { _guard: guard };
+
+        #[cfg(all(not(feature = "tracing-chrome"), feature = "tracing-tracy"))]
+        let flush_guard = FlushGuard {};
+        flush_guard
     };
 
     let logger_already_set = LogTracer::init().is_err();
