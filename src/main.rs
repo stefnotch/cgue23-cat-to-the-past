@@ -98,7 +98,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
     let before = Instant::now();
     asset_server
         .load_default_scene(
-            "./assets/scene/testing/sponza/sponza.glb",
+            "./assets/scene/testing/only_floor_v3/untitled.gltf",
             &mut commands,
             &memory_allocator,
             &context,
