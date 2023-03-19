@@ -6,7 +6,7 @@ use std::sync::Arc;
 use super::loader::Asset;
 
 /// references a shader and its inputs
-#[derive(Component)]
+#[derive(Component, Debug, Clone, PartialEq)]
 pub struct Material {
     pub base_color: Vector3<f32>,
     pub base_color_texture: Option<Arc<Texture>>,

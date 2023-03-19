@@ -3,9 +3,7 @@ use crate::context::Context;
 use std::sync::Arc;
 use vulkano::buffer::BufferContents;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
-use vulkano::command_buffer::{
-    AutoCommandBufferBuilder, CommandBufferUsage, PrimaryCommandBufferAbstract,
-};
+use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
 use vulkano::image::{ImageDimensions, ImmutableImage, MipmapsCount};
@@ -14,6 +12,7 @@ use vulkano::sampler::Sampler;
 use vulkano::sync;
 use vulkano::sync::GpuFuture;
 
+#[derive(Debug, PartialEq)]
 pub struct Texture {
     pub image_view: Arc<ImageView<ImmutableImage>>,
     pub sampler: Arc<Sampler>,
