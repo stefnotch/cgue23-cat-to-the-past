@@ -1,7 +1,8 @@
 use crate::context::Context;
 use crate::physics_context::BoxCollider;
+use crate::scene::bounding_box::BoundingBox;
 use crate::scene::light::{Light, PointLight};
-use crate::scene::mesh::{BoundingBox, MeshVertex};
+use crate::scene::mesh::MeshVertex;
 use crate::scene::model::{Model, Primitive};
 use crate::scene::transform::Transform;
 use bevy_ecs::prelude::*;

@@ -1,6 +1,6 @@
 use crate::camera::Camera;
 use crate::player::{Player, PlayerSettings};
-use crate::scene::mesh::BoundingBox;
+use crate::scene::bounding_box::BoundingBox;
 use crate::scene::transform::Transform;
 use crate::time::Time;
 use bevy_ecs::prelude::{Added, Component, Query, Res, ResMut, Resource};
