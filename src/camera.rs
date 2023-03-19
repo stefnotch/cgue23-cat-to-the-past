@@ -44,9 +44,10 @@ impl Camera {
         // https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/
         // z does not get flipped because Perspective3 already gives us a matrix where z is flipped
         // see: https://nalgebra.org/docs/user_guide/cg_recipes#screen-space-to-view-space
-        let flip_y = Matrix4::from_diagonal(&Vector4::new(1.0, -1.0, 1.0, 1.0));
+        const DIAGONAL: Vector4<f32> = Vector4::new(1.0, -1.0, 1.0, 1.0);
+        const FLIP_Y: Matrix4<f32> = Matrix4::from_diagonal(&DIAGONAL);
 
-        self.proj.as_matrix() * flip_y
+        self.proj.as_matrix() * FLIP_Y
     }
 
     pub fn update(&mut self) {

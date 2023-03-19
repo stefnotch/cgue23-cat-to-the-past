@@ -101,48 +101,20 @@ impl AssetServer {
                 Model {
                     primitives: vec![Primitive {
                         mesh: sphere.clone(),
-                        material: Arc::new(Material {
-                            base_color: Vector3::new(1.0, 1.0, 1.0),
-                            base_color_texture: None,
-                            roughness_factor: 1.0,
-                            metallic_factor: 0.0,
-                            emissivity: Default::default(),
-                        }),
+                        material: Arc::new(Material::default()),
                     }],
                 },
                 transform,
             ));
         }
 
-        println!(
-            "{}",
-            &scene_loading_result
-                .models
-                .iter()
-                .map(|(_, model)| &model.primitives)
-                .flatten()
-                .map(|primitive| primitive.mesh.vertices.len())
-                .sum::<usize>()
-        );
-
-        let before = Instant::now();
         for (transform, model) in scene_loading_result.models {
-            let bounding_box = model
-                .primitives
-                .iter()
-                .map(|primitive| &primitive.mesh.bounding_box)
-                .fold(BoundingBox::empty(), |a, b| (a.combine(b)));
-
             let box_collider = BoxCollider {
-                bounds: bounding_box,
+                bounds: model.bounding_box(),
             };
 
             commands.spawn((model, transform, box_collider));
         }
-        println!(
-            "Spawning entities took {}sec",
-            before.elapsed().as_secs_f64()
-        );
 
         Ok(())
     }
