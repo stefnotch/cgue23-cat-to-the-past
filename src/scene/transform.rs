@@ -4,7 +4,7 @@ use nalgebra::{
 };
 use std::ops::{Add, Mul};
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, PartialEq)]
 pub struct Transform {
     pub translation: Translation3<f32>,
     pub rotation: UnitQuaternion<f32>,
@@ -46,7 +46,6 @@ impl Transform {
 impl Mul<Transform> for &Transform {
     type Output = Transform;
 
-    // TODO: validate implementation
     fn mul(self, rhs: Transform) -> Self::Output {
         Transform {
             translation: self.transform_point(&rhs.translation),
