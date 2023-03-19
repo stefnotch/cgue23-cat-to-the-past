@@ -1,3 +1,4 @@
+pub mod context;
 mod main_renderer;
 mod scene_renderer;
 

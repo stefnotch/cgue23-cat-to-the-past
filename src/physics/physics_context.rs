@@ -1,8 +1,8 @@
-use crate::camera::Camera;
+use crate::core::camera::Camera;
+use crate::core::time::Time;
 use crate::player::{Player, PlayerSettings};
 use crate::scene::bounding_box::BoundingBox;
 use crate::scene::transform::Transform;
-use crate::time::Time;
 use bevy_ecs::prelude::{Added, Component, Query, Res, ResMut, Resource};
 use bevy_ecs::query::Without;
 use nalgebra::UnitQuaternion;

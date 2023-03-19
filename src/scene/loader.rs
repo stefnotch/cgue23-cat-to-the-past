@@ -1,5 +1,5 @@
-use crate::context::Context;
-use crate::physics_context::BoxCollider;
+use crate::physics::physics_context::BoxCollider;
+use crate::render::context::Context;
 use crate::scene::bounding_box::BoundingBox;
 use crate::scene::light::{Light, PointLight};
 use crate::scene::mesh::MeshVertex;
