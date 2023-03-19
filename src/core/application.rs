@@ -1,19 +1,21 @@
-use crate::camera::{update_camera, update_camera_aspect_ratio, Camera};
-use crate::context::Context;
-use crate::input;
-use crate::input::{InputMap, MouseMovement};
-use crate::physics_context::{
+use crate::core::camera::{update_camera, update_camera_aspect_ratio, Camera};
+use crate::core::time::Time;
+use crate::input::events::{KeyboardInput, MouseInput, MouseMovement, WindowResize};
+use crate::input::input_map::{handle_keyboard_input, handle_mouse_input, InputMap};
+use crate::physics::physics_context::{
     insert_collider_component, step_character_controller, step_physics_simulation,
     update_transform_system, PhysicsContext,
 };
+use crate::render::context::Context;
 use crate::render::{render, Renderer};
 use crate::scene::loader::AssetServer;
-use crate::time::Time;
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ExecutorKind;
 use winit::dpi::{LogicalSize, PhysicalSize};
-use winit::event::{DeviceEvent, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
+use winit::event::{
+    DeviceEvent, Event, KeyboardInput as KeyboardInputWinit, VirtualKeyCode, WindowEvent,
+};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Fullscreen::Exclusive;
 use winit::window::{CursorGrabMode, Window, WindowBuilder};
@@ -199,26 +201,20 @@ impl Application {
         schedule.add_system(step_character_controller.in_set(AppStage::PostUpdate));
         schedule.add_system(update_transform_system.in_set(AppStage::PostUpdate));
 
-        world.insert_resource(Events::<input::MouseMovement>::default());
-        schedule.add_system(
-            Events::<input::MouseMovement>::update_system.in_set(AppStage::EventUpdate),
-        );
+        world.insert_resource(Events::<MouseMovement>::default());
+        schedule.add_system(Events::<MouseMovement>::update_system.in_set(AppStage::EventUpdate));
 
-        world.insert_resource(Events::<input::MouseInput>::default());
-        schedule
-            .add_system(Events::<input::MouseInput>::update_system.in_set(AppStage::EventUpdate));
+        world.insert_resource(Events::<MouseInput>::default());
+        schedule.add_system(Events::<MouseInput>::update_system.in_set(AppStage::EventUpdate));
 
-        world.insert_resource(Events::<input::KeyboardInput>::default());
-        schedule.add_system(
-            Events::<input::KeyboardInput>::update_system.in_set(AppStage::EventUpdate),
-        );
+        world.insert_resource(Events::<KeyboardInput>::default());
+        schedule.add_system(Events::<KeyboardInput>::update_system.in_set(AppStage::EventUpdate));
 
-        world.insert_resource(Events::<input::WindowResize>::default());
-        schedule
-            .add_system(Events::<input::WindowResize>::update_system.in_set(AppStage::EventUpdate));
+        world.insert_resource(Events::<WindowResize>::default());
+        schedule.add_system(Events::<WindowResize>::update_system.in_set(AppStage::EventUpdate));
 
-        schedule.add_system(input::handle_keyboard_input.in_set(AppStage::EventUpdate));
-        schedule.add_system(input::handle_mouse_input.in_set(AppStage::EventUpdate));
+        schedule.add_system(handle_keyboard_input.in_set(AppStage::EventUpdate));
+        schedule.add_system(handle_mouse_input.in_set(AppStage::EventUpdate));
 
         schedule.add_system(update_camera_aspect_ratio.in_set(AppStage::EventUpdate));
         schedule.add_system(update_camera.in_set(AppStage::PostUpdate));
@@ -248,7 +244,7 @@ impl Application {
                     event: WindowEvent::Resized(PhysicalSize { width, height }),
                     ..
                 } => {
-                    self.world.send_event(input::WindowResize { width, height });
+                    self.world.send_event(WindowResize { width, height });
 
                     self.world
                         .get_non_send_resource_mut::<Renderer>()
@@ -259,7 +255,7 @@ impl Application {
                 Event::WindowEvent { event, .. } => match event {
                     WindowEvent::KeyboardInput {
                         input:
-                            KeyboardInput {
+                            KeyboardInputWinit {
                                 virtual_keycode: Some(key_code),
                                 state,
                                 ..
@@ -270,11 +266,10 @@ impl Application {
                             *control_flow = ControlFlow::Exit;
                         }
 
-                        self.world
-                            .send_event(input::KeyboardInput { key_code, state });
+                        self.world.send_event(KeyboardInput { key_code, state });
                     }
                     WindowEvent::MouseInput { button, state, .. } => {
-                        self.world.send_event(input::MouseInput { button, state })
+                        self.world.send_event(MouseInput { button, state })
                     }
                     _ => (),
                 },

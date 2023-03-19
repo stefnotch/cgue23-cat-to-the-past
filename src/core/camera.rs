@@ -1,4 +1,4 @@
-use crate::input::WindowResize;
+use crate::input::events::WindowResize;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::system::{ResMut, Resource};

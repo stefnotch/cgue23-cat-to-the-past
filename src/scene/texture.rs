@@ -1,5 +1,5 @@
 use super::loader::Asset;
-use crate::context::Context;
+use crate::render::context::Context;
 use std::sync::Arc;
 use vulkano::buffer::BufferContents;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;

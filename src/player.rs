@@ -1,8 +1,9 @@
-use crate::application::{AppStage, ApplicationBuilder};
-use crate::camera::Camera;
-use crate::input::{InputMap, KeyboardInput, MouseMovement};
-use crate::physics_context::CharacterController;
-use crate::time::Time;
+use crate::core::application::{AppStage, ApplicationBuilder};
+use crate::core::camera::Camera;
+use crate::core::time::Time;
+use crate::input::events::{KeyboardInput, MouseMovement};
+use crate::input::input_map::InputMap;
+use crate::physics::physics_context::CharacterController;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;

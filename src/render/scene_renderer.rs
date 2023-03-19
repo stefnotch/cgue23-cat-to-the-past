@@ -1,5 +1,5 @@
-use crate::camera::Camera;
-use crate::context::Context;
+use crate::core::camera::Camera;
+use crate::render::context::Context;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::Model;
 use crate::scene::texture::Texture;
