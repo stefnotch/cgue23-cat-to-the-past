@@ -270,14 +270,6 @@ impl<'a> SceneLoadingData<'a> {
         buffers: Vec<gltf::buffer::Data>,
         images: Vec<gltf::image::Data>,
     ) -> Self {
-        let material = Arc::new(Material {
-            base_color: Vector3::new(1.0, 0.0, 1.0),
-            base_color_texture: None,
-            roughness_factor: 0.0,
-            metallic_factor: 0.0,
-            emissivity: Default::default(),
-        });
-
         let images = images.into_iter().enumerate().collect();
 
         Self {
@@ -285,7 +277,7 @@ impl<'a> SceneLoadingData<'a> {
             gltf_images: images,
             meshes: HashMap::new(),
             materials: HashMap::new(),
-            missing_material: material,
+            missing_material: Arc::new(Material::default()),
             samplers: HashMap::new(),
             allocator: memory_allocator,
         }
