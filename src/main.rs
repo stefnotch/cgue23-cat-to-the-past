@@ -1,3 +1,4 @@
+use bevy_ecs::prelude::With;
 use bevy_ecs::query::Without;
 use scene::loader::AssetServer;
 use std::sync::Arc;
@@ -60,53 +61,53 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
             .build(),
     ));
 
-    let spacing: f32 = 1.25;
+    // let spacing: f32 = 1.25;
+    //
+    // let n = 7;
+    //
+    // for row in 0..n {
+    //     let metallic: f32 = row as f32 / (n as f32 - 1.0);
+    //     for col in 0..n {
+    //         let roughness: f32 = col as f32 / (n as f32 - 1.0);
+    //
+    //         commands.spawn((
+    //             Model {
+    //                 primitives: vec![Primitive {
+    //                     mesh: sphere.clone(),
+    //                     material: Arc::new(Material {
+    //                         base_color: Vector3::new(1.0, 0.0, 0.0),
+    //                         base_color_texture: None,
+    //                         roughness_factor: roughness,
+    //                         metallic_factor: metallic,
+    //                         emissivity: Default::default(),
+    //                     }),
+    //                 }],
+    //             },
+    //             TransformBuilder::new()
+    //                 .scale(Vector3::new(0.5, 0.5, 0.5))
+    //                 .translation(Translation3::new(
+    //                     (col - n / 2) as f32 * spacing,
+    //                     (row - n / 2) as f32 * spacing,
+    //                     0.0,
+    //                 ))
+    //                 .build(),
+    //         ));
+    //     }
+    // }
 
-    let n = 7;
-
-    for row in 0..n {
-        let metallic: f32 = row as f32 / (n as f32 - 1.0);
-        for col in 0..n {
-            let roughness: f32 = col as f32 / (n as f32 - 1.0);
-
-            commands.spawn((
-                Model {
-                    primitives: vec![Primitive {
-                        mesh: sphere.clone(),
-                        material: Arc::new(Material {
-                            base_color: Vector3::new(1.0, 0.0, 0.0),
-                            base_color_texture: None,
-                            roughness_factor: roughness,
-                            metallic_factor: metallic,
-                            emissivity: Default::default(),
-                        }),
-                    }],
-                },
-                TransformBuilder::new()
-                    .scale(Vector3::new(0.5, 0.5, 0.5))
-                    .translation(Translation3::new(
-                        (col - n / 2) as f32 * spacing,
-                        (row - n / 2) as f32 * spacing,
-                        0.0,
-                    ))
-                    .build(),
-            ));
-        }
-    }
-
-    // let before = Instant::now();
-    // asset_server
-    //     .load_default_scene(
-    //         "./assets/scene/testing/sponza/sponza.glb",
-    //         &mut commands,
-    //         &memory_allocator,
-    //         &context,
-    //     )
-    //     .unwrap();
-    // println!(
-    //     "Loading the scene took {}sec",
-    //     before.elapsed().as_secs_f64()
-    // );
+    let before = Instant::now();
+    asset_server
+        .load_default_scene(
+            "./assets/scene/testing/sponza/sponza.glb",
+            &mut commands,
+            &memory_allocator,
+            &context,
+        )
+        .unwrap();
+    println!(
+        "Loading the scene took {}sec",
+        before.elapsed().as_secs_f64()
+    );
 
     // commands.spawn((
     //     Model {
@@ -206,9 +207,9 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
     // ));
 }
 
-fn _rotate_entites(mut query: Query<&mut Transform, Without<BoxCollider>>) {
+fn _rotate_entites(mut query: Query<&mut Transform, With<Model>>) {
     for mut transform in query.iter_mut() {
-        transform.rotation *= UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.05);
+        transform.rotation *= UnitQuaternion::from_axis_angle(&Vector3::z_axis(), 0.05);
     }
 }
 
