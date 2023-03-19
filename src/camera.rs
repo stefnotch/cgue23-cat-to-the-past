@@ -2,16 +2,14 @@ use crate::input::WindowResize;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::system::{ResMut, Resource};
-use nalgebra::{
-    vector, Matrix, Matrix4, Perspective3, Point3, UnitQuaternion, UnitVector3, Vector4,
-};
+use nalgebra::{vector, Matrix, Matrix4, Point3, UnitQuaternion, UnitVector3};
 
 // TODO: look up how to get the euler yaw and pitch angles from a quaternion
 // IDEA: remove position and orientation and use transforms instead
 #[derive(Resource)]
 pub struct Camera {
     view: Matrix4<f32>,
-    proj: Perspective3<f32>,
+    proj: Matrix4<f32>,
 
     pub position: Point3<f32>,
     pub orientation: UnitQuaternion<f32>,
@@ -33,21 +31,15 @@ impl Camera {
     }
 
     pub fn update_aspect_ratio(&mut self, aspect_ratio: f32) {
-        self.proj.set_aspect(aspect_ratio);
+        self.proj[(0, 0)] = -self.proj[(1, 1)].clone() / aspect_ratio;
     }
 
     pub fn view(&self) -> &Matrix4<f32> {
         &self.view
     }
 
-    pub fn proj(&self) -> Matrix4<f32> {
-        // https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/
-        // z does not get flipped because Perspective3 already gives us a matrix where z is flipped
-        // see: https://nalgebra.org/docs/user_guide/cg_recipes#screen-space-to-view-space
-        const DIAGONAL: Vector4<f32> = Vector4::new(1.0, -1.0, 1.0, 1.0);
-        const FLIP_Y: Matrix4<f32> = Matrix4::from_diagonal(&DIAGONAL);
-
-        self.proj.as_matrix() * FLIP_Y
+    pub fn proj(&self) -> &Matrix4<f32> {
+        &self.proj
     }
 
     pub fn update(&mut self) {
@@ -83,13 +75,23 @@ pub fn update_camera_aspect_ratio(
     }
 }
 
-fn calculate_projection(
-    aspect_ratio: f32,
-    fov: Rad<f32>,
-    near: f32,
-    far: f32,
-) -> Perspective3<f32> {
-    Perspective3::new(aspect_ratio, fov.value(), near, far)
+fn calculate_projection(aspect_ratio: f32, fov: Rad<f32>, near: f32, far: f32) -> Matrix4<f32> {
+    // https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/
+    // Note that this projection matrix is already multiplied by the X matrix
+    let mut projection = Matrix4::identity();
+
+    let tan_half_fov = (fov.value() / 2.0).tan();
+
+    projection[(0, 0)] = 1.0 / (tan_half_fov * aspect_ratio);
+    projection[(1, 1)] = -1.0 / tan_half_fov;
+
+    projection[(2, 2)] = far / (near - far);
+    projection[(2, 3)] = (near * far) / (near - far);
+
+    projection[(3, 3)] = 0.0;
+    projection[(3, 2)] = -1.0;
+
+    projection
 }
 
 fn calculate_view(position: Point3<f32>, orientation: UnitQuaternion<f32>) -> Matrix4<f32> {
