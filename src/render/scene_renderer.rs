@@ -316,7 +316,6 @@ impl SceneRenderer {
                 camera_descriptor_set.clone(),
             );
 
-        let before = Instant::now();
         for (transform, model) in models {
             // descriptor set
             let uniform_subbuffer_entity = {
@@ -395,7 +394,6 @@ impl SceneRenderer {
                     .unwrap();
             }
         }
-        // println!("elapsed time: {}ms", before.elapsed().as_millis());
 
         builder.end_render_pass().unwrap();
 
@@ -405,17 +403,6 @@ impl SceneRenderer {
         future
             .then_execute(context.queue(), command_buffer)
             .unwrap()
-    }
-}
-
-mod vs {
-    vulkano_shaders::shader! {
-        ty: "vertex",
-        path: "assets/shaders/vert.glsl",
-        types_meta: {
-            use bytemuck::{Pod, Zeroable};
-            #[derive(Clone, Copy, Zeroable, Pod)]
-        }
     }
 }
 
@@ -437,6 +424,17 @@ impl From<&Material> for vs::ty::Material {
             metallic: value.metallic_factor,
             emissivity: value.emissivity.into(),
             _dummy0: Default::default(),
+        }
+    }
+}
+
+mod vs {
+    vulkano_shaders::shader! {
+        ty: "vertex",
+        path: "assets/shaders/vert.glsl",
+        types_meta: {
+            use bytemuck::{Pod, Zeroable};
+            #[derive(Clone, Copy, Zeroable, Pod)]
         }
     }
 }

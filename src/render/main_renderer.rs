@@ -83,12 +83,6 @@ impl Renderer {
     }
 }
 
-// pub fn update_material_descriptors(mut commands: Commands, query: Query<Entity, Added<Material>>) {
-//     for entity in query.iter() {
-//         commands.entity(entity).insert()
-//     }
-// }
-
 pub fn render(
     mut renderer: NonSendMut<Renderer>,
     context: Res<Context>,
