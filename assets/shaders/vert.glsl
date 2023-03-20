@@ -15,8 +15,11 @@ struct PointLight {
     float intensity;
 };
 
+#define MAX_NUM_TOTAL_LIGHTS 32
+
 layout(set = 0, binding = 0) uniform Scene {
-    PointLight pointLight;
+    PointLight pointLights[MAX_NUM_TOTAL_LIGHTS];
+    int numLights;
 } scene;
 
 layout(set = 1, binding = 0) uniform Camera {
