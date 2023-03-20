@@ -17,8 +17,11 @@ struct PointLight {
     float intensity;
 };
 
+#define MAX_NUM_TOTAL_LIGHTS 32
+
 layout(set = 0, binding = 0) uniform Scene {
-    PointLight pointLight;
+    PointLight pointLights[MAX_NUM_TOTAL_LIGHTS];
+    int numLights;
 } scene;
 
 layout(set = 1, binding = 0) uniform Camera {
@@ -28,15 +31,13 @@ layout(set = 1, binding = 0) uniform Camera {
 } camera;
 
 layout(set = 2, binding = 0) uniform Material {
-    // TODO: change name to camelCase
-    vec3 base_color;
+    vec3 baseColor;
     float roughness;
     float metallic;
     vec3 emissivity;
 } material;
 
-// TODO: change name to camelCase
-layout(set = 2, binding = 1) uniform sampler2D base_color_texture;
+layout(set = 2, binding = 1) uniform sampler2D baseColorTexture;
 
 layout(set = 3, binding = 0) uniform Entity {
     mat4 model;
@@ -124,7 +125,7 @@ void main() {
     vec3 n = normalize(v_normal);
     vec3 v = normalize(camera.position - worldPos); // world space
 
-    vec3 albedo = texture(base_color_texture, v_uv).rgb * material.base_color;
+    vec3 albedo = texture(baseColorTexture, v_uv).rgb * material.baseColor;
 
     // reflectance at normal incidence (base reflectance)
     // if dia-electric (like plastic) use F0 of 0.04 and if it's a metal, use the albedo as F0 (metallic workflow)
@@ -134,8 +135,9 @@ void main() {
     // out going light
     vec3 Lo = vec3(0.0);
 
-    // we only have one light for now
-    Lo += pbr(scene.pointLight, n, v, worldPos, albedo, f0);
+    for (int i = 0; i < scene.numLights; ++i) {
+        Lo += pbr(scene.pointLights[i], n, v, worldPos, albedo, f0);
+    }
 
     float ka = 0.03;
     vec3 ambient = (ambientLightColor * ka) * albedo;

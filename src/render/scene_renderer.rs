@@ -7,6 +7,7 @@ use crate::scene::transform::Transform;
 
 use crate::scene::light::{Light, PointLight};
 use crate::scene::material::Material;
+use bytemuck::Zeroable;
 use std::default::Default;
 use std::sync::Arc;
 use std::time::Instant;
@@ -265,10 +266,20 @@ impl SceneRenderer {
         let entity_set_layout = self.pipeline.layout().set_layouts().get(3).unwrap();
 
         let uniform_subbuffer_scene = {
-            let (transform, Light::Point(light)) = lights[0];
+            let mut point_lights: Vec<vs::ty::PointLight> = lights
+                .iter()
+                .map(|(transform, light)| match light {
+                    Light::Point(point_light) => make_shader_point_light(point_light, transform),
+                })
+                .collect();
+
+            let num_lights = point_lights.len() as i32;
+
+            point_lights.resize(32, vs::ty::PointLight::zeroed());
 
             let uniform_data = vs::ty::Scene {
-                pointLight: make_shader_point_light(light, transform),
+                pointLights: point_lights.try_into().unwrap(),
+                numLights: num_lights,
             };
 
             self.uniform_buffer_pool_scene
@@ -413,6 +424,7 @@ fn make_shader_point_light(point_light: &PointLight, transform: &Transform) -> v
         range: point_light.range,
         intensity: point_light.intensity,
         _dummy0: Default::default(),
+        _dummy1: Default::default(),
     }
 }
 
@@ -434,7 +446,7 @@ mod vs {
         path: "assets/shaders/vert.glsl",
         types_meta: {
             use bytemuck::{Pod, Zeroable};
-            #[derive(Clone, Copy, Zeroable, Pod)]
+            #[derive(Clone, Copy, Zeroable, Pod, Debug)]
         }
     }
 }
@@ -445,7 +457,7 @@ mod fs {
         path: "assets/shaders/frag.glsl",
         types_meta: {
             use bytemuck::{Pod, Zeroable};
-            #[derive(Clone, Copy, Zeroable, Pod)]
+            #[derive(Clone, Copy, Zeroable, Pod, Debug)]
         }
     }
 }
