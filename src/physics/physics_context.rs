@@ -1,11 +1,13 @@
-use crate::core::camera::Camera;
+use crate::core::application::AppStage;
 use crate::core::time::Time;
-use crate::player::{Player, PlayerSettings};
 use crate::scene::bounding_box::BoundingBox;
-use crate::scene::transform::Transform;
-use bevy_ecs::prelude::{Added, Component, Query, Res, ResMut, Resource};
+use crate::scene::transform::{Transform, TransformBuilder};
+use bevy_ecs::prelude::{
+    Added, Commands, Component, Entity, IntoSystemConfig, Query, Res, ResMut, Resource, Schedule,
+    World,
+};
 use bevy_ecs::query::Without;
-use nalgebra::UnitQuaternion;
+use nalgebra::{Translation3, UnitQuaternion};
 use rapier3d::control::KinematicCharacterController;
 use rapier3d::na::Vector3;
 use rapier3d::prelude::*;
@@ -96,6 +98,17 @@ impl PhysicsContext {
             &self.event_handler,
         );
     }
+
+    pub fn setup_systems(self, world: &mut World, schedule: &mut Schedule) {
+        world.insert_resource(self);
+        schedule.add_system(apply_collider_changes.in_set(AppStage::Update));
+        schedule.add_system(apply_rigid_body_changes.in_set(AppStage::Update));
+        schedule.add_system(apply_player_character_controller_changes.in_set(AppStage::Update));
+
+        schedule.add_system(step_physics_simulation.in_set(AppStage::UpdatePhysics));
+        schedule.add_system(step_character_controllers.in_set(AppStage::PostUpdate));
+        schedule.add_system(update_transform_system.in_set(AppStage::PostUpdate));
+    }
 }
 
 pub fn step_physics_simulation(mut physics_context: ResMut<PhysicsContext>, time: Res<Time>) {
@@ -105,10 +118,17 @@ pub fn step_physics_simulation(mut physics_context: ResMut<PhysicsContext>, time
 }
 
 #[derive(Component)]
-pub struct RapierRigidBody {
-    // We could refactor that to use two separate components, but this will do for now
-    pub handle: Option<RigidBodyHandle>,
+pub struct RapierRigidBodyHandle {
+    pub handle: RigidBodyHandle,
 }
+
+#[derive(Component)]
+pub struct RapierColliderHandle {
+    pub handle: ColliderHandle,
+}
+
+#[derive(Component)]
+pub struct RigidBody;
 
 // for now colliders are created once and never changed or deleted
 #[derive(Component)]
@@ -116,103 +136,129 @@ pub struct BoxCollider {
     pub bounds: BoundingBox<Vector3<f32>>,
 }
 
-#[derive(Component)]
-pub struct CharacterController {
-    pub handle: Option<RigidBodyHandle>,
+#[derive(Component, Default)]
+pub struct PlayerCharacterController {
+    pub height: f32,
+    pub desired_movement: Vector3<f32>,
+    pub grounded: bool,
 }
 
-pub fn insert_collider_component(
-    camera: Res<Camera>,
+pub fn create_box_collider(box_collider: &BoxCollider, transform: &Transform) -> Collider {
+    let scaled_bounds = box_collider.bounds.scale(&transform.scale);
+    let half_size: Vector3<f32> = scaled_bounds.size() * 0.5;
+    let collider_offset = scaled_bounds.min + half_size;
+
+    ColliderBuilder::cuboid(half_size.x, half_size.y, half_size.z)
+        .position(
+            transform.to_isometry()
+                * Isometry::translation(collider_offset.x, collider_offset.y, collider_offset.z),
+        )
+        .build()
+}
+
+pub fn apply_collider_changes(
+    mut commands: Commands,
     mut physics_context: ResMut<PhysicsContext>,
     box_collider_query: Query<
-        (&BoxCollider, &Transform),
-        (Added<BoxCollider>, Without<RapierRigidBody>),
+        (Entity, &BoxCollider, &Transform),
+        (Added<BoxCollider>, Without<RigidBody>),
     >,
-    mut rigid_body_query: Query<
-        (&mut RapierRigidBody, &BoxCollider, &Transform),
-        Added<RapierRigidBody>,
-    >,
-    mut character_controller_query: Query<&mut CharacterController, Added<CharacterController>>,
 ) {
-    for (collider, transform) in &box_collider_query {
-        let scaled_bounds = collider.bounds.scale(&transform.scale);
-        let half_size: Vector3<f32> = scaled_bounds.size() * 0.5;
-        let collider_offset = scaled_bounds.min + half_size;
-        let physics_collider = ColliderBuilder::cuboid(half_size.x, half_size.y, half_size.z)
-            .position(
-                transform.to_isometry()
-                    * Isometry::translation(
-                        collider_offset.x,
-                        collider_offset.y,
-                        collider_offset.z,
-                    ),
-            )
-            .build();
-
-        physics_context.colliders.insert(physics_collider);
+    for (entity, collider, transform) in &box_collider_query {
+        let physics_collider = create_box_collider(&collider, &transform);
+        let handle = physics_context.colliders.insert(physics_collider);
+        commands
+            .entity(entity)
+            .insert(RapierColliderHandle { handle });
     }
+}
+
+pub fn apply_rigid_body_changes(
+    mut commands: Commands,
+    mut physics_context: ResMut<PhysicsContext>,
+    mut rigid_body_query: Query<(Entity, &BoxCollider, &Transform), Added<RigidBody>>,
+) {
+    let context = physics_context.as_mut();
 
     // Rigid bodies like the cube
-    for (mut rigid_body, collider, transform) in rigid_body_query.iter_mut() {
-        // TODO: Fix
+    for (entity, collider, transform) in rigid_body_query.iter_mut() {
         let physics_rigid_body = RigidBodyBuilder::dynamic()
             .position(transform.to_isometry())
             .build();
 
-        let context = physics_context.as_mut();
         let handle = context.rigid_bodies.insert(physics_rigid_body);
 
-        let half_size: Vector3<f32> = collider.bounds.size() * 0.5;
-        let physics_collider =
-        // TODO: scaled colliders are not supported yetf
-            ColliderBuilder::cuboid(half_size.x, half_size.y, half_size.z).build();
+        let scale_transform = TransformBuilder::new().scale(transform.scale).build();
+
+        let physics_collider = create_box_collider(&collider, &scale_transform);
 
         context
             .colliders
             .insert_with_parent(physics_collider, handle, &mut context.rigid_bodies);
 
-        rigid_body.handle = Some(handle);
+        commands
+            .entity(entity)
+            .insert(RapierRigidBodyHandle { handle });
     }
+}
 
-    // Player
-    for mut character_controller in character_controller_query.iter_mut() {
+pub fn apply_player_character_controller_changes(
+    mut commands: Commands,
+    mut character_controller_query: Query<
+        (Entity, &Transform, &PlayerCharacterController),
+        (
+            Added<PlayerCharacterController>,
+            Without<RigidBody>,
+            Without<BoxCollider>,
+        ),
+    >,
+    mut physics_context: ResMut<PhysicsContext>,
+) {
+    let context = physics_context.as_mut();
+
+    for (entity, transform, player_character_controller) in character_controller_query.iter_mut() {
         let physics_rigid_body = RigidBodyBuilder::kinematic_position_based()
-            .translation(camera.position.coords)
+            .translation(transform.position.coords.into())
             .build();
 
-        let context = physics_context.as_mut();
         let handle = context.rigid_bodies.insert(physics_rigid_body);
-        let collider = ColliderBuilder::capsule_y(0.3, 0.15);
+        let collider = ColliderBuilder::capsule_y(player_character_controller.height / 2.0, 0.15)
+            .translation(
+                // TODO: understand why this is needed
+                Vector3::new(0.0, player_character_controller.height / 2.0, 0.0),
+            );
 
         context
             .colliders
             .insert_with_parent(collider, handle, &mut context.rigid_bodies);
-        character_controller.handle = Some(handle);
+
+        commands
+            .entity(entity)
+            .insert(RapierRigidBodyHandle { handle });
     }
 }
 
-pub fn step_character_controller(
-    // TODO: Referencing the camera in the physics part is a bit odd
-    mut camera: ResMut<Camera>,
-    mut player: ResMut<Player>,
-    settings: Res<PlayerSettings>,
+pub fn step_character_controllers(
     mut physics_context: ResMut<PhysicsContext>,
-    // TODO: No transform, hmm
-    query: Query<&CharacterController>,
+    mut query: Query<(
+        &mut Transform,
+        &mut PlayerCharacterController,
+        &RapierRigidBodyHandle,
+    )>,
 ) {
-    for character_controller in &query {
+    for (mut transform, mut character_controller, rigid_body_handle) in query.iter_mut() {
         let controller = KinematicCharacterController::default();
+
         let context = physics_context.as_mut();
 
-        let character_body = context
-            .rigid_bodies
-            .get(character_controller.handle.unwrap())
-            .unwrap();
+        let character_rigid_body = context.rigid_bodies.get(rigid_body_handle.handle).unwrap();
+
         let character_collider = &context
             .colliders
-            .get(character_body.colliders()[0])
+            .get(character_rigid_body.colliders()[0])
             .unwrap();
-        let character_mass = character_body.mass();
+
+        let character_mass = character_rigid_body.mass();
 
         let mut collisions = vec![];
         let effective_movement = controller.move_shape(
@@ -222,15 +268,12 @@ pub fn step_character_controller(
             &context.query_pipeline,
             character_collider.shape(),
             character_collider.position(),
-            player.desired_movement * context.integration_parameters.dt,
-            QueryFilter::new().exclude_rigid_body(character_controller.handle.unwrap()),
+            character_controller.desired_movement * context.integration_parameters.dt,
+            QueryFilter::new().exclude_rigid_body(rigid_body_handle.handle),
             |c| collisions.push(c),
         );
 
-        if effective_movement.grounded {
-            player.jump_available = true;
-            // player.velocity.y = 0.0;
-        }
+        character_controller.grounded = effective_movement.grounded;
 
         for collision in &collisions {
             controller.solve_character_collision_impulses(
@@ -241,40 +284,37 @@ pub fn step_character_controller(
                 character_collider.shape(),
                 character_mass,
                 collision,
-                QueryFilter::new().exclude_rigid_body(character_controller.handle.unwrap()),
+                QueryFilter::new().exclude_rigid_body(rigid_body_handle.handle),
             )
         }
 
         let character_body = context
             .rigid_bodies
-            .get_mut(character_controller.handle.unwrap())
+            .get_mut(rigid_body_handle.handle)
             .unwrap();
+
         let position = character_body.position();
         let new_position = position.translation.vector + effective_movement.translation;
         character_body.set_next_kinematic_translation(new_position);
 
-        if !settings.freecam_activated {
-            camera.position = new_position.into();
-        }
+        transform.position = new_position.into();
     }
 }
 
 pub fn update_transform_system(
     physics_context: Res<PhysicsContext>,
-    mut query: Query<(&mut Transform, &RapierRigidBody)>,
+    mut query: Query<(&mut Transform, &RapierRigidBodyHandle), Without<PlayerCharacterController>>,
 ) {
     for (mut transform, body_handle) in query.iter_mut() {
-        let body = match body_handle.handle {
-            Some(handle) => physics_context
-                .rigid_bodies
-                .get(handle)
-                .expect("Rigid body not found"),
-            None => continue,
-        };
-        let translation = body.position().translation;
+        let body = physics_context
+            .rigid_bodies
+            .get(body_handle.handle)
+            .expect("Rigid body not found");
+
+        let translation = body.position().translation.vector.into();
         let rotation = body.rotation().into_inner();
 
-        transform.translation = translation;
+        transform.position = translation;
         transform.rotation = UnitQuaternion::from_quaternion(rotation);
     }
 }

@@ -1,11 +1,10 @@
 use crate::input::events::WindowResize;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
-use bevy_ecs::system::{ResMut, Resource};
+use bevy_ecs::prelude::*;
 use nalgebra::{vector, Matrix, Matrix4, Point3, UnitQuaternion, UnitVector3};
 
 // TODO: look up how to get the euler yaw and pitch angles from a quaternion
-// IDEA: remove position and orientation and use transforms instead
 #[derive(Resource)]
 pub struct Camera {
     view: Matrix4<f32>,
@@ -16,15 +15,20 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(fov: Deg<f32>, aspect_ratio: f32, near: f32, far: f32) -> Self {
-        let position = Point3::new(0.0, 0.0, 8.0);
-        let orientation = UnitQuaternion::identity();
-
+    pub fn new(
+        position: Point3<f32>,
+        orientation: UnitQuaternion<f32>,
+        aspect_ratio: f32,
+        fov: Deg<f32>,
+        near: f32,
+        far: f32,
+    ) -> Self {
         let fov = Rad::from(fov);
 
         Camera {
-            view: calculate_view(position, orientation),
             proj: calculate_projection(aspect_ratio, fov, near, far),
+            view: calculate_view(position, orientation),
+
             position,
             orientation,
         }

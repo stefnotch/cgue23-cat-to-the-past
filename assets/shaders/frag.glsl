@@ -81,13 +81,8 @@ vec3 fresnelSchlick(vec3 f0, vec3 v, vec3 h) {
     return f0 + (1.0 - f0) * pow(1.0 - vDoth, 5.0);
 }
 
-vec3 pbr(PointLight pointLight, vec3 n, vec3 v, vec3 worldPos, vec3 albedo, vec3 f0) {
-    vec3 positionToLight = pointLight.position - worldPos;
-    vec3 l = normalize(positionToLight);
+vec3 pbr_common(vec3 lightIntensity, vec3 l, vec3 n, vec3 v, vec3 albedo, vec3 f0) {
     vec3 h = normalize(v + l);
-    float dSquared = dot(positionToLight, positionToLight);
-
-    float attenuation = 1.0 / dSquared;
 
     vec3 fLambert = albedo / PI;
 
@@ -113,10 +108,19 @@ vec3 pbr(PointLight pointLight, vec3 n, vec3 v, vec3 worldPos, vec3 albedo, vec3
 
     vec3 diffuseBRDF = kd * fLambert;
     vec3 specularBRDF = /* ks + */ fCookTorrance;
-    vec3 lightIntensity = pointLight.color * pointLight.intensity * attenuation;
     float nDotL = max(dot(n, l), 0.0);
 
     return (diffuseBRDF + specularBRDF) * lightIntensity * nDotL;
+}
+
+vec3 pbr(PointLight pointLight, vec3 n, vec3 v, vec3 worldPos, vec3 albedo, vec3 f0) {
+    vec3 positionToLight = pointLight.position - worldPos;
+    vec3 l = normalize(positionToLight);
+    float dSquared = dot(positionToLight, positionToLight);
+
+    float attenuation = 1.0 / dSquared;
+    vec3 lightIntensity = pointLight.color * pointLight.intensity * attenuation;
+    return pbr_common(lightIntensity, l, n, v, albedo, f0);
 }
 
 void main() {

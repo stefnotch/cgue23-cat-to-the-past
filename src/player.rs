@@ -3,19 +3,23 @@ use crate::core::camera::Camera;
 use crate::core::time::Time;
 use crate::input::events::{KeyboardInput, MouseMovement};
 use crate::input::input_map::InputMap;
-use crate::physics::physics_context::CharacterController;
+use crate::physics::physics_context::PlayerCharacterController;
+use crate::scene::transform::Transform;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
-use bevy_ecs::system::{Res, ResMut};
 use nalgebra::{UnitQuaternion, Vector3};
 use winit::event::ElementState::Released;
 use winit::event::VirtualKeyCode;
 
-#[derive(Resource)]
-pub struct PlayerSettings {
-    freecam_speed: f32,
-    pub freecam_activated: bool,
+#[derive(Component)]
+pub struct CameraMode {
+    free_cam_activated: bool,
+}
+
+#[derive(Component, Clone)]
+pub struct PlayerControllerSettings {
+    free_cam_speed: f32,
     /// players use a different gravity
     gravity: f32,
     sensitivity: f32,
@@ -29,23 +33,18 @@ pub struct PlayerSettings {
     jump_force: f32,
 }
 
-#[derive(Resource, Debug)]
+#[derive(Component, Debug)]
 pub struct Player {
-    pub desired_movement: Vector3<f32>,
-
     pub velocity: Vector3<f32>,
-
-    pub jump_available: bool,
 
     pub yaw: Rad<f32>,
     pub pitch: Rad<f32>,
 }
 
-impl PlayerSettings {
+impl PlayerControllerSettings {
     pub fn new(speed: f32, sensitivity: f32, gravity: f32) -> Self {
-        PlayerSettings {
-            freecam_speed: speed,
-            freecam_activated: true,
+        PlayerControllerSettings {
+            free_cam_speed: speed,
             sensitivity,
             gravity,
 
@@ -63,10 +62,11 @@ impl PlayerSettings {
 pub fn handle_mouse_movement(
     mut reader: EventReader<MouseMovement>,
     mut camera: ResMut<Camera>,
-    mut player: ResMut<Player>,
+    mut query: Query<(&mut Player, &PlayerControllerSettings)>,
     time: Res<Time>,
-    settings: Res<PlayerSettings>,
 ) {
+    let (mut player, settings) = query.single_mut();
+
     let mut pitch: Deg<f32> = player.pitch.into();
     let mut yaw: Deg<f32> = player.yaw.into();
 
@@ -93,20 +93,18 @@ pub fn handle_mouse_movement(
         * UnitQuaternion::from_axis_angle(&Camera::right(), pitch.to_rad().0);
 
     camera.orientation = camera.orientation.slerp(&target_orientation, camera_factor);
+
     player.pitch = pitch.into();
     player.yaw = yaw.into();
 }
 
 pub fn update_camera_position(
     mut camera: ResMut<Camera>,
-    player: Res<Player>,
+    query: Query<(&Player, &PlayerControllerSettings)>,
     input: Res<InputMap>,
     time: Res<Time>,
-    settings: Res<PlayerSettings>,
 ) {
-    if !settings.freecam_activated {
-        return;
-    }
+    let (player, settings) = query.single();
 
     let direction = input_to_direction(&input);
 
@@ -120,8 +118,8 @@ pub fn update_camera_position(
 
     let delta_time = time.delta_seconds();
 
-    camera.position += horizontal_direction * settings.freecam_speed * delta_time;
-    camera.position += vertical_movement * settings.freecam_speed * delta_time;
+    camera.position += horizontal_direction * settings.free_cam_speed * delta_time;
+    camera.position += vertical_movement * settings.free_cam_speed * delta_time;
 }
 
 fn input_to_direction(input: &InputMap) -> Vector3<f32> {
@@ -163,14 +161,15 @@ fn normalize_if_not_zero(vector: Vector3<f32>) -> Vector3<f32> {
 }
 
 pub fn update_player(
+    mut query: Query<(
+        &mut Player,
+        &mut PlayerCharacterController,
+        &PlayerControllerSettings,
+    )>,
     input: Res<InputMap>,
     time: Res<Time>,
-    settings: Res<PlayerSettings>,
-    mut player: ResMut<Player>,
 ) {
-    if settings.freecam_activated {
-        return;
-    }
+    let (mut player, mut character_controller, settings) = query.single_mut();
 
     let input_direction = input_to_direction(&input);
     let last_velocity = player.velocity;
@@ -181,7 +180,7 @@ pub fn update_player(
 
     let mut velocity = camera_horizontal_orientation * horizontal_input;
 
-    if player.jump_available {
+    if character_controller.grounded {
         velocity = move_ground(&velocity, get_horizontal(&last_velocity), &settings, &time);
         velocity.y = -settings.gravity.abs() * 0.5;
     } else {
@@ -193,9 +192,8 @@ pub fn update_player(
         velocity = Vector3::zeros()
     }
 
-    if player.jump_available && vertical_input > 0.0 {
+    if character_controller.grounded && vertical_input > 0.0 {
         velocity.y = settings.jump_force;
-        player.jump_available = false;
     }
 
     velocity.y -= settings.gravity * time.delta_seconds();
@@ -203,13 +201,13 @@ pub fn update_player(
     // player hitting their head on the roof logic could go here
 
     player.velocity = velocity;
-    player.desired_movement = velocity;
+    character_controller.desired_movement = velocity;
 }
 
 fn move_air(
     velocity: &Vector3<f32>,
     last_horizontal_velocity: Vector3<f32>,
-    settings: &PlayerSettings,
+    settings: &PlayerControllerSettings,
     time: &Time,
 ) -> Vector3<f32> {
     accelerate(
@@ -224,7 +222,7 @@ fn move_air(
 fn move_ground(
     velocity: &Vector3<f32>,
     mut last_horizontal_velocity: Vector3<f32>,
-    settings: &PlayerSettings,
+    settings: &PlayerControllerSettings,
     time: &Time,
 ) -> Vector3<f32> {
     let speed = last_horizontal_velocity.norm();
@@ -260,35 +258,63 @@ fn accelerate(
     last_velocity + acceleration_direction * acceleration
 }
 
-pub fn freecam_toggle_system(
-    mut settings: ResMut<PlayerSettings>,
+pub fn has_free_camera_activated(query: Query<&CameraMode, With<Player>>) -> bool {
+    let camera_mode = query.single();
+    !camera_mode.free_cam_activated
+}
+
+pub fn free_cam_toggle_system(
+    mut query: Query<&mut CameraMode, With<Player>>,
     mut reader: EventReader<KeyboardInput>,
 ) {
     for event in reader.iter() {
         if event.key_code == VirtualKeyCode::T && event.state == Released {
-            settings.freecam_activated = !settings.freecam_activated;
+            let mut camera_mode = query.single_mut();
+            camera_mode.free_cam_activated = !camera_mode.free_cam_activated;
         }
     }
 }
 
 impl ApplicationBuilder {
-    pub fn with_player_controller(self, settings: PlayerSettings) -> Self {
-        self.with_resource(settings)
-            .with_resource(Player {
-                desired_movement: Vector3::new(0.0, 0.0, 0.0),
-                velocity: Vector3::new(0.0, 0.0, 0.0),
-                jump_available: false,
-                yaw: Rad(0.0),
-                pitch: Rad(0.0),
-            })
+    pub fn with_player_controller(self, player_spawn_settings: PlayerSpawnSettings) -> Self {
+        self.with_resource(player_spawn_settings)
             .with_startup_system(setup_player)
             .with_system(handle_mouse_movement.in_set(AppStage::Update))
-            .with_system(update_player.in_set(AppStage::Update))
-            .with_system(update_camera_position.in_set(AppStage::Update))
-            .with_system(freecam_toggle_system.in_set(AppStage::EventUpdate))
+            .with_system(
+                update_player
+                    .in_set(AppStage::Update)
+                    .run_if(not(has_free_camera_activated)),
+            )
+            .with_system(
+                update_camera_position
+                    .in_set(AppStage::Update)
+                    .run_if(has_free_camera_activated),
+            )
+            .with_system(free_cam_toggle_system.in_set(AppStage::EventUpdate))
     }
 }
 
-fn setup_player(mut commands: Commands) {
-    commands.spawn(CharacterController { handle: None });
+#[derive(Resource)]
+pub struct PlayerSpawnSettings {
+    pub initial_transform: Transform,
+    pub controller_settings: PlayerControllerSettings,
+    pub free_cam_activated: bool,
+}
+
+fn setup_player(mut commands: Commands, spawn_settings: Res<PlayerSpawnSettings>) {
+    let player_eye_height = 1.75f32;
+
+    // spawn player, character-controller
+    commands.spawn((
+        spawn_settings.controller_settings.clone(),
+        Player {
+            velocity: Default::default(),
+            yaw: Default::default(),
+            pitch: Default::default(),
+        },
+        PlayerCharacterController::default(),
+        CameraMode {
+            free_cam_activated: spawn_settings.free_cam_activated,
+        },
+    ));
 }

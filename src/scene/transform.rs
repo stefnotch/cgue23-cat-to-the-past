@@ -1,12 +1,10 @@
 use bevy_ecs::prelude::*;
-use nalgebra::{
-    Isometry, Isometry3, Matrix4, Quaternion, Translation3, Unit, UnitQuaternion, Vector3,
-};
+use nalgebra::{Isometry, Isometry3, Matrix4, Point3, Quaternion, Unit, UnitQuaternion, Vector3};
 use std::ops::{Add, Mul};
 
 #[derive(Component, Clone, Debug, PartialEq)]
 pub struct Transform {
-    pub translation: Translation3<f32>,
+    pub position: Point3<f32>,
     pub rotation: UnitQuaternion<f32>,
     pub scale: Vector3<f32>,
 }
@@ -14,7 +12,7 @@ pub struct Transform {
 impl Default for Transform {
     fn default() -> Self {
         Self {
-            translation: Translation3::identity(),
+            position: Point3::origin(),
             rotation: UnitQuaternion::identity(),
             scale: Vector3::new(1.0, 1.0, 1.0),
         }
@@ -23,7 +21,7 @@ impl Default for Transform {
 
 impl Transform {
     pub fn to_matrix(&self) -> Matrix4<f32> {
-        let translation = Matrix4::new_translation(&self.translation.vector);
+        let translation = Matrix4::new_translation(&self.position.coords.into());
         let rotation = Matrix4::from(self.rotation);
         let scaling = Matrix4::new_nonuniform_scaling(&self.scale);
 
@@ -31,13 +29,13 @@ impl Transform {
     }
 
     pub fn to_isometry(&self) -> Isometry<f32, Unit<Quaternion<f32>>, 3> {
-        Isometry3::from_parts(self.translation, self.rotation)
+        Isometry3::from_parts(self.position.coords.into(), self.rotation)
     }
 
-    fn transform_point(&self, transform_point: &Translation3<f32>) -> Translation3<f32> {
-        let scaled_position: Vector3<f32> = transform_point.vector.component_mul(&self.scale);
+    fn transform_point(&self, transform_point: &Point3<f32>) -> Point3<f32> {
+        let scaled_position: Vector3<f32> = transform_point.coords.component_mul(&self.scale);
         let rotated_position: Vector3<f32> = self.rotation * scaled_position;
-        let translated_position: Vector3<f32> = rotated_position.add(&self.translation.vector);
+        let translated_position: Vector3<f32> = rotated_position.add(&self.position.coords);
 
         translated_position.into()
     }
@@ -48,7 +46,7 @@ impl Mul<Transform> for &Transform {
 
     fn mul(self, rhs: Transform) -> Self::Output {
         Transform {
-            translation: self.transform_point(&rhs.translation),
+            position: self.transform_point(&rhs.position),
             rotation: self.rotation * rhs.rotation,
             scale: self.scale.component_mul(&rhs.scale),
         }
@@ -57,7 +55,7 @@ impl Mul<Transform> for &Transform {
 
 #[allow(dead_code)]
 pub struct TransformBuilder {
-    translation: Translation3<f32>,
+    position: Point3<f32>,
     rotation: UnitQuaternion<f32>,
     scale: Vector3<f32>,
 }
@@ -66,14 +64,14 @@ pub struct TransformBuilder {
 impl TransformBuilder {
     pub fn new() -> Self {
         Self {
-            translation: Translation3::identity(),
+            position: Point3::origin(),
             rotation: UnitQuaternion::identity(),
             scale: Vector3::new(1.0, 1.0, 1.0),
         }
     }
 
-    pub fn translation(mut self, translation: Translation3<f32>) -> Self {
-        self.translation = translation;
+    pub fn position(mut self, position: Point3<f32>) -> Self {
+        self.position = position;
 
         self
     }
@@ -92,7 +90,7 @@ impl TransformBuilder {
 
     pub fn build(self) -> Transform {
         Transform {
-            translation: self.translation,
+            position: self.position,
             rotation: self.rotation,
             scale: self.scale,
         }

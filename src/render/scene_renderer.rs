@@ -10,7 +10,6 @@ use crate::scene::material::Material;
 use bytemuck::Zeroable;
 use std::default::Default;
 use std::sync::Arc;
-use std::time::Instant;
 use vulkano::buffer::{BufferUsage, CpuBufferPool, TypedBufferAccess};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
@@ -419,7 +418,7 @@ impl SceneRenderer {
 
 fn make_shader_point_light(point_light: &PointLight, transform: &Transform) -> vs::ty::PointLight {
     vs::ty::PointLight {
-        position: transform.translation.into(),
+        position: transform.position.into(),
         color: point_light.color.into(),
         range: point_light.range,
         intensity: point_light.intensity,
