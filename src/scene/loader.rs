@@ -1,4 +1,4 @@
-use crate::physics::physics_context::BoxCollider;
+use crate::physics::physics_context::{BoxCollider, RigidBody};
 use crate::render::context::Context;
 use crate::scene::bounding_box::BoundingBox;
 use crate::scene::light::{Light, PointLight};
@@ -9,11 +9,10 @@ use bevy_ecs::prelude::*;
 use gltf::khr_lights_punctual::Kind;
 use gltf::texture::{MagFilter, MinFilter, WrappingMode};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
-use nalgebra::{Quaternion, Translation3, UnitQuaternion, Vector3};
+use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
 use std::hash::Hash;
 use std::iter::repeat;
 use std::sync::Arc;
-use std::time::Instant;
 use std::{collections::HashMap, path::Path};
 use uuid::Uuid;
 use vulkano::memory::allocator::{MemoryAllocator, StandardMemoryAllocator};
@@ -108,12 +107,16 @@ impl AssetServer {
             ));
         }
 
-        for (transform, model) in scene_loading_result.models {
+        for (transform, model, has_rigidbody) in scene_loading_result.models {
             let box_collider = BoxCollider {
                 bounds: model.bounding_box(),
             };
 
-            commands.spawn((model, transform, box_collider));
+            if has_rigidbody {
+                commands.spawn((model, transform, box_collider, RigidBody));
+            } else {
+                commands.spawn((model, transform, box_collider));
+            }
         }
 
         Ok(())
@@ -151,10 +154,16 @@ impl AssetServer {
                 .push((global_transform.clone(), Self::load_light(light)));
         }
 
+        let mut rigidbody = false;
+        if let Some(extras) = node.extras() {
+            rigidbody = extras.get().contains("Rigidbody");
+        }
+
         if let Some(mesh) = node.mesh() {
             scene_loading_result.models.push((
                 global_transform.clone(),
                 Self::load_model(mesh, scene_loading_data, context),
+                rigidbody,
             ));
         }
     }
@@ -200,13 +209,13 @@ impl From<gltf::scene::Transform> for Transform {
         // rotation is a quaternion
         let (translation, rotation, scale) = value.decomposed();
 
-        let translation: Translation3<f32> = Translation3::from(translation);
+        let position: Point3<f32> = translation.into();
         let rotation: UnitQuaternion<f32> =
             UnitQuaternion::new_normalize(Quaternion::from(rotation));
         let scale: Vector3<f32> = Vector3::from_row_slice(&scale);
 
         Self {
-            translation,
+            position,
             rotation,
             scale,
         }
@@ -225,7 +234,7 @@ struct SceneLoadingData<'a> {
 
 struct SceneLoadingResult {
     lights: Vec<(Transform, Light)>,
-    models: Vec<(Transform, Model)>,
+    models: Vec<(Transform, Model, bool)>,
 }
 impl SceneLoadingResult {
     fn new() -> Self {

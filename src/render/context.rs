@@ -13,7 +13,7 @@ use vulkano::swapchain::Surface;
 use vulkano::{Version, VulkanLibrary};
 use vulkano_win::VkSurfaceBuild;
 use winit::event_loop::EventLoop;
-use winit::window::WindowBuilder;
+use winit::window::{Window, WindowBuilder};
 
 ///
 /// see also https://gpuopen.com/learn/understanding-vulkan-objects/
@@ -76,6 +76,15 @@ impl Context {
 
     pub fn queue_family_index(&self) -> u32 {
         self.queue_family_index
+    }
+
+    pub fn window(&self) -> Arc<Window> {
+        self.surface
+            .object()
+            .unwrap()
+            .clone()
+            .downcast::<Window>()
+            .unwrap()
     }
 }
 

@@ -2,16 +2,14 @@ use crate::core::camera::{update_camera, update_camera_aspect_ratio, Camera};
 use crate::core::time::Time;
 use crate::input::events::{KeyboardInput, MouseInput, MouseMovement, WindowResize};
 use crate::input::input_map::{handle_keyboard_input, handle_mouse_input, InputMap};
-use crate::physics::physics_context::{
-    insert_collider_component, step_character_controller, step_physics_simulation,
-    update_transform_system, PhysicsContext,
-};
+use crate::physics::physics_context::PhysicsContext;
 use crate::render::context::Context;
 use crate::render::{render, Renderer};
 use crate::scene::loader::AssetServer;
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ExecutorKind;
+use nalgebra::{Point3, UnitQuaternion};
 use winit::dpi::{LogicalSize, PhysicalSize};
 use winit::event::{
     DeviceEvent, Event, KeyboardInput as KeyboardInputWinit, VirtualKeyCode, WindowEvent,
@@ -190,16 +188,19 @@ impl Application {
         world.insert_resource(asset_server);
         AssetServer::insert_asset_types(&mut world);
 
-        let camera = Camera::new(Deg(60.0), aspect_ratio, 0.01, 100.0);
+        // TODO: add interface to change the position and orientation of the camera
+        let camera = Camera::new(
+            Point3::new(0.0, 0.0, 8.0),
+            UnitQuaternion::identity(),
+            aspect_ratio,
+            Deg(60.0),
+            0.01,
+            100.0,
+        );
         let input_map = InputMap::new();
 
         let physics_context = PhysicsContext::new();
-
-        world.insert_resource(physics_context);
-        schedule.add_system(insert_collider_component.in_set(AppStage::Update));
-        schedule.add_system(step_physics_simulation.in_set(AppStage::UpdatePhysics));
-        schedule.add_system(step_character_controller.in_set(AppStage::PostUpdate));
-        schedule.add_system(update_transform_system.in_set(AppStage::PostUpdate));
+        physics_context.setup_systems(world, schedule);
 
         world.insert_resource(Events::<MouseMovement>::default());
         schedule.add_system(Events::<MouseMovement>::update_system.in_set(AppStage::EventUpdate));
