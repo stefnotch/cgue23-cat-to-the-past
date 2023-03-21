@@ -1,13 +1,14 @@
-use bevy_ecs::event::EventReader;
+use bevy_ecs::prelude::{Component, Query, With};
 use scene::loader::AssetServer;
+use std::f32::consts::PI;
 use std::sync::Arc;
 use std::time::Instant;
 
 use bevy_ecs::system::{Commands, Res};
 use nalgebra::{Point3, Translation3};
+use rapier3d::dynamics::RigidBodyType;
 use rapier3d::na::Vector3;
 use render::context::Context;
-use winit::window::CursorGrabMode;
 
 use crate::core::application::{AppConfig, ApplicationBuilder};
 
@@ -15,12 +16,12 @@ use crate::core::application::{AppConfig, ApplicationBuilder};
 use crate::debug::tracing::start_tracing;
 
 use crate::core::time::Time;
-use crate::input::events::{MouseInput, WindowFocusChanged};
+use crate::physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody};
 use crate::player::{PlayerControllerSettings, PlayerSpawnSettings};
 use crate::scene::material::Material;
 use crate::scene::mesh::Mesh;
 use crate::scene::model::{Model, Primitive};
-use crate::scene::transform::TransformBuilder;
+use crate::scene::transform::{Transform, TransformBuilder};
 
 mod core;
 mod debug;
@@ -99,20 +100,44 @@ fn _print_fps(time: Res<Time>) {
     println!("{}", 1.0 / time.delta_seconds())
 }
 
-fn test(context: Res<Context>, mut event: EventReader<WindowFocusChanged>) {
-    for WindowFocusChanged { has_focus } in event.into_iter() {
-        let window = context.window();
+#[derive(Component)]
+pub struct MovingBox;
 
-        if *has_focus {
-            window
-                .set_cursor_grab(CursorGrabMode::Confined)
-                .or_else(|_e| window.set_cursor_grab(CursorGrabMode::Locked))
-                .unwrap();
-            window.set_cursor_visible(false);
-        } else {
-            window.set_cursor_grab(CursorGrabMode::None).unwrap();
-            window.set_cursor_visible(true);
-        }
+pub fn spawn_moving_cube(mut commands: Commands, context: Res<Context>) {
+    let memory_allocator = Arc::new(
+        vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
+    );
+
+    let cube = Mesh::cube(1.0, 1.0, 1.0, &memory_allocator);
+
+    commands.spawn((
+        Transform::default(),
+        Model {
+            primitives: vec![Primitive {
+                mesh: cube.clone(),
+                material: Arc::new(Default::default()),
+            }],
+        },
+        BoxCollider {
+            bounds: cube.bounding_box.clone(),
+        },
+        RigidBody(RigidBodyType::KinematicPositionBased),
+        MoveBodyPosition {
+            new_position: Default::default(),
+        },
+        MovingBox,
+    ));
+}
+
+pub fn move_cubes(mut query: Query<&mut MoveBodyPosition, With<MovingBox>>, time: Res<Time>) {
+    let origin = Point3::origin();
+    for mut move_body_position in query.iter_mut() {
+        let shift = Translation3::new(
+            0.0,
+            0.0,
+            4.0 * (time.level_time_seconds() * PI / 2.0 * 0.5).sin(),
+        );
+        move_body_position.new_position = shift.transform_point(&origin);
     }
 }
 
@@ -141,8 +166,9 @@ fn main() {
 
     let application = ApplicationBuilder::new(config)
         .with_startup_system(spawn_world)
-        .with_system(test)
+        .with_startup_system(spawn_moving_cube)
         .with_player_controller(player_spawn_settings)
+        .with_system(move_cubes)
         // .with_system(print_fps)
         // .with_system(rotate_entites)
         .build();

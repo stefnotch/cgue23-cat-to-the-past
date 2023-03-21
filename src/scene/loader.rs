@@ -10,6 +10,7 @@ use gltf::khr_lights_punctual::Kind;
 use gltf::texture::{MagFilter, MinFilter, WrappingMode};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
+use rapier3d::dynamics::RigidBodyType;
 use std::hash::Hash;
 use std::iter::repeat;
 use std::sync::Arc;
@@ -113,7 +114,12 @@ impl AssetServer {
             };
 
             if has_rigidbody {
-                commands.spawn((model, transform, box_collider, RigidBody));
+                commands.spawn((
+                    model,
+                    transform,
+                    box_collider,
+                    RigidBody(RigidBodyType::Dynamic),
+                ));
             } else {
                 commands.spawn((model, transform, box_collider));
             }

@@ -225,6 +225,8 @@ impl Application {
         let time = Time::new();
         world.insert_resource(time);
 
+        schedule.add_system(lock_mouse);
+
         startup_schedule.run(&mut world);
 
         self.event_loop
@@ -290,5 +292,22 @@ impl Application {
 
                 _ => (),
             });
+    }
+}
+
+fn lock_mouse(context: Res<Context>, mut event: EventReader<WindowFocusChanged>) {
+    for WindowFocusChanged { has_focus } in event.into_iter() {
+        let window = context.window();
+
+        if *has_focus {
+            window
+                .set_cursor_grab(CursorGrabMode::Confined)
+                .or_else(|_e| window.set_cursor_grab(CursorGrabMode::Locked))
+                .unwrap();
+            window.set_cursor_visible(false);
+        } else {
+            window.set_cursor_grab(CursorGrabMode::None).unwrap();
+            window.set_cursor_visible(true);
+        }
     }
 }
