@@ -1,3 +1,4 @@
+use bevy_ecs::event::EventReader;
 use scene::loader::AssetServer;
 use std::sync::Arc;
 use std::time::Instant;
@@ -6,6 +7,7 @@ use bevy_ecs::system::{Commands, Res};
 use nalgebra::{Point3, Translation3};
 use rapier3d::na::Vector3;
 use render::context::Context;
+use winit::window::CursorGrabMode;
 
 use crate::core::application::{AppConfig, ApplicationBuilder};
 
@@ -13,6 +15,7 @@ use crate::core::application::{AppConfig, ApplicationBuilder};
 use crate::debug::tracing::start_tracing;
 
 use crate::core::time::Time;
+use crate::input::events::{MouseInput, WindowFocusChanged};
 use crate::player::{PlayerControllerSettings, PlayerSpawnSettings};
 use crate::scene::material::Material;
 use crate::scene::mesh::Mesh;
@@ -96,6 +99,23 @@ fn _print_fps(time: Res<Time>) {
     println!("{}", 1.0 / time.delta_seconds())
 }
 
+fn test(context: Res<Context>, mut event: EventReader<WindowFocusChanged>) {
+    for WindowFocusChanged { has_focus } in event.into_iter() {
+        let window = context.window();
+
+        if *has_focus {
+            window
+                .set_cursor_grab(CursorGrabMode::Confined)
+                .or_else(|_e| window.set_cursor_grab(CursorGrabMode::Locked))
+                .unwrap();
+            window.set_cursor_visible(false);
+        } else {
+            window.set_cursor_grab(CursorGrabMode::None).unwrap();
+            window.set_cursor_visible(true);
+        }
+    }
+}
+
 fn main() {
     #[cfg(feature = "trace")]
     let _guard = start_tracing();
@@ -121,6 +141,7 @@ fn main() {
 
     let application = ApplicationBuilder::new(config)
         .with_startup_system(spawn_world)
+        .with_system(test)
         .with_player_controller(player_spawn_settings)
         // .with_system(print_fps)
         // .with_system(rotate_entites)

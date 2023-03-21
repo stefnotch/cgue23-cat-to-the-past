@@ -1,6 +1,8 @@
 use crate::core::camera::{update_camera, update_camera_aspect_ratio, Camera};
 use crate::core::time::Time;
-use crate::input::events::{KeyboardInput, MouseInput, MouseMovement, WindowResize};
+use crate::input::events::{
+    KeyboardInput, MouseInput, MouseMovement, WindowFocusChanged, WindowResize,
+};
 use crate::input::input_map::{handle_keyboard_input, handle_mouse_input, InputMap};
 use crate::physics::physics_context::PhysicsContext;
 use crate::render::context::Context;
@@ -169,17 +171,6 @@ impl Application {
 
         let context = Context::new(window_builder, &self.event_loop);
 
-        // TODO: move to a more appropriate place
-        let surface = context.surface();
-        let window = surface.object().unwrap().downcast_ref::<Window>().unwrap();
-
-        // TODO: Do that only when the user clicks on the window, and undo it when he hits the escape button
-        window
-            .set_cursor_grab(CursorGrabMode::Confined)
-            .or_else(|_e| window.set_cursor_grab(CursorGrabMode::Locked))
-            .unwrap();
-        window.set_cursor_visible(false);
-
         let renderer = Renderer::new(&context);
 
         let aspect_ratio = config.resolution.0 as f32 / config.resolution.1 as f32;
@@ -213,6 +204,10 @@ impl Application {
 
         world.insert_resource(Events::<WindowResize>::default());
         schedule.add_system(Events::<WindowResize>::update_system.in_set(AppStage::EventUpdate));
+
+        world.insert_resource(Events::<WindowFocusChanged>::default());
+        schedule
+            .add_system(Events::<WindowFocusChanged>::update_system.in_set(AppStage::EventUpdate));
 
         schedule.add_system(handle_keyboard_input.in_set(AppStage::EventUpdate));
         schedule.add_system(handle_mouse_input.in_set(AppStage::EventUpdate));
@@ -270,7 +265,11 @@ impl Application {
                         self.world.send_event(KeyboardInput { key_code, state });
                     }
                     WindowEvent::MouseInput { button, state, .. } => {
-                        self.world.send_event(MouseInput { button, state })
+                        self.world.send_event(MouseInput { button, state });
+                    }
+                    WindowEvent::Focused(focused) => {
+                        self.world
+                            .send_event(WindowFocusChanged { has_focus: focused });
                     }
                     _ => (),
                 },
