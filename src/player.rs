@@ -3,7 +3,7 @@ use crate::core::camera::Camera;
 use crate::core::time::Time;
 use crate::input::events::{KeyboardInput, MouseMovement};
 use crate::input::input_map::InputMap;
-use crate::physics::physics_context::PlayerCharacterController;
+use crate::physics::player_physics::PlayerCharacterController;
 use crate::scene::transform::Transform;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
@@ -19,6 +19,7 @@ pub struct CameraMode {
 
 #[derive(Component, Clone)]
 pub struct PlayerControllerSettings {
+    eye_height: f32,
     free_cam_speed: f32,
     /// players use a different gravity
     gravity: f32,
@@ -44,6 +45,7 @@ pub struct Player {
 impl PlayerControllerSettings {
     pub fn new(speed: f32, sensitivity: f32, gravity: f32) -> Self {
         PlayerControllerSettings {
+            eye_height: 1.75,
             free_cam_speed: speed,
             sensitivity,
             gravity,
@@ -53,7 +55,7 @@ impl PlayerControllerSettings {
             air_accelerate: 100.0,
             max_velocity_ground: 4.0,
             max_velocity_air: 2.0,
-            jump_force: 4.0,
+            jump_force: 6.0,
             camera_smoothing: 20.0,
         }
     }
@@ -160,7 +162,7 @@ fn normalize_if_not_zero(vector: Vector3<f32>) -> Vector3<f32> {
     }
 }
 
-pub fn update_player(
+fn update_player(
     mut query: Query<(
         &mut Player,
         &mut PlayerCharacterController,
@@ -202,6 +204,15 @@ pub fn update_player(
 
     player.velocity = velocity;
     character_controller.desired_movement = velocity;
+}
+
+fn update_player_camera(
+    query: Query<(&Transform, &PlayerControllerSettings), With<Player>>,
+    mut camera: ResMut<Camera>,
+) {
+    let (player_transform, player_settings) = query.single();
+    camera.position =
+        player_transform.position + Camera::up().into_inner() * player_settings.eye_height;
 }
 
 fn move_air(
@@ -260,7 +271,7 @@ fn accelerate(
 
 pub fn has_free_camera_activated(query: Query<&CameraMode, With<Player>>) -> bool {
     let camera_mode = query.single();
-    !camera_mode.free_cam_activated
+    camera_mode.free_cam_activated
 }
 
 pub fn free_cam_toggle_system(
@@ -286,6 +297,12 @@ impl ApplicationBuilder {
                     .run_if(not(has_free_camera_activated)),
             )
             .with_system(
+                update_player_camera
+                    .after(AppStage::UpdatePhysics)
+                    .before(AppStage::Render)
+                    .run_if(not(has_free_camera_activated)),
+            )
+            .with_system(
                 update_camera_position
                     .in_set(AppStage::Update)
                     .run_if(has_free_camera_activated),
@@ -302,8 +319,6 @@ pub struct PlayerSpawnSettings {
 }
 
 fn setup_player(mut commands: Commands, spawn_settings: Res<PlayerSpawnSettings>) {
-    let player_eye_height = 1.75f32;
-
     // spawn player, character-controller
     commands.spawn((
         spawn_settings.controller_settings.clone(),
@@ -312,6 +327,7 @@ fn setup_player(mut commands: Commands, spawn_settings: Res<PlayerSpawnSettings>
             yaw: Default::default(),
             pitch: Default::default(),
         },
+        spawn_settings.initial_transform.clone(),
         PlayerCharacterController::default(),
         CameraMode {
             free_cam_activated: spawn_settings.free_cam_activated,
