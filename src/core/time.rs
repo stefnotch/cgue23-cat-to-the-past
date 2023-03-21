@@ -5,6 +5,7 @@ use std::time::Instant;
 pub struct Time {
     delta_seconds: f64,
     last_update: Instant,
+    level_time: Instant,
 }
 
 impl Time {
@@ -12,11 +13,16 @@ impl Time {
         Time {
             delta_seconds: 0.0,
             last_update: Instant::now(),
+            level_time: Instant::now(),
         }
     }
 
     pub fn delta_seconds(&self) -> f32 {
         self.delta_seconds as f32
+    }
+
+    pub fn level_time_seconds(&self) -> f32 {
+        self.level_time.elapsed().as_secs_f32()
     }
 
     pub fn update(&mut self) {

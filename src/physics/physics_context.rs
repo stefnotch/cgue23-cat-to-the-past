@@ -4,10 +4,10 @@ use crate::scene::bounding_box::BoundingBox;
 use crate::scene::transform::{Transform, TransformBuilder};
 use bevy_ecs::prelude::{
     Added, Commands, Component, Entity, IntoSystemConfig, Query, Res, ResMut, Resource, Schedule,
-    World,
+    With, World,
 };
 use bevy_ecs::query::Without;
-use nalgebra::UnitQuaternion;
+use nalgebra::{Point3, UnitQuaternion};
 use rapier3d::control::KinematicCharacterController;
 use rapier3d::na::Vector3;
 use rapier3d::prelude::*;
@@ -113,6 +113,7 @@ impl PhysicsContext {
         schedule.add_system(step_physics_simulation.in_set(AppStage::UpdatePhysics));
         schedule.add_system(step_character_controllers.in_set(AppStage::PostUpdate));
         schedule.add_system(update_transform_system.in_set(AppStage::PostUpdate));
+        schedule.add_system(update_move_body_position_system.in_set(AppStage::PostUpdate));
     }
 }
 
@@ -120,6 +121,11 @@ pub fn step_physics_simulation(mut physics_context: ResMut<PhysicsContext>, time
     let time = time.as_ref();
 
     physics_context.step_simulation(time);
+}
+
+#[derive(Component)]
+pub struct MoveBodyPosition {
+    pub(crate) new_position: Point3<f32>,
 }
 
 #[derive(Component)]
@@ -133,7 +139,7 @@ struct RapierColliderHandle {
 }
 
 #[derive(Component)]
-pub struct RigidBody;
+pub struct RigidBody(pub RigidBodyType);
 
 // for now colliders are created once and never changed or deleted
 #[derive(Component)]
@@ -174,13 +180,13 @@ pub fn apply_collider_changes(
 pub fn apply_rigid_body_changes(
     mut commands: Commands,
     mut physics_context: ResMut<PhysicsContext>,
-    mut rigid_body_query: Query<(Entity, &BoxCollider, &Transform), Added<RigidBody>>,
+    mut rigid_body_query: Query<(Entity, &BoxCollider, &Transform, &RigidBody), Added<RigidBody>>,
 ) {
     let context = physics_context.as_mut();
 
     // Rigid bodies like the cube
-    for (entity, collider, transform) in rigid_body_query.iter_mut() {
-        let physics_rigid_body = RigidBodyBuilder::dynamic()
+    for (entity, collider, transform, RigidBody(body_type)) in rigid_body_query.iter_mut() {
+        let physics_rigid_body = RigidBodyBuilder::new(body_type.clone())
             .position(transform.to_isometry())
             .build();
 
@@ -215,5 +221,18 @@ fn update_transform_system(
 
         transform.position = translation;
         transform.rotation = UnitQuaternion::from_quaternion(rotation);
+    }
+}
+
+fn update_move_body_position_system(
+    mut physics_context: ResMut<PhysicsContext>,
+    mut query: Query<(&RapierRigidBodyHandle, &mut MoveBodyPosition), With<RigidBody>>,
+) {
+    for (rigid_body_handle, MoveBodyPosition { new_position }) in query.iter() {
+        let rigid_body = physics_context
+            .rigid_bodies
+            .get_mut(rigid_body_handle.handle)
+            .unwrap();
+        rigid_body.set_next_kinematic_translation(new_position.coords);
     }
 }
