@@ -1,5 +1,6 @@
 use crate::core::camera::Camera;
 use crate::render::context::Context;
+use crate::render::quad_renderer::QuadRenderer;
 use crate::render::scene_renderer::SceneRenderer;
 use crate::scene::light::Light;
 use crate::scene::model::Model;
@@ -29,6 +30,7 @@ pub struct Renderer {
     previous_frame_end: Option<Box<dyn GpuFuture>>,
     swapchain: SwapchainContainer,
     scene_renderer: SceneRenderer,
+    quad_renderer: QuadRenderer,
     viewport: Viewport,
 }
 
@@ -60,12 +62,25 @@ impl Renderer {
         let descriptor_set_allocator =
             Arc::new(StandardDescriptorSetAllocator::new(context.device()));
 
+        let dimensions = swapchain.swapchain.image_extent();
+        let swapchain_image_count = swapchain.swapchain.image_count();
+
         let scene_renderer = SceneRenderer::new(
             context,
+            dimensions,
+            swapchain_image_count,
+            memory_allocator.clone(),
+            command_buffer_allocator.clone(),
+            descriptor_set_allocator.clone(),
+        );
+
+        let quad_renderer = QuadRenderer::new(
+            context,
+            scene_renderer.output_images(),
             &swapchain.images,
             swapchain.swapchain.image_format(),
-            memory_allocator,
-            command_buffer_allocator,
+            memory_allocator.clone(),
+            command_buffer_allocator.clone(),
             descriptor_set_allocator.clone(),
         );
 
@@ -74,6 +89,7 @@ impl Renderer {
             previous_frame_end,
             swapchain,
             scene_renderer,
+            quad_renderer,
             viewport,
         }
     }
@@ -128,6 +144,10 @@ pub fn render(
         // https://doc.rust-lang.org/nomicon/borrow-splitting.html
         let renderer = renderer.as_mut();
         renderer.scene_renderer.resize(&renderer.swapchain.images);
+        renderer.quad_renderer.resize(
+            &renderer.swapchain.images,
+            renderer.scene_renderer.output_images(),
+        );
 
         renderer.recreate_swapchain = false;
     }
@@ -175,6 +195,10 @@ pub fn render(
         &renderer.viewport,
     );
 
+    let future = renderer
+        .quad_renderer
+        .render(&context, future, image_index, &renderer.viewport);
+
     let future = future
         .then_swapchain_present(
             context.queue(),
@@ -210,6 +234,14 @@ impl SwapchainContainer {
                 .physical_device()
                 .surface_capabilities(&surface, SurfaceInfo::default())
                 .expect("could not fetch surface capabilities");
+
+            println!(
+                "{:#?}",
+                device
+                    .physical_device()
+                    .surface_formats(&surface, SurfaceInfo::default())
+                    .expect("could not fetch surface formats")
+            );
 
             let image_format = Some(
                 device

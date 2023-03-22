@@ -20,7 +20,7 @@ use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
-use vulkano::image::{AttachmentImage, ImageViewAbstract, SwapchainImage};
+use vulkano::image::{AttachmentImage, ImageUsage, ImageViewAbstract, SwapchainImage};
 use vulkano::memory::allocator::{MemoryUsage, StandardMemoryAllocator};
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
@@ -36,6 +36,8 @@ pub struct SceneRenderer {
     render_pass: Arc<RenderPass>,
     pipeline: Arc<GraphicsPipeline>,
     framebuffers: Vec<Arc<Framebuffer>>,
+    output_images: Vec<Arc<ImageView<AttachmentImage>>>,
+
     memory_allocator: Arc<StandardMemoryAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
@@ -52,8 +54,8 @@ pub struct SceneRenderer {
 impl SceneRenderer {
     pub fn new(
         context: &Context,
-        images: &[Arc<ImageView<SwapchainImage>>],
-        final_output_format: Format,
+        dimensions: [u32; 2],
+        swapchain_image_count: u32,
         memory_allocator: Arc<StandardMemoryAllocator>,
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
         descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
@@ -104,7 +106,7 @@ impl SceneRenderer {
                 color: {
                     load: Clear,
                     store: Store,
-                    format: final_output_format,
+                    format: Format::B8G8R8A8_SRGB,
                     samples: 1,
                 },
                 depth: {
@@ -140,25 +142,15 @@ impl SceneRenderer {
 
         // TODO: let the main_renderer manage those swapchain related framebuffers?
 
-        let dimensions = images[0].dimensions().width_height();
-        let depth_buffer = ImageView::new_default(
-            AttachmentImage::transient(&memory_allocator, dimensions, Format::D32_SFLOAT).unwrap(),
-        )
-        .unwrap();
+        let images: Vec<Arc<ImageView<AttachmentImage>>> =
+            Self::create_images(memory_allocator.clone(), swapchain_image_count, dimensions);
 
-        let framebuffers = images
-            .into_iter()
-            .map(|image| {
-                Framebuffer::new(
-                    render_pass.clone(),
-                    FramebufferCreateInfo {
-                        attachments: vec![image.clone(), depth_buffer.clone()],
-                        ..FramebufferCreateInfo::default()
-                    },
-                )
-                .expect("failed to create framebuffer")
-            })
-            .collect();
+        let framebuffers = Self::create_framebuffers(
+            memory_allocator.clone(),
+            dimensions,
+            images.clone(),
+            render_pass.clone(),
+        );
 
         let missing_texture = Texture::new_one_by_one(
             Sampler::new(
@@ -176,6 +168,7 @@ impl SceneRenderer {
             render_pass,
             pipeline,
             framebuffers,
+            output_images: images,
             memory_allocator,
             command_buffer_allocator,
             descriptor_set_allocator,
@@ -192,17 +185,38 @@ impl SceneRenderer {
 impl SceneRenderer {
     pub fn resize(&mut self, images: &Vec<Arc<ImageView<SwapchainImage>>>) {
         let dimensions = images[0].dimensions().width_height();
+        let swapchain_image_count = images.len() as u32;
+
+        self.output_images = Self::create_images(
+            self.memory_allocator.clone(),
+            swapchain_image_count,
+            dimensions,
+        );
+
+        self.framebuffers = Self::create_framebuffers(
+            self.memory_allocator.clone(),
+            dimensions,
+            self.output_images.clone(),
+            self.render_pass.clone(),
+        );
+    }
+
+    fn create_framebuffers(
+        memory_allocator: Arc<StandardMemoryAllocator>,
+        dimensions: [u32; 2],
+        images: Vec<Arc<ImageView<AttachmentImage>>>,
+        render_pass: Arc<RenderPass>,
+    ) -> Vec<Arc<Framebuffer>> {
         let depth_buffer = ImageView::new_default(
-            AttachmentImage::transient(&self.memory_allocator, dimensions, Format::D32_SFLOAT)
-                .unwrap(),
+            AttachmentImage::transient(&memory_allocator, dimensions, Format::D32_SFLOAT).unwrap(),
         )
         .unwrap();
 
-        self.framebuffers = images
+        images
             .into_iter()
             .map(|image| {
                 Framebuffer::new(
-                    self.render_pass.clone(),
+                    render_pass.clone(),
                     FramebufferCreateInfo {
                         attachments: vec![image.clone(), depth_buffer.clone()],
                         ..FramebufferCreateInfo::default()
@@ -210,7 +224,32 @@ impl SceneRenderer {
                 )
                 .expect("failed to create framebuffer")
             })
-            .collect();
+            .collect()
+    }
+
+    fn create_images(
+        memory_allocator: Arc<StandardMemoryAllocator>,
+        swapchain_image_count: u32,
+        dimensions: [u32; 2],
+    ) -> Vec<Arc<ImageView<AttachmentImage>>> {
+        (0..swapchain_image_count)
+            .map(|_| {
+                ImageView::new_default(
+                    AttachmentImage::with_usage(
+                        &memory_allocator,
+                        dimensions,
+                        Format::B8G8R8A8_SRGB,
+                        ImageUsage {
+                            input_attachment: true,
+                            sampled: true,
+                            ..ImageUsage::empty()
+                        },
+                    )
+                    .unwrap(),
+                )
+                .unwrap()
+            })
+            .collect()
     }
 
     pub fn render<F>(
@@ -413,6 +452,10 @@ impl SceneRenderer {
         future
             .then_execute(context.queue(), command_buffer)
             .unwrap()
+    }
+
+    pub fn output_images(&self) -> &Vec<Arc<ImageView<AttachmentImage>>> {
+        &self.output_images
     }
 }
 
