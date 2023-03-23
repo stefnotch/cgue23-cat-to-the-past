@@ -2,8 +2,11 @@ use std::{collections::VecDeque, time::Instant};
 
 use bevy_ecs::{
     prelude::Component,
-    system::{ResMut, Resource},
+    query::Changed,
+    system::{Query, ResMut, Resource},
 };
+
+use crate::scene::transform::Transform;
 
 #[derive(Component)]
 pub struct TimeTracked {
@@ -39,6 +42,10 @@ pub trait GameChange
 where
     Self: Sync + Send,
 {
+    // dyn trait is interesting https://doc.rust-lang.org/error_codes/E0038.html#method-references-the-self-type-in-its-parameters-or-return-type
+    fn is_similar(&self, other: &Self) -> bool
+    where
+        Self: Sized;
 }
 
 impl TimeManager {
@@ -101,4 +108,41 @@ pub fn time_manager_start_frame(mut time_manager: ResMut<TimeManager>) {
 
 pub fn time_manager_end_frame(mut time_manager: ResMut<TimeManager>) {
     time_manager.end_frame()
+}
+
+/// Only tracks translations for now
+pub fn time_manager_track(
+    mut time_manager: ResMut<TimeManager>,
+    query: Query<(&TimeTracked, &Transform), Changed<Transform>>,
+) {
+    for (time_tracked, transform) in &query {
+        time_manager.add_command(Box::new(TransformChange::new(
+            time_tracked,
+            transform.clone(),
+        )));
+    }
+}
+
+struct TransformChange {
+    id: uuid::Uuid,
+    new_transform: Transform,
+}
+
+impl TransformChange {
+    fn new(time_tracked: &TimeTracked, transform: Transform) -> Self {
+        Self {
+            id: time_tracked.id,
+            new_transform: transform,
+        }
+    }
+}
+
+impl GameChange for TransformChange {
+    fn is_similar(&self, other: &Self) -> bool
+    where
+        Self: Sized,
+    {
+        // TODO: check if the transform is on the LERP path...
+        self.id == other.id && self.new_transform == other.new_transform
+    }
 }
