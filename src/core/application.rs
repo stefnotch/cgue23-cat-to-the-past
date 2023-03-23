@@ -162,7 +162,9 @@ impl Application {
             0.01,
             100.0,
         );
-        let input_map = InputMap::new();
+        schedule.add_system(update_camera_aspect_ratio.in_set(AppStage::EventUpdate));
+        schedule.add_system(update_camera.in_set(AppStage::PostUpdate));
+        world.insert_resource(camera);
 
         let physics_context = PhysicsContext::new();
         physics_context.setup_systems(world, schedule);
@@ -172,6 +174,9 @@ impl Application {
         schedule.add_system(time_manager_start_frame.in_set(AppStage::EventUpdate));
         schedule.add_system(time_manager_end_frame.in_set(AppStage::Render));
 
+        // TODO: Move that code to the input.rs file?
+        let input_map = InputMap::new();
+        world.insert_resource(input_map);
         world.insert_resource(Events::<MouseMovement>::default());
         schedule.add_system(Events::<MouseMovement>::update_system.in_set(AppStage::EventUpdate));
 
@@ -190,12 +195,6 @@ impl Application {
 
         schedule.add_system(handle_keyboard_input.in_set(AppStage::EventUpdate));
         schedule.add_system(handle_mouse_input.in_set(AppStage::EventUpdate));
-
-        schedule.add_system(update_camera_aspect_ratio.in_set(AppStage::EventUpdate));
-        schedule.add_system(update_camera.in_set(AppStage::PostUpdate));
-
-        world.insert_resource(camera);
-        world.insert_resource(input_map);
 
         world.insert_resource(context);
         world.insert_non_send_resource(renderer);
