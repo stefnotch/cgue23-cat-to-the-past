@@ -25,6 +25,10 @@ impl Time {
         self.level_time.elapsed().as_secs_f32()
     }
 
+    pub fn next_level(&mut self) {
+        self.level_time = Instant::now();
+    }
+
     pub fn update(&mut self) {
         let delta_time = self.last_update.elapsed().as_secs_f64();
         self.last_update = Instant::now();

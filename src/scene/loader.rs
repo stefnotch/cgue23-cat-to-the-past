@@ -5,6 +5,7 @@ use crate::scene::light::{Light, PointLight};
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::{Model, Primitive};
 use crate::scene::transform::Transform;
+use crate::time_manager::TimeTracked;
 use bevy_ecs::prelude::*;
 use gltf::khr_lights_punctual::Kind;
 use gltf::texture::{MagFilter, MinFilter, WrappingMode};
@@ -119,6 +120,7 @@ impl AssetServer {
                     transform,
                     box_collider,
                     RigidBody(RigidBodyType::Dynamic),
+                    TimeTracked::new(),
                 ));
             } else {
                 commands.spawn((model, transform, box_collider));
@@ -161,6 +163,7 @@ impl AssetServer {
         }
 
         let mut rigidbody = false;
+        // TODO: Read JSON using serde
         if let Some(extras) = node.extras() {
             rigidbody = extras.get().contains("Rigidbody");
         }

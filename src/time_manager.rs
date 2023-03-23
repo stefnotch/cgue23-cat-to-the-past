@@ -1,6 +1,22 @@
 use std::{collections::VecDeque, time::Instant};
 
-use bevy_ecs::system::{ResMut, Resource};
+use bevy_ecs::{
+    prelude::Component,
+    system::{ResMut, Resource},
+};
+
+#[derive(Component)]
+pub struct TimeTracked {
+    id: uuid::Uuid,
+}
+
+impl TimeTracked {
+    pub fn new() -> Self {
+        Self {
+            id: uuid::Uuid::new_v4(),
+        }
+    }
+}
 
 #[derive(Resource)]
 pub struct TimeManager {
@@ -59,6 +75,17 @@ impl TimeManager {
     pub fn add_command(&mut self, command: Box<dyn GameChange>) {
         self.current_frame_commands.commands.push(command);
     }
+
+    /// Usually called when a next level is started
+    pub fn reset(&mut self) {
+        self.commands.clear()
+    }
+
+    // TODO:
+    // - Spawn Entity (Commands)
+    // - Delete Entity (Commands)
+    // - Change entity components (Commands)
+    // - Change entity values (mut)
 
     // TODO:
     // Pop

@@ -40,6 +40,7 @@ pub enum AppStage {
     EventUpdate,
     Update,
     UpdatePhysics,
+    /// after physics, maybe we should name it "BeforeRender", because I keep confusing myself
     PostUpdate,
     Render,
 }
