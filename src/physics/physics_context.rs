@@ -106,10 +106,12 @@ impl PhysicsContext {
 
     pub fn setup_systems(self, world: &mut World, schedule: &mut Schedule) {
         world.insert_resource(self);
+        // Keep ECS and physics world in sync
         schedule.add_system(apply_collider_changes.in_set(AppStage::Update));
         schedule.add_system(apply_rigid_body_changes.in_set(AppStage::Update));
         schedule.add_system(apply_player_character_controller_changes.in_set(AppStage::Update));
 
+        // Update physics world and write back to ECS world
         schedule.add_system(step_physics_simulation.in_set(AppStage::UpdatePhysics));
         schedule.add_system(step_character_controllers.in_set(AppStage::PostUpdate));
         schedule.add_system(update_transform_system.in_set(AppStage::PostUpdate));
@@ -222,6 +224,7 @@ fn update_transform_system(
         transform.position = translation;
         transform.rotation = UnitQuaternion::from_quaternion(rotation);
     }
+    // tm: tracking ID, new transform *if and only if it's different enough*,
 }
 
 fn update_move_body_position_system(
