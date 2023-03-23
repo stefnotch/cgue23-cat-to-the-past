@@ -106,7 +106,7 @@ impl SceneRenderer {
                 color: {
                     load: Clear,
                     store: Store,
-                    format: Format::B8G8R8A8_SRGB,
+                    format: Format::R16G16B16A16_SFLOAT,
                     samples: 1,
                 },
                 depth: {
@@ -238,10 +238,11 @@ impl SceneRenderer {
                     AttachmentImage::with_usage(
                         &memory_allocator,
                         dimensions,
-                        Format::B8G8R8A8_SRGB,
+                        Format::R16G16B16A16_SFLOAT,
                         ImageUsage {
-                            input_attachment: true,
+                            color_attachment: true,
                             sampled: true,
+                            transfer_src: true,
                             ..ImageUsage::empty()
                         },
                     )
