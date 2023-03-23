@@ -2,6 +2,7 @@
 name = "cat-to-the-past"
 version = "0.1.0"
 edition = "2021"
+default-run = "cat-to-the-past"
 
 [dependencies]
 vulkano = { version = "0.32.3", features = []}
