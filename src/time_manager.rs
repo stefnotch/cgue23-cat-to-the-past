@@ -1,5 +1,8 @@
 use std::{collections::VecDeque, time::Instant};
 
+use bevy_ecs::system::{ResMut, Resource};
+
+#[derive(Resource)]
 pub struct TimeManager {
     /// To limit the size of this, we could either
     /// - have a countdown for every level
@@ -16,7 +19,11 @@ struct GameChanges {
     commands: Vec<Box<dyn GameChange>>,
 }
 
-pub trait GameChange {}
+pub trait GameChange
+where
+    Self: Sync + Send,
+{
+}
 
 impl TimeManager {
     pub fn new() -> Self {
@@ -59,4 +66,12 @@ impl TimeManager {
     // Apply game changes
     // - kinematic character controller
     // - ...
+}
+
+pub fn time_manager_start_frame(mut time_manager: ResMut<TimeManager>) {
+    time_manager.start_frame()
+}
+
+pub fn time_manager_end_frame(mut time_manager: ResMut<TimeManager>) {
+    time_manager.end_frame()
 }
