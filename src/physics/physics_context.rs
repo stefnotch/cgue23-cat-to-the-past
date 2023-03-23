@@ -224,7 +224,6 @@ fn update_transform_system(
         transform.position = translation;
         transform.rotation = UnitQuaternion::from_quaternion(rotation);
     }
-    // tm: tracking ID, new transform *if and only if it's different enough*,
 }
 
 fn update_move_body_position_system(
