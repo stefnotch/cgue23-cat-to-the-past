@@ -33,7 +33,7 @@ pub struct CustomStorageImage {
 
 impl CustomStorageImage {
     /// Builds an uninitialized image.
-    ///
+    /// See https://github.com/vulkano-rs/vulkano/blob/f79c6d1f8d0064f2519ab0164b734a67440e0e30/vulkano/src/image/storage.rs#L83
     /// Returns the image
     pub fn uninitialized(
         allocator: &(impl MemoryAllocator + ?Sized),
@@ -102,10 +102,10 @@ unsafe impl ImageAccess for CustomStorageImage {
         }
     }
 
-    #[inline]
+    /*#[inline]
     fn is_layout_initialized(&self) -> bool {
         true
-    }
+    }*/
 
     #[inline]
     fn initial_layout_requirement(&self) -> ImageLayout {
