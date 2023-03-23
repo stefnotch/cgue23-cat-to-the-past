@@ -49,7 +49,7 @@ impl BloomRenderer {
                             array_layers: 1,
                         },
                         Format::R16G16B16A16_SFLOAT,
-                        6,
+                        2,
                         ImageUsage {
                             sampled: true,
                             storage: true,
