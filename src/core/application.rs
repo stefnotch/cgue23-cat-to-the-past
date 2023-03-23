@@ -8,6 +8,7 @@ use crate::physics::physics_context::PhysicsContext;
 use crate::render::context::Context;
 use crate::render::{render, Renderer};
 use crate::scene::loader::AssetServer;
+use crate::time_manager::{time_manager_end_frame, time_manager_start_frame, TimeManager};
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ExecutorKind;
@@ -165,6 +166,11 @@ impl Application {
 
         let physics_context = PhysicsContext::new();
         physics_context.setup_systems(world, schedule);
+
+        let time_manager = TimeManager::new();
+        world.insert_resource(time_manager);
+        schedule.add_system(time_manager_start_frame.in_set(AppStage::EventUpdate));
+        schedule.add_system(time_manager_end_frame.in_set(AppStage::Render));
 
         world.insert_resource(Events::<MouseMovement>::default());
         schedule.add_system(Events::<MouseMovement>::update_system.in_set(AppStage::EventUpdate));
