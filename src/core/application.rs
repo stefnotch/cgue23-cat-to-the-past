@@ -136,42 +136,15 @@ impl Application {
     where
         Self: 'static,
     {
+        let config = &self.config;
+        let window_builder = self.create_window(config);
+
+        let context = Context::new(window_builder, &self.event_loop);
+        let renderer = Renderer::new(&context);
+
         let mut world = &mut self.world;
         let schedule = &mut self.schedule;
         let startup_schedule = &mut self.startup_schedule;
-        let config = &self.config;
-
-        let monitor = self
-            .event_loop
-            .available_monitors()
-            .next()
-            .expect("no monitor found!");
-
-        let mut window_builder = WindowBuilder::new()
-            .with_inner_size(LogicalSize {
-                width: config.resolution.0,
-                height: config.resolution.1,
-            })
-            .with_title("Cat to the past");
-
-        if config.fullscreen {
-            if let Some(video_mode) = monitor
-                .video_modes()
-                .filter(|v| {
-                    let PhysicalSize { width, height } = v.size();
-
-                    v.refresh_rate_millihertz() == config.refresh_rate * 1000
-                        && (width, height) == config.resolution
-                })
-                .next()
-            {
-                window_builder = window_builder.with_fullscreen(Some(Exclusive(video_mode)))
-            }
-        }
-
-        let context = Context::new(window_builder, &self.event_loop);
-
-        let renderer = Renderer::new(&context);
 
         let aspect_ratio = config.resolution.0 as f32 / config.resolution.1 as f32;
 
@@ -292,6 +265,37 @@ impl Application {
 
                 _ => (),
             });
+    }
+
+    fn create_window(&self, config: &AppConfig) -> WindowBuilder {
+        let monitor = self
+            .event_loop
+            .available_monitors()
+            .next()
+            .expect("no monitor found!");
+
+        let mut window_builder = WindowBuilder::new()
+            .with_inner_size(LogicalSize {
+                width: config.resolution.0,
+                height: config.resolution.1,
+            })
+            .with_title("Cat to the past");
+
+        if config.fullscreen {
+            if let Some(video_mode) = monitor
+                .video_modes()
+                .filter(|v| {
+                    let PhysicalSize { width, height } = v.size();
+
+                    v.refresh_rate_millihertz() == config.refresh_rate * 1000
+                        && (width, height) == config.resolution
+                })
+                .next()
+            {
+                window_builder = window_builder.with_fullscreen(Some(Exclusive(video_mode)))
+            }
+        }
+        window_builder
     }
 }
 
