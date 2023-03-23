@@ -125,7 +125,7 @@ pub fn step_physics_simulation(mut physics_context: ResMut<PhysicsContext>, time
 
 #[derive(Component)]
 pub struct MoveBodyPosition {
-    pub(crate) new_position: Point3<f32>,
+    pub new_position: Point3<f32>,
 }
 
 #[derive(Component)]

@@ -1,36 +1,27 @@
 use bevy_ecs::prelude::{Component, Query, With};
-use scene::loader::AssetServer;
+use cat_to_the_past::scene::loader::AssetServer;
 use std::f32::consts::PI;
 use std::sync::Arc;
 use std::time::Instant;
 
 use bevy_ecs::system::{Commands, Res};
+use cat_to_the_past::render::context::Context;
 use nalgebra::{Point3, Translation3};
 use rapier3d::dynamics::RigidBodyType;
 use rapier3d::na::Vector3;
-use render::context::Context;
 
-use crate::core::application::{AppConfig, ApplicationBuilder};
+use cat_to_the_past::core::application::{AppConfig, ApplicationBuilder};
 
 #[cfg(feature = "trace")]
-use crate::debug::tracing::start_tracing;
+use cat_to_the_past::debug::tracing::start_tracing;
 
-use crate::core::time::Time;
-use crate::physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody};
-use crate::player::{PlayerControllerSettings, PlayerSpawnSettings};
-use crate::scene::material::Material;
-use crate::scene::mesh::Mesh;
-use crate::scene::model::{Model, Primitive};
-use crate::scene::transform::{Transform, TransformBuilder};
-
-mod core;
-mod debug;
-mod input;
-mod physics;
-mod player;
-mod render;
-mod scene;
-mod time_manager;
+use cat_to_the_past::core::time::Time;
+use cat_to_the_past::physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody};
+use cat_to_the_past::player::{PlayerControllerSettings, PlayerSpawnSettings};
+use cat_to_the_past::scene::material::Material;
+use cat_to_the_past::scene::mesh::Mesh;
+use cat_to_the_past::scene::model::{Model, Primitive};
+use cat_to_the_past::scene::transform::{Transform, TransformBuilder};
 
 fn _spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
     let memory_allocator = Arc::new(
