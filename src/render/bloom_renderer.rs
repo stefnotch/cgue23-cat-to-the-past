@@ -11,6 +11,7 @@ use vulkano::format::Format;
 use vulkano::image::view::ImageView;
 use vulkano::image::{
     AttachmentImage, ImageAccess, ImageCreateFlags, ImageDimensions, ImageLayout, ImageUsage,
+    StorageImage,
 };
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::{ComputePipeline, PipelineBindPoint};
@@ -21,7 +22,7 @@ pub struct BloomRenderer {
     upsample_pipeline: Arc<ComputePipeline>,
 
     images: Vec<Arc<ImageView<AttachmentImage>>>,
-    image_objects: Vec<Arc<CustomStorageImage>>,
+    image_objects: Vec<Arc<ImageView<CustomStorageImage>>>,
 
     memory_allocator: Arc<StandardMemoryAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
@@ -39,21 +40,24 @@ impl BloomRenderer {
         let image_objects = images
             .iter()
             .map(|_| {
-                CustomStorageImage::uninitialized(
-                    &memory_allocator,
-                    ImageDimensions::Dim2d {
-                        width: 1280,
-                        height: 720,
-                        array_layers: 1,
-                    },
-                    Format::R16G16B16A16_SFLOAT,
-                    6,
-                    ImageUsage {
-                        sampled: true,
-                        storage: true,
-                        transfer_dst: true,
-                        ..ImageUsage::empty()
-                    },
+                ImageView::new_default(
+                    CustomStorageImage::uninitialized(
+                        &memory_allocator,
+                        ImageDimensions::Dim2d {
+                            width: 1280,
+                            height: 720,
+                            array_layers: 1,
+                        },
+                        Format::R16G16B16A16_SFLOAT,
+                        6,
+                        ImageUsage {
+                            sampled: true,
+                            storage: true,
+                            transfer_dst: true,
+                            ..ImageUsage::empty()
+                        },
+                    )
+                    .unwrap(),
                 )
                 .unwrap()
             })
@@ -119,11 +123,11 @@ impl BloomRenderer {
 
         builder
             .copy_image(CopyImageInfo {
-                // src_image_layout: ImageLayout::ColorAttachmentOptimal,
+                //src_image_layout: ImageLayout::ColorAttachmentOptimal,
                 dst_image_layout: ImageLayout::General,
                 ..CopyImageInfo::images(
                     self.images[image_index as usize].image().clone(),
-                    self.image_objects[image_index as usize].clone(),
+                    self.image_objects[image_index as usize].image().clone(),
                 )
             })
             .unwrap();
