@@ -78,6 +78,8 @@ impl Renderer {
 
         let bloom_renderer = BloomRenderer::new(
             context,
+            dimensions,
+            swapchain_image_count,
             scene_renderer.output_images().clone(),
             memory_allocator.clone(),
             command_buffer_allocator.clone(),
