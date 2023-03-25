@@ -1,5 +1,4 @@
 use crate::render::context::Context;
-use crate::render::custom_storage_image::CustomStorageImage;
 use bytemuck::{Pod, Zeroable};
 use std::sync::Arc;
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
@@ -13,7 +12,7 @@ use vulkano::descriptor_set::layout::DescriptorSetLayout;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
-use vulkano::image::{AttachmentImage, ImageDimensions, ImageLayout, ImageUsage, SwapchainImage};
+use vulkano::image::{AttachmentImage, SwapchainImage};
 use vulkano::impl_vertex;
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
