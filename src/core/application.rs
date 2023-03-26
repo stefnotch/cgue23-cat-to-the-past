@@ -21,7 +21,7 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Fullscreen::Exclusive;
 use winit::window::{CursorGrabMode, WindowBuilder};
 
-use super::time_manager::TimeManager;
+use super::time_manager::{is_rewinding, time_manager_track_transform, TimeManager};
 
 pub struct AppConfig {
     pub resolution: (u32, u32),
@@ -203,6 +203,11 @@ impl Application {
 
         let time = Time::new();
         world.insert_resource(time);
+        schedule.add_system(
+            time_manager_track_transform
+                .in_set(AppStage::Render)
+                .run_if(not(is_rewinding)),
+        );
 
         schedule.add_system(lock_mouse);
 

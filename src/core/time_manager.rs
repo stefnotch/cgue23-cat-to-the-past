@@ -1,3 +1,4 @@
+pub mod game_change;
 pub mod level_time;
 
 use std::{collections::VecDeque, time::Duration};
@@ -11,7 +12,7 @@ use winit::event::{ElementState, MouseButton};
 
 use crate::{input::events::MouseInput, scene::transform::Transform};
 
-use self::level_time::LevelTime;
+use self::{game_change::GameChange, level_time::LevelTime};
 
 use super::time::Time;
 
@@ -25,6 +26,9 @@ impl TimeTracked {
         Self {
             id: uuid::Uuid::new_v4(),
         }
+    }
+    pub fn id(&self) -> uuid::Uuid {
+        self.id
     }
 }
 
@@ -49,16 +53,6 @@ pub fn is_rewinding(time_manager: Res<TimeManager>) -> bool {
 struct GameChanges {
     timestamp: LevelTime,
     commands: Vec<Box<dyn GameChange>>,
-}
-
-pub trait GameChange
-where
-    Self: Sync + Send,
-{
-    // dyn trait is interesting https://doc.rust-lang.org/error_codes/E0038.html#method-references-the-self-type-in-its-parameters-or-return-type
-    fn is_similar(&self, other: &Self) -> bool
-    where
-        Self: Sized;
 }
 
 impl TimeManager {
@@ -99,6 +93,7 @@ impl TimeManager {
     }
 
     pub fn add_command(&mut self, command: Box<dyn GameChange>) {
+        assert!(!self.is_rewinding, "Cannot add commands while rewinding");
         self.current_frame_commands.commands.push(command);
     }
 
@@ -116,6 +111,10 @@ impl TimeManager {
         self.reset();
     }
 
+    pub fn is_rewinding(&self) -> bool {
+        self.is_rewinding
+    }
+
     // TODO:
     // - Spawn Entity (Commands)
     // - Delete Entity (Commands)
@@ -131,7 +130,7 @@ impl TimeManager {
 }
 
 /// Only tracks translations for now
-pub fn time_manager_track(
+pub fn time_manager_track_transform(
     mut time_manager: ResMut<TimeManager>,
     query: Query<(&TimeTracked, &Transform), Changed<Transform>>,
 ) {
