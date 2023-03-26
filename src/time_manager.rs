@@ -1,12 +1,16 @@
 use std::{collections::VecDeque, time::Instant};
 
 use bevy_ecs::{
-    prelude::Component,
+    prelude::{Component, EventReader},
     query::Changed,
-    system::{Query, ResMut, Resource},
+    system::{Query, Res, ResMut, Resource},
 };
+use winit::event::{ElementState, MouseButton, VirtualKeyCode};
 
-use crate::scene::transform::Transform;
+use crate::{
+    input::events::{KeyboardInput, MouseInput},
+    scene::transform::Transform,
+};
 
 #[derive(Component)]
 pub struct TimeTracked {
@@ -30,6 +34,11 @@ pub struct TimeManager {
     ///   this is especially useful when it's always possible to restart the level simply by walking back to the beginning
     commands: VecDeque<GameChanges>,
     current_frame_commands: GameChanges,
+    is_rewinding: bool,
+}
+
+pub fn is_rewinding(time_manager: Res<TimeManager>) -> bool {
+    time_manager.is_rewinding
 }
 
 /// All game changes in one frame
@@ -56,6 +65,7 @@ impl TimeManager {
                 timestamp: Instant::now(),
                 commands: Vec::new(),
             },
+            is_rewinding: false,
         }
     }
 
@@ -108,6 +118,17 @@ pub fn time_manager_start_frame(mut time_manager: ResMut<TimeManager>) {
 
 pub fn time_manager_end_frame(mut time_manager: ResMut<TimeManager>) {
     time_manager.end_frame()
+}
+
+pub fn time_manager_rewinding(
+    mut time_manager: ResMut<TimeManager>,
+    mut reader: EventReader<MouseInput>,
+) {
+    for event in reader.iter() {
+        if event.button == MouseButton::Right {
+            time_manager.is_rewinding = event.state == ElementState::Pressed;
+        }
+    }
 }
 
 /// Only tracks translations for now

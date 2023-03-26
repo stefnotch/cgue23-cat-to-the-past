@@ -8,7 +8,9 @@ use crate::physics::physics_context::PhysicsContext;
 use crate::render::context::Context;
 use crate::render::{render, Renderer};
 use crate::scene::loader::AssetServer;
-use crate::time_manager::{time_manager_end_frame, time_manager_start_frame, TimeManager};
+use crate::time_manager::{
+    time_manager_end_frame, time_manager_rewinding, time_manager_start_frame, TimeManager,
+};
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ExecutorKind;
@@ -19,7 +21,7 @@ use winit::event::{
 };
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Fullscreen::Exclusive;
-use winit::window::{CursorGrabMode, Window, WindowBuilder};
+use winit::window::{CursorGrabMode, WindowBuilder};
 
 pub struct AppConfig {
     pub resolution: (u32, u32),
@@ -174,6 +176,11 @@ impl Application {
         world.insert_resource(time_manager);
         schedule.add_system(time_manager_start_frame.in_set(AppStage::EventUpdate));
         schedule.add_system(time_manager_end_frame.in_set(AppStage::Render));
+        schedule.add_system(
+            time_manager_rewinding
+                .after(AppStage::EventUpdate)
+                .before(AppStage::Update),
+        );
 
         // TODO: Move that code to the input.rs file?
         let input_map = InputMap::new();
