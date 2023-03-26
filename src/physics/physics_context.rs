@@ -1,17 +1,19 @@
 use crate::core::application::AppStage;
 use crate::core::time::Time;
+use crate::core::time_manager::{is_rewinding, TimeManager, TimeTracked};
 use crate::scene::bounding_box::BoundingBox;
 use crate::scene::transform::{Transform, TransformBuilder};
 use bevy_ecs::prelude::{
-    Added, Commands, Component, Entity, IntoSystemConfig, Query, Res, ResMut, Resource, Schedule,
-    With, World,
+    not, Added, Commands, Component, Entity, IntoSystemConfig, Query, Res, ResMut, Resource,
+    Schedule, With, World,
 };
-use bevy_ecs::query::Without;
+use bevy_ecs::query::{Changed, Without};
 use nalgebra::{Point3, UnitQuaternion};
 use rapier3d::control::KinematicCharacterController;
 use rapier3d::na::Vector3;
 use rapier3d::prelude::*;
 
+use super::physics_change::{RigidBodyTypeChange, VelocityChange};
 use super::player_physics::{
     apply_player_character_controller_changes, step_character_controllers,
     PlayerCharacterController,
@@ -116,6 +118,18 @@ impl PhysicsContext {
         schedule.add_system(step_character_controllers.in_set(AppStage::PostUpdate));
         schedule.add_system(update_transform_system.in_set(AppStage::PostUpdate));
         schedule.add_system(update_move_body_position_system.in_set(AppStage::PostUpdate));
+
+        schedule.add_system(
+            time_manager_track_rigid_body_type
+                .in_set(AppStage::Render)
+                .run_if(not(is_rewinding)),
+        );
+
+        schedule.add_system(
+            time_manager_track_rigid_body_velocity
+                .in_set(AppStage::Render)
+                .run_if(not(is_rewinding)),
+        );
     }
 }
 
@@ -236,5 +250,48 @@ fn update_move_body_position_system(
             .get_mut(rigid_body_handle.handle)
             .unwrap();
         rigid_body.set_next_kinematic_translation(new_position.coords);
+    }
+}
+
+fn apply_time_rewinding(
+    mut physics_context: ResMut<PhysicsContext>,
+    time: Res<TimeManager>,
+    query: Query<&RapierRigidBodyHandle, With<TimeTracked>>,
+) {
+    if time.is_rewinding() {
+        // Rapier internally checks if the rigid body is actually being set to a new type
+    } else {
+    }
+    // physics_rigid_body.set_body_type(RigidBodyType::KinematicPositionBased, true);
+}
+
+fn time_manager_track_rigid_body_type(
+    mut time_manager: ResMut<TimeManager>,
+    query: Query<(&TimeTracked, &RigidBody), Changed<RigidBody>>,
+) {
+    for (time_tracked, rigidbody) in &query {
+        time_manager.add_command(Box::new(RigidBodyTypeChange::new(
+            time_tracked,
+            rigidbody.0,
+        )));
+    }
+}
+
+fn time_manager_track_rigid_body_velocity(
+    physics_context: Res<PhysicsContext>,
+    mut time_manager: ResMut<TimeManager>,
+    query: Query<(&TimeTracked, &RapierRigidBodyHandle)>,
+) {
+    for (time_tracked, rigid_body_handle) in &query {
+        let rigidbody = physics_context
+            .rigid_bodies
+            .get(rigid_body_handle.handle)
+            .unwrap();
+
+        time_manager.add_command(Box::new(VelocityChange::new(
+            time_tracked,
+            rigidbody.linvel().clone(),
+            rigidbody.angvel().clone(),
+        )));
     }
 }
