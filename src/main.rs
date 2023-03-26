@@ -1,4 +1,5 @@
 use bevy_ecs::prelude::{Component, Query, With};
+use cat_to_the_past::core::time_manager::TimeManager;
 use cat_to_the_past::scene::loader::AssetServer;
 use std::f32::consts::PI;
 use std::sync::Arc;
@@ -120,7 +121,10 @@ pub fn spawn_moving_cube(mut commands: Commands, context: Res<Context>) {
     ));
 }
 
-pub fn move_cubes(mut query: Query<&mut MoveBodyPosition, With<MovingBox>>, time: Res<Time>) {
+pub fn move_cubes(
+    mut query: Query<&mut MoveBodyPosition, With<MovingBox>>,
+    time: Res<TimeManager>,
+) {
     let origin = Point3::origin();
     for mut move_body_position in query.iter_mut() {
         let shift = Translation3::new(

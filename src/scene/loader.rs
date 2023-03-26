@@ -1,3 +1,4 @@
+use crate::core::time_manager::TimeTracked;
 use crate::physics::physics_context::{BoxCollider, RigidBody};
 use crate::render::context::Context;
 use crate::scene::bounding_box::BoundingBox;
@@ -5,7 +6,6 @@ use crate::scene::light::{Light, PointLight};
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::{Model, Primitive};
 use crate::scene::transform::Transform;
-use crate::time_manager::TimeTracked;
 use bevy_ecs::prelude::*;
 use gltf::khr_lights_punctual::Kind;
 use gltf::texture::{MagFilter, MinFilter, WrappingMode};
