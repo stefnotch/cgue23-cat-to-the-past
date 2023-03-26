@@ -1,11 +1,11 @@
 use crate::core::application::{AppStage, ApplicationBuilder};
 use crate::core::camera::Camera;
 use crate::core::time::Time;
+use crate::core::time_manager::is_rewinding;
 use crate::input::events::{KeyboardInput, MouseMovement};
 use crate::input::input_map::InputMap;
 use crate::physics::player_physics::PlayerCharacterController;
 use crate::scene::transform::Transform;
-use crate::time_manager::is_rewinding;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;

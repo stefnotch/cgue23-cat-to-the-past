@@ -8,20 +8,20 @@ use crate::physics::physics_context::PhysicsContext;
 use crate::render::context::Context;
 use crate::render::{render, Renderer};
 use crate::scene::loader::AssetServer;
-use crate::time_manager::{
-    time_manager_end_frame, time_manager_rewinding, time_manager_start_frame, TimeManager,
-};
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ExecutorKind;
 use nalgebra::{Point3, UnitQuaternion};
 use winit::dpi::{LogicalSize, PhysicalSize};
 use winit::event::{
-    DeviceEvent, Event, KeyboardInput as KeyboardInputWinit, VirtualKeyCode, WindowEvent,
+    DeviceEvent, ElementState, Event, KeyboardInput as KeyboardInputWinit, VirtualKeyCode,
+    WindowEvent,
 };
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Fullscreen::Exclusive;
 use winit::window::{CursorGrabMode, WindowBuilder};
+
+use super::time_manager::TimeManager;
 
 pub struct AppConfig {
     pub resolution: (u32, u32),
@@ -174,13 +174,6 @@ impl Application {
 
         let time_manager = TimeManager::new();
         world.insert_resource(time_manager);
-        schedule.add_system(time_manager_start_frame.in_set(AppStage::EventUpdate));
-        schedule.add_system(time_manager_end_frame.in_set(AppStage::Render));
-        schedule.add_system(
-            time_manager_rewinding
-                .after(AppStage::EventUpdate)
-                .before(AppStage::Update),
-        );
 
         // TODO: Move that code to the input.rs file?
         let input_map = InputMap::new();
@@ -215,6 +208,7 @@ impl Application {
 
         startup_schedule.run(&mut world);
 
+        let mut is_rewinding_next_frame = false;
         self.event_loop
             .run(move |event, _, control_flow| match event {
                 Event::WindowEvent {
@@ -254,6 +248,9 @@ impl Application {
                     }
                     WindowEvent::MouseInput { button, state, .. } => {
                         self.world.send_event(MouseInput { button, state });
+                        if button == winit::event::MouseButton::Right {
+                            is_rewinding_next_frame = state == ElementState::Pressed;
+                        }
                     }
                     WindowEvent::Focused(focused) => {
                         self.world
@@ -273,7 +270,15 @@ impl Application {
                     let mut time = self.world.get_resource_mut::<Time>().unwrap();
                     time.update();
 
+                    let delta = time.delta();
+
+                    let mut time_manager = self.world.get_resource_mut::<TimeManager>().unwrap();
+                    time_manager.start_frame(is_rewinding_next_frame, delta);
+
                     self.schedule.run(&mut self.world);
+
+                    let mut time_manager = self.world.get_resource_mut::<TimeManager>().unwrap();
+                    time_manager.end_frame();
                 }
 
                 _ => (),

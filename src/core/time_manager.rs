@@ -1,16 +1,19 @@
-use std::{collections::VecDeque, time::Instant};
+pub mod level_time;
+
+use std::{collections::VecDeque, time::Duration};
 
 use bevy_ecs::{
     prelude::{Component, EventReader},
     query::Changed,
     system::{Query, Res, ResMut, Resource},
 };
-use winit::event::{ElementState, MouseButton, VirtualKeyCode};
+use winit::event::{ElementState, MouseButton};
 
-use crate::{
-    input::events::{KeyboardInput, MouseInput},
-    scene::transform::Transform,
-};
+use crate::{input::events::MouseInput, scene::transform::Transform};
+
+use self::level_time::LevelTime;
+
+use super::time::Time;
 
 #[derive(Component)]
 pub struct TimeTracked {
@@ -35,6 +38,7 @@ pub struct TimeManager {
     commands: VecDeque<GameChanges>,
     current_frame_commands: GameChanges,
     is_rewinding: bool,
+    level_time: LevelTime,
 }
 
 pub fn is_rewinding(time_manager: Res<TimeManager>) -> bool {
@@ -43,7 +47,7 @@ pub fn is_rewinding(time_manager: Res<TimeManager>) -> bool {
 
 /// All game changes in one frame
 struct GameChanges {
-    timestamp: Instant,
+    timestamp: LevelTime,
     commands: Vec<Box<dyn GameChange>>,
 }
 
@@ -62,15 +66,20 @@ impl TimeManager {
         Self {
             commands: VecDeque::new(),
             current_frame_commands: GameChanges {
-                timestamp: Instant::now(),
+                timestamp: LevelTime::zero(),
                 commands: Vec::new(),
             },
             is_rewinding: false,
+            level_time: LevelTime::zero(),
         }
     }
 
-    pub fn start_frame(&mut self) {
-        self.current_frame_commands.timestamp = Instant::now();
+    pub fn start_frame(&mut self, is_rewinding: bool, delta: Duration) {
+        if !is_rewinding {
+            self.level_time += delta;
+        }
+        self.is_rewinding = is_rewinding;
+        self.current_frame_commands.timestamp = self.level_time.clone();
     }
 
     pub fn end_frame(&mut self) {
@@ -78,7 +87,7 @@ impl TimeManager {
         let current_commands = std::mem::replace(
             &mut self.current_frame_commands,
             GameChanges {
-                timestamp: Instant::now(),
+                timestamp: self.level_time.clone(),
                 commands: Vec::new(),
             },
         );
@@ -98,6 +107,15 @@ impl TimeManager {
         self.commands.clear()
     }
 
+    pub fn level_time_seconds(&self) -> f32 {
+        self.level_time.as_secs_f32()
+    }
+
+    pub fn next_level(&mut self) {
+        self.level_time = LevelTime::zero();
+        self.reset();
+    }
+
     // TODO:
     // - Spawn Entity (Commands)
     // - Delete Entity (Commands)
@@ -110,25 +128,6 @@ impl TimeManager {
     // Apply game changes
     // - kinematic character controller
     // - ...
-}
-
-pub fn time_manager_start_frame(mut time_manager: ResMut<TimeManager>) {
-    time_manager.start_frame()
-}
-
-pub fn time_manager_end_frame(mut time_manager: ResMut<TimeManager>) {
-    time_manager.end_frame()
-}
-
-pub fn time_manager_rewinding(
-    mut time_manager: ResMut<TimeManager>,
-    mut reader: EventReader<MouseInput>,
-) {
-    for event in reader.iter() {
-        if event.button == MouseButton::Right {
-            time_manager.is_rewinding = event.state == ElementState::Pressed;
-        }
-    }
 }
 
 /// Only tracks translations for now
