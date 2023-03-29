@@ -343,6 +343,7 @@ dependencies = [
  "bevy_utils",
  "bytemuck",
  "gltf",
+ "image",
  "nalgebra",
  "rapier3d",
  "tracing-chrome",

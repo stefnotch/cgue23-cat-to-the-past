@@ -19,7 +19,7 @@ use winit::event::{
 };
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Fullscreen::Exclusive;
-use winit::window::{CursorGrabMode, WindowBuilder};
+use winit::window::{CursorGrabMode, WindowBuilder, Icon};
 
 use super::time_manager::{is_rewinding, time_manager_track_transform, TimeManager};
 
@@ -303,6 +303,17 @@ impl Application {
                 height: config.resolution.1,
             })
             .with_title("Cat to the past");
+
+        if let Ok(Ok(icon)) = image::open("assets/icon.png").map(|image| {
+            let width = image.width();
+            let height = image.height();
+            Icon::from_rgba(image.into_bytes(), width, height)
+        }) {
+            //.with_taskbar_icon(taskbar_icon)
+            window_builder = window_builder.with_window_icon(Some(
+                icon,
+            ));
+        }
 
         if config.fullscreen {
             if let Some(video_mode) = monitor
