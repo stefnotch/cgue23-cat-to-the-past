@@ -4,11 +4,11 @@ Computergraphics Project at the TU Vienna
 
 ## Game concept
 
-Restoring any point in the past, _but it doesn't affect your character._
+Rewinding time of the world around you, _but it doesn't affect your character._
 
 So you can totally walk up to a table, and pick up the fancy sword.
 
-Then load the past (save) where the sword was still on the table. And since that didn't affect your character, you now have a sword on the table, _and a sword in your hand!_
+Then rewind to the pastwhere the sword was still on the table. And since that didn't affect your character, you now have a sword on the table, _and a sword in your hand!_
 
 Should make for an interesting puzzle game. Or a stealth:tm: game, because you can always openly smack the guy in front of you, get to the next area...and then just load the past where the guard was still alive and didn't alert the entire facility. Or that mechanic could be used to make a cat petting simulator, where you basically have a cheatcode. You can indefinitely pet the cat, because as soon as the cat is satisfied and walks away, you just turn time back... :cat2:
 
