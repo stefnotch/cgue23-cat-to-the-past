@@ -1,6 +1,7 @@
 use crate::core::application::{AppStage, ApplicationBuilder};
 use crate::core::camera::Camera;
 use crate::core::time::Time;
+use crate::core::time_manager::is_rewinding;
 use crate::input::events::{KeyboardInput, MouseMovement};
 use crate::input::input_map::InputMap;
 use crate::physics::player_physics::PlayerCharacterController;
@@ -294,7 +295,8 @@ impl ApplicationBuilder {
             .with_system(
                 update_player
                     .in_set(AppStage::Update)
-                    .run_if(not(has_free_camera_activated)),
+                    .run_if(not(has_free_camera_activated))
+                    .run_if(not(is_rewinding)),
             )
             .with_system(
                 update_player_camera

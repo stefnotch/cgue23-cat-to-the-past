@@ -1,3 +1,4 @@
+use crate::core::time_manager::TimeTracked;
 use crate::physics::physics_context::{BoxCollider, RigidBody};
 use crate::render::context::Context;
 use crate::scene::bounding_box::BoundingBox;
@@ -119,6 +120,7 @@ impl AssetServer {
                     transform,
                     box_collider,
                     RigidBody(RigidBodyType::Dynamic),
+                    TimeTracked::new(),
                 ));
             } else {
                 commands.spawn((model, transform, box_collider));
@@ -161,6 +163,7 @@ impl AssetServer {
         }
 
         let mut rigidbody = false;
+        // TODO: Read JSON using serde
         if let Some(extras) = node.extras() {
             rigidbody = extras.get().contains("Rigidbody");
         }

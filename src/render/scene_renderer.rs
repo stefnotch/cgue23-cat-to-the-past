@@ -7,10 +7,9 @@ use crate::scene::transform::Transform;
 
 use crate::scene::light::{Light, PointLight};
 use crate::scene::material::Material;
-use bytemuck::Zeroable;
-use std::default::Default;
 use std::sync::Arc;
-use vulkano::buffer::{BufferUsage, CpuBufferPool, TypedBufferAccess};
+use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
+use vulkano::buffer::BufferUsage;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, RenderPassBeginInfo,
@@ -21,11 +20,12 @@ use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
 use vulkano::image::{AttachmentImage, ImageUsage, ImageViewAbstract, SwapchainImage};
-use vulkano::memory::allocator::{MemoryUsage, StandardMemoryAllocator};
+use vulkano::memory::allocator::StandardMemoryAllocator;
+use vulkano::padded::Padded;
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::rasterization::{CullMode, PolygonMode, RasterizationState};
-use vulkano::pipeline::graphics::vertex_input::BuffersDefinition;
+use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
@@ -42,10 +42,7 @@ pub struct SceneRenderer {
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
 
-    uniform_buffer_pool_camera: CpuBufferPool<vs::ty::Camera>,
-    uniform_buffer_pool_scene: CpuBufferPool<vs::ty::Scene>,
-    uniform_buffer_pool_entity: CpuBufferPool<vs::ty::Entity>,
-    uniform_buffer_pool_material: CpuBufferPool<vs::ty::Material>,
+    buffer_allocator: SubbufferAllocator,
 
     /// The 1x1 white texture used when a model is missing a texture
     missing_texture: Arc<Texture>,
@@ -63,41 +60,13 @@ impl SceneRenderer {
         let vs = vs::load(context.device()).unwrap();
         let fs = fs::load(context.device()).unwrap();
 
-        // a pool of buffers, giving us more buffers as needed
-        let uniform_buffer_pool_camera = CpuBufferPool::<vs::ty::Camera>::new(
+        // TODO: consider setting the initial size of the arena
+        let buffer_allocator = SubbufferAllocator::new(
             memory_allocator.clone(),
-            BufferUsage {
-                uniform_buffer: true,
+            SubbufferAllocatorCreateInfo {
+                buffer_usage: BufferUsage::UNIFORM_BUFFER,
                 ..Default::default()
             },
-            MemoryUsage::Upload,
-        );
-
-        let uniform_buffer_pool_scene = CpuBufferPool::<vs::ty::Scene>::new(
-            memory_allocator.clone(),
-            BufferUsage {
-                uniform_buffer: true,
-                ..Default::default()
-            },
-            MemoryUsage::Upload,
-        );
-
-        let uniform_buffer_pool_entity = CpuBufferPool::<vs::ty::Entity>::new(
-            memory_allocator.clone(),
-            BufferUsage {
-                uniform_buffer: true,
-                ..Default::default()
-            },
-            MemoryUsage::Upload,
-        );
-
-        let uniform_buffer_pool_material = CpuBufferPool::<vs::ty::Material>::new(
-            memory_allocator.clone(),
-            BufferUsage {
-                uniform_buffer: true,
-                ..Default::default()
-            },
-            MemoryUsage::Upload,
         );
 
         let render_pass = vulkano::single_pass_renderpass!(
@@ -132,7 +101,7 @@ impl SceneRenderer {
             // .rasterization_state(RasterizationState::new().cull_mode(CullMode::Back))
             .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
             .depth_stencil_state(DepthStencilState::simple_depth_test())
-            .vertex_input_state(BuffersDefinition::new().vertex::<MeshVertex>())
+            .vertex_input_state(MeshVertex::per_vertex())
             .input_assembly_state(InputAssemblyState::new())
             .vertex_shader(vs.entry_point("main").unwrap(), ())
             .viewport_state(ViewportState::viewport_dynamic_scissor_irrelevant())
@@ -173,10 +142,7 @@ impl SceneRenderer {
             command_buffer_allocator,
             descriptor_set_allocator,
 
-            uniform_buffer_pool_scene,
-            uniform_buffer_pool_camera,
-            uniform_buffer_pool_entity,
-            uniform_buffer_pool_material,
+            buffer_allocator,
             missing_texture,
         }
     }
@@ -239,12 +205,9 @@ impl SceneRenderer {
                         &memory_allocator,
                         dimensions,
                         Format::R16G16B16A16_SFLOAT,
-                        ImageUsage {
-                            color_attachment: true,
-                            sampled: true,
-                            transfer_src: true,
-                            ..ImageUsage::empty()
-                        },
+                        ImageUsage::SAMPLED
+                            .union(ImageUsage::COLOR_ATTACHMENT)
+                            .union(ImageUsage::TRANSFER_SRC),
                     )
                     .unwrap(),
                 )
@@ -305,25 +268,30 @@ impl SceneRenderer {
         let entity_set_layout = self.pipeline.layout().set_layouts().get(3).unwrap();
 
         let uniform_subbuffer_scene = {
-            let mut point_lights: Vec<vs::ty::PointLight> = lights
+            let src_point_lights: Vec<Padded<vs::PointLight, 12>> = lights
                 .iter()
                 .map(|(transform, light)| match light {
-                    Light::Point(point_light) => make_shader_point_light(point_light, transform),
+                    Light::Point(point_light) => {
+                        Padded::from(make_shader_point_light(point_light, transform))
+                    }
                 })
                 .collect();
 
-            let num_lights = point_lights.len() as i32;
+            let num_lights = src_point_lights.len() as i32;
 
-            point_lights.resize(32, vs::ty::PointLight::zeroed());
+            let mut point_lights = [Padded::from(default_shader_point_light()); 32];
 
-            let uniform_data = vs::ty::Scene {
-                pointLights: point_lights.try_into().unwrap(),
+            point_lights[..src_point_lights.len()].copy_from_slice(src_point_lights.as_slice());
+
+            let uniform_data = vs::Scene {
+                pointLights: point_lights,
                 numLights: num_lights,
             };
 
-            self.uniform_buffer_pool_scene
-                .from_data(uniform_data)
-                .unwrap()
+            let subbuffer = self.buffer_allocator.allocate_sized().unwrap();
+            *subbuffer.write().unwrap() = uniform_data;
+
+            subbuffer
         };
 
         let scene_descriptor_set = PersistentDescriptorSet::new(
@@ -334,15 +302,16 @@ impl SceneRenderer {
         .unwrap();
 
         let uniform_subbuffer_camera = {
-            let uniform_data = vs::ty::Camera {
+            let uniform_data = vs::Camera {
                 view: camera.view().clone().into(),
                 proj: camera.proj().clone().into(),
                 position: camera.position.clone().into(),
             };
 
-            self.uniform_buffer_pool_camera
-                .from_data(uniform_data)
-                .unwrap()
+            let subbuffer = self.buffer_allocator.allocate_sized().unwrap();
+            *subbuffer.write().unwrap() = uniform_data;
+
+            subbuffer
         };
 
         let camera_descriptor_set = PersistentDescriptorSet::new(
@@ -372,14 +341,15 @@ impl SceneRenderer {
                 let model_matrix = transform.to_matrix();
                 let normal_model_matrix = model_matrix.try_inverse().unwrap().transpose();
 
-                let uniform_data = vs::ty::Entity {
+                let uniform_data = vs::Entity {
                     model: model_matrix.into(),
                     normalMatrix: normal_model_matrix.into(),
                 };
 
-                self.uniform_buffer_pool_entity
-                    .from_data(uniform_data)
-                    .unwrap()
+                let subbuffer = self.buffer_allocator.allocate_sized().unwrap();
+                *subbuffer.write().unwrap() = uniform_data;
+
+                subbuffer
             };
 
             // TODO: Don't create a new descriptor set every frame
@@ -404,11 +374,12 @@ impl SceneRenderer {
             for primitive in &model.primitives {
                 // descriptor set
                 let uniform_subbuffer_material = {
-                    let uniform_data = primitive.material.as_ref().into();
+                    let uniform_data: vs::Material = primitive.material.as_ref().into();
 
-                    self.uniform_buffer_pool_material
-                        .from_data(uniform_data)
-                        .unwrap()
+                    let subbuffer = self.buffer_allocator.allocate_sized().unwrap();
+                    *subbuffer.write().unwrap() = uniform_data;
+
+                    subbuffer
                 };
 
                 let texture = primitive
@@ -460,25 +431,31 @@ impl SceneRenderer {
     }
 }
 
-fn make_shader_point_light(point_light: &PointLight, transform: &Transform) -> vs::ty::PointLight {
-    vs::ty::PointLight {
-        position: transform.position.into(),
+fn make_shader_point_light(point_light: &PointLight, transform: &Transform) -> vs::PointLight {
+    vs::PointLight {
+        position: Padded::from(<[f32; 3]>::from(transform.position)), // TODO: fix weird syntax
         color: point_light.color.into(),
         range: point_light.range,
         intensity: point_light.intensity,
-        _dummy0: Default::default(),
-        _dummy1: Default::default(),
     }
 }
 
-impl From<&Material> for vs::ty::Material {
+fn default_shader_point_light() -> vs::PointLight {
+    vs::PointLight {
+        position: Default::default(),
+        color: [0.0, 0.0, 0.0],
+        range: 0.0,
+        intensity: 0.0,
+    }
+}
+
+impl From<&Material> for vs::Material {
     fn from(value: &Material) -> Self {
-        vs::ty::Material {
+        vs::Material {
             base_color: value.base_color.into(),
             roughness: value.roughness_factor,
-            metallic: value.metallic_factor,
+            metallic: Padded::from(value.metallic_factor),
             emissivity: value.emissivity.into(),
-            _dummy0: Default::default(),
         }
     }
 }
@@ -487,10 +464,6 @@ mod vs {
     vulkano_shaders::shader! {
         ty: "vertex",
         path: "assets/shaders/vert.glsl",
-        types_meta: {
-            use bytemuck::{Pod, Zeroable};
-            #[derive(Clone, Copy, Zeroable, Pod, Debug)]
-        }
     }
 }
 
@@ -498,9 +471,5 @@ mod fs {
     vulkano_shaders::shader! {
         ty: "fragment",
         path: "assets/shaders/frag.glsl",
-        types_meta: {
-            use bytemuck::{Pod, Zeroable};
-            #[derive(Clone, Copy, Zeroable, Pod, Debug)]
-        }
     }
 }
