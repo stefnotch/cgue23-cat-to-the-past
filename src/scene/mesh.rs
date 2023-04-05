@@ -1,29 +1,32 @@
 use crate::scene::bounding_box::BoundingBox;
-use bytemuck::{Pod, Zeroable};
 use nalgebra::{Vector2, Vector3};
 use std::f32::consts::PI;
 use std::sync::Arc;
-use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
-use vulkano::memory::allocator::MemoryAllocator;
+use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
+use vulkano::memory::allocator::{AllocationCreateInfo, MemoryAllocator, MemoryUsage};
+use vulkano::pipeline::graphics::vertex_input::Vertex;
 
 use super::loader::Asset;
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default, Zeroable, Pod)]
+#[derive(BufferContents, Vertex, Clone)]
 pub struct MeshVertex {
+    #[format(R32G32B32_SFLOAT)]
     pub(super) position: [f32; 3],
+
+    #[format(R32G32B32_SFLOAT)]
     pub(super) normal: [f32; 3],
+
+    #[format(R32G32_SFLOAT)]
     pub(super) uv: [f32; 2],
 }
-
-vulkano::impl_vertex!(MeshVertex, position, normal, uv);
 
 pub struct Mesh {
     pub vertices: Vec<MeshVertex>,
     pub indices: Vec<u32>,
 
-    pub vertex_buffer: Arc<CpuAccessibleBuffer<[MeshVertex]>>,
-    pub index_buffer: Arc<CpuAccessibleBuffer<[u32]>>,
+    pub vertex_buffer: Subbuffer<[MeshVertex]>,
+    pub index_buffer: Subbuffer<[u32]>,
 
     pub bounding_box: BoundingBox<Vector3<f32>>,
 }
@@ -36,7 +39,7 @@ impl Mesh {
         bounding_box: BoundingBox<Vector3<f32>>,
         allocator: &(impl MemoryAllocator + ?Sized),
     ) -> Arc<Self> {
-        let (vertex_buffer, index_buffer) = Mesh::setup_buffer(&vertices, &indices, allocator);
+        let (vertex_buffer, index_buffer) = Mesh::setup_buffers(&vertices, &indices, allocator);
 
         Arc::new(Self {
             vertices,
@@ -150,7 +153,7 @@ impl Mesh {
             })
             .collect();
 
-        let (vertex_buffer, index_buffer) = Mesh::setup_buffer(&vertices, &indices, allocator);
+        let (vertex_buffer, index_buffer) = Mesh::setup_buffers(&vertices, &indices, allocator);
 
         Arc::new(Mesh {
             vertices,
@@ -221,7 +224,7 @@ impl Mesh {
             }
         }
 
-        let (vertex_buffer, index_buffer) = Mesh::setup_buffer(&vertices, &indices, allocator);
+        let (vertex_buffer, index_buffer) = Mesh::setup_buffers(&vertices, &indices, allocator);
 
         Arc::new(Mesh {
             vertices,
@@ -236,32 +239,35 @@ impl Mesh {
         })
     }
 
-    fn setup_buffer(
+    fn setup_buffers(
         vertices: &[MeshVertex],
         indices: &[u32],
         allocator: &(impl MemoryAllocator + ?Sized),
-    ) -> (
-        Arc<CpuAccessibleBuffer<[MeshVertex]>>,
-        Arc<CpuAccessibleBuffer<[u32]>>,
-    ) {
-        let vertex_buffer = CpuAccessibleBuffer::from_iter(
+    ) -> (Subbuffer<[MeshVertex]>, Subbuffer<[u32]>) {
+        let vertex_buffer = Buffer::from_iter(
             allocator,
-            BufferUsage {
-                vertex_buffer: true,
+            BufferCreateInfo {
+                usage: BufferUsage::VERTEX_BUFFER,
                 ..Default::default()
             },
-            false,
+            AllocationCreateInfo {
+                usage: MemoryUsage::Upload,
+                ..Default::default()
+            },
             vertices.iter().cloned(),
         )
         .expect("could not upload vertex data to GPU");
 
-        let index_buffer = CpuAccessibleBuffer::from_iter(
+        let index_buffer = Buffer::from_iter(
             allocator,
-            BufferUsage {
-                index_buffer: true,
+            BufferCreateInfo {
+                usage: BufferUsage::INDEX_BUFFER,
                 ..Default::default()
             },
-            false,
+            AllocationCreateInfo {
+                usage: MemoryUsage::Upload,
+                ..Default::default()
+            },
             indices.iter().cloned(),
         )
         .expect("could not upload indices data to GPU");

@@ -89,6 +89,7 @@ pub(super) fn step_character_controllers(
         );
 
         character_controller.grounded = effective_movement.grounded;
+        character_controller.desired_movement = Vector3::zeros();
 
         for collision in &collisions {
             controller.solve_character_collision_impulses(

@@ -290,14 +290,10 @@ impl SwapchainContainer {
                     min_image_count: surface_capabilities.min_image_count,
                     image_format,
                     image_extent: window.inner_size().into(),
-                    image_usage: ImageUsage {
-                        color_attachment: true,
-                        // TODO: depth attachment needed?
-                        ..Default::default()
-                    },
+                    image_usage: ImageUsage::COLOR_ATTACHMENT,
                     composite_alpha: surface_capabilities
                         .supported_composite_alpha
-                        .iter()
+                        .into_iter()
                         .next()
                         .expect("could not fetch supported composite alpha"),
                     ..Default::default()
