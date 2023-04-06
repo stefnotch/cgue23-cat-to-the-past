@@ -53,7 +53,7 @@ impl Texture {
         context: &Context,
     ) -> Arc<Texture>
     where
-        [Px]: BufferContents,
+        Px: BufferContents,
         I: IntoIterator<Item = Px>,
         I::IntoIter: ExactSizeIterator,
     {

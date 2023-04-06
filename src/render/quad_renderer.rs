@@ -1,7 +1,6 @@
 use crate::render::context::Context;
-use bytemuck::{Pod, Zeroable};
 use std::sync::Arc;
-use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
+use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, RenderPassBeginInfo,
@@ -13,10 +12,9 @@ use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
 use vulkano::image::{AttachmentImage, SwapchainImage};
-use vulkano::impl_vertex;
-use vulkano::memory::allocator::StandardMemoryAllocator;
+use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
-use vulkano::pipeline::graphics::vertex_input::BuffersDefinition;
+use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
@@ -30,8 +28,8 @@ pub struct QuadRenderer {
 
     sampler: Arc<Sampler>,
     descriptor_sets: Vec<Arc<PersistentDescriptorSet>>,
-    index_buffer: Arc<CpuAccessibleBuffer<[u32]>>,
-    vertex_buffer: Arc<CpuAccessibleBuffer<[QuadVertex]>>,
+    index_buffer: Subbuffer<[u32]>,
+    vertex_buffer: Subbuffer<[QuadVertex]>,
 
     memory_allocator: Arc<StandardMemoryAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
@@ -49,24 +47,30 @@ impl QuadRenderer {
         descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     ) -> Self {
         let (vertices, indices) = quad_mesh();
-        let vertex_buffer = CpuAccessibleBuffer::from_iter(
+        let vertex_buffer = Buffer::from_iter(
             &memory_allocator,
-            BufferUsage {
-                vertex_buffer: true,
-                ..BufferUsage::empty()
+            BufferCreateInfo {
+                usage: BufferUsage::VERTEX_BUFFER,
+                ..Default::default()
             },
-            false,
+            AllocationCreateInfo {
+                usage: MemoryUsage::Upload,
+                ..Default::default()
+            },
             vertices,
         )
         .unwrap();
 
-        let index_buffer = CpuAccessibleBuffer::from_iter(
+        let index_buffer = Buffer::from_iter(
             &memory_allocator,
-            BufferUsage {
-                index_buffer: true,
-                ..BufferUsage::empty()
+            BufferCreateInfo {
+                usage: BufferUsage::INDEX_BUFFER,
+                ..Default::default()
             },
-            false,
+            AllocationCreateInfo {
+                usage: MemoryUsage::Upload,
+                ..Default::default()
+            },
             indices,
         )
         .unwrap();
@@ -92,7 +96,7 @@ impl QuadRenderer {
             let fragment_shader = fs::load(context.device()).unwrap();
 
             GraphicsPipeline::start()
-                .vertex_input_state(BuffersDefinition::new().vertex::<QuadVertex>())
+                .vertex_input_state(QuadVertex::per_vertex())
                 .vertex_shader(vertex_shader.entry_point("main").unwrap(), ())
                 .input_assembly_state(InputAssemblyState::new())
                 .fragment_shader(fragment_shader.entry_point("main").unwrap(), ())
@@ -251,14 +255,15 @@ impl QuadRenderer {
     }
 }
 
+#[derive(BufferContents, Vertex)]
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default, Zeroable, Pod)]
 pub struct QuadVertex {
+    #[format(R32G32_SFLOAT)]
     pub position: [f32; 2],
+
+    #[format(R32G32_SFLOAT)]
     pub uv: [f32; 2],
 }
-
-impl_vertex!(QuadVertex, position, uv);
 
 const fn quad_mesh() -> ([QuadVertex; 4], [u32; 6]) {
     let vertices = [
