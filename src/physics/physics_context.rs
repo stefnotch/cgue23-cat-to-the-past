@@ -115,9 +115,9 @@ impl PhysicsContext {
 
         // Update physics world and write back to ECS world
         schedule.add_system(step_physics_simulation.in_set(AppStage::UpdatePhysics));
-        schedule.add_system(step_character_controllers.in_set(AppStage::PostUpdate));
-        schedule.add_system(update_transform_system.in_set(AppStage::PostUpdate));
-        schedule.add_system(update_move_body_position_system.in_set(AppStage::PostUpdate));
+        schedule.add_system(step_character_controllers.in_set(AppStage::BeforeRender));
+        schedule.add_system(update_transform_system.in_set(AppStage::BeforeRender));
+        schedule.add_system(update_move_body_position_system.in_set(AppStage::BeforeRender));
 
         schedule.add_system(
             time_manager_track_rigid_body_type
