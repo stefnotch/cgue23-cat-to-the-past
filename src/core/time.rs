@@ -33,3 +33,7 @@ impl Time {
         self.delta_seconds = delta_time.as_secs_f64();
     }
 }
+
+pub fn update_time(mut time: ResMut<Time>) {
+    time.update();
+}
