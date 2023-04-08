@@ -4,7 +4,6 @@ use std::ops::{Add, Mul};
 
 #[derive(Component, Clone, Debug, PartialEq)]
 pub struct Transform {
-    //
     pub position: Point3<f32>,
     pub rotation: UnitQuaternion<f32>,
     pub scale: Vector3<f32>,
