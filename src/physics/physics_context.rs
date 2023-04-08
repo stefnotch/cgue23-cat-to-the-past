@@ -13,7 +13,7 @@ use rapier3d::control::KinematicCharacterController;
 use rapier3d::na::Vector3;
 use rapier3d::prelude::*;
 
-use super::physics_change::{RigidBodyTypeState, VelocityState};
+use super::physics_change::{RigidBodyTypeChange, VelocityChange};
 use super::player_physics::{
     apply_player_character_controller_changes, step_character_controllers,
     PlayerCharacterController,
@@ -270,7 +270,10 @@ fn time_manager_track_rigid_body_type(
     query: Query<(&TimeTracked, &RigidBody), Changed<RigidBody>>,
 ) {
     for (time_tracked, rigidbody) in &query {
-        time_manager.add_state(time_tracked, RigidBodyTypeState::new(rigidbody.0));
+        time_manager.add_command(Box::new(RigidBodyTypeChange::new(
+            time_tracked,
+            rigidbody.0,
+        )));
     }
 }
 
@@ -285,9 +288,10 @@ fn time_manager_track_rigid_body_velocity(
             .get(rigid_body_handle.handle)
             .unwrap();
 
-        time_manager.add_state(
+        time_manager.add_command(Box::new(VelocityChange::new(
             time_tracked,
-            VelocityState::new(rigidbody.linvel().clone(), rigidbody.angvel().clone()),
-        );
+            rigidbody.linvel().clone(),
+            rigidbody.angvel().clone(),
+        )));
     }
 }
