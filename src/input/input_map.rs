@@ -47,6 +47,14 @@ impl InputMap {
     pub fn is_pressed(&self, key: VirtualKeyCode) -> bool {
         self.state[key as usize]
     }
+
+    pub fn is_mouse_pressed(&self, button: MouseButton) -> bool {
+        match button {
+            MouseButton::Left => self.mouse_state[0],
+            MouseButton::Right => self.mouse_state[1],
+            _ => false,
+        }
+    }
 }
 
 pub fn handle_keyboard_input(

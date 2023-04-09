@@ -4,13 +4,16 @@ pub mod level_time;
 use std::{collections::VecDeque, time::Duration};
 
 use bevy_ecs::{
-    prelude::{Component, EventReader},
+    prelude::{Component, Entity, EventReader},
     query::Changed,
-    system::{Query, Res, ResMut, Resource},
+    system::{Commands, Query, Res, ResMut, Resource},
 };
 use winit::event::{ElementState, MouseButton};
 
-use crate::{input::events::MouseInput, scene::transform::Transform};
+use crate::{
+    input::{events::MouseInput, input_map::InputMap},
+    scene::transform::Transform,
+};
 
 use self::{game_change::GameChange, level_time::LevelTime};
 
@@ -41,6 +44,7 @@ pub struct TimeManager {
     ///   this is especially useful when it's always possible to restart the level simply by walking back to the beginning
     commands: VecDeque<GameChanges>,
     current_frame_commands: GameChanges,
+    will_rewind_next_frame: bool,
     is_rewinding: bool,
     level_time: LevelTime,
 }
@@ -63,16 +67,27 @@ impl TimeManager {
                 timestamp: LevelTime::zero(),
                 commands: Vec::new(),
             },
+            will_rewind_next_frame: false,
             is_rewinding: false,
             level_time: LevelTime::zero(),
         }
     }
 
-    pub fn start_frame(&mut self, is_rewinding: bool, delta: Duration) {
-        if !is_rewinding {
+    pub fn start_frame(&mut self, delta: Duration) {
+        if !self.will_rewind_next_frame {
             self.level_time += delta;
+            // If we were rewinding in the previous frame
+            if self.is_rewinding {
+                // Jump to the closest place where you actually have all the required data
+                // We gotta be careful with the compression here, wouldn't want funny glitches
+            }
+        } else {
+            self.level_time = (self.level_time - delta).max(LevelTime::zero());
+            // Apply undo stack
+            self.apply_commands();
+            // Apply interpolated time
         }
-        self.is_rewinding = is_rewinding;
+        self.is_rewinding = self.will_rewind_next_frame;
         self.current_frame_commands.timestamp = self.level_time.clone();
     }
 
@@ -115,6 +130,29 @@ impl TimeManager {
         self.is_rewinding
     }
 
+    fn apply_commands(&mut self) {
+        loop {
+            if self.commands.len() < 3 {
+                // If there's only one element, we can't really rewind time any further
+                // If there are only two elements, we don't have to apply any commands, instead we interpolate between them
+                return;
+            }
+
+            let _top = self.commands.get(self.commands.len() - 1).unwrap();
+            let previous = self.commands.get(self.commands.len() - 2).unwrap();
+
+            // If we're further back in the past
+            if self.level_time < previous.timestamp {
+                // We can pop the top and apply it
+                let top = self.commands.pop_back().unwrap();
+                //top.apply()
+            } else {
+                // Nothing to do
+                break;
+            }
+        }
+    }
+
     // TODO:
     // - Spawn Entity (Commands)
     // - Delete Entity (Commands)
@@ -140,6 +178,23 @@ pub fn time_manager_track_transform(
             transform.clone(),
         )));
     }
+}
+
+pub fn time_manager_start_frame(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut time_manager: ResMut<TimeManager>,
+    query: Query<(Entity, &TimeTracked)>,
+) {
+    time_manager.start_frame(time.delta());
+}
+
+pub fn time_manager_end_frame(mut time_manager: ResMut<TimeManager>) {
+    time_manager.end_frame();
+}
+
+pub fn time_manager_input(mut time_manager: ResMut<TimeManager>, mouse_input: Res<InputMap>) {
+    time_manager.will_rewind_next_frame = mouse_input.is_mouse_pressed(MouseButton::Right);
 }
 
 struct TransformChange {
