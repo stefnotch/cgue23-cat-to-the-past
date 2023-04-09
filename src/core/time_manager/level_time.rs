@@ -32,6 +32,16 @@ impl LevelTime {
         let v = value.elapsed.as_secs_f64();
         ((v - a) / (b - a)) as f32
     }
+
+    pub fn sub_or_zero(&self, delta: Duration) -> LevelTime {
+        if self.elapsed > delta {
+            LevelTime {
+                elapsed: self.elapsed - delta,
+            }
+        } else {
+            LevelTime::zero()
+        }
+    }
 }
 
 impl Add<Duration> for LevelTime {
@@ -47,21 +57,5 @@ impl Add<Duration> for LevelTime {
 impl AddAssign<Duration> for LevelTime {
     fn add_assign(&mut self, other: Duration) {
         self.elapsed += other;
-    }
-}
-
-impl Sub<Duration> for LevelTime {
-    type Output = Self;
-
-    fn sub(self, other: Duration) -> LevelTime {
-        LevelTime {
-            elapsed: self.elapsed - other,
-        }
-    }
-}
-
-impl SubAssign<Duration> for LevelTime {
-    fn sub_assign(&mut self, other: Duration) {
-        self.elapsed -= other;
     }
 }

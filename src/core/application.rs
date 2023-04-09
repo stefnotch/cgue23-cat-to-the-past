@@ -21,6 +21,10 @@ use winit::window::Fullscreen::Exclusive;
 use winit::window::{CursorGrabMode, Icon, WindowBuilder};
 
 use super::time::update_time;
+use super::time_manager::game_change::GameChangeHistory;
+use super::time_manager::transform_change::{
+    time_manager_rewind_transform, time_manager_track_transform, TransformChange,
+};
 use super::time_manager::TimeManager;
 
 pub struct AppConfig {
@@ -182,6 +186,14 @@ impl Application {
 
         let time_manager = TimeManager::new();
         time_manager.setup_systems(world, schedule);
+
+        let transform_history = GameChangeHistory::<TransformChange>::new();
+        transform_history.setup_systems(
+            world,
+            schedule,
+            time_manager_track_transform,
+            time_manager_rewind_transform,
+        );
 
         // TODO: Move that code to the input.rs file?
         let input_map = InputMap::new();

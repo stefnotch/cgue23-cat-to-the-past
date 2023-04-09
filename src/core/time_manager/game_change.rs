@@ -2,15 +2,12 @@ use std::collections::VecDeque;
 
 use bevy_ecs::{
     prelude::{not, EventReader},
-    schedule::IntoSystemConfig,
+    schedule::{IntoSystemConfig, Schedule},
     system::{ResMut, Resource},
-    world::EntityMut,
+    world::World,
 };
 
-use crate::core::{
-    application::{AppStage, ApplicationBuilder},
-    events::NextLevel,
-};
+use crate::core::{application::AppStage, events::NextLevel};
 
 use super::{is_rewinding, level_time::LevelTime, TimeManager};
 
@@ -22,12 +19,12 @@ where
 
 /// All game changes in one frame
 /// Multiple commands, because we have multiple entities
-pub(super) struct GameChanges<T>
+pub struct GameChanges<T>
 where
     T: GameChange,
 {
     timestamp: LevelTime,
-    commands: Vec<T>,
+    pub commands: Vec<T>,
 }
 
 /// To limit the size of this, we could either
@@ -43,11 +40,6 @@ where
     history: VecDeque<GameChanges<T>>,
 }
 
-pub(super) enum StateLookup {
-    Nearest(LevelTime),
-    Interpolated(LevelTime),
-}
-
 impl<T> GameChangeHistory<T>
 where
     T: GameChange,
@@ -58,7 +50,7 @@ where
         }
     }
 
-    pub fn add_command(&mut self, timestamp: LevelTime, command: T) {
+    pub(super) fn add_command(&mut self, timestamp: LevelTime, command: T) {
         if let Some(last) = self.history.back_mut() {
             if last.timestamp == timestamp {
                 last.commands.push(command);
@@ -105,6 +97,10 @@ where
         &self,
         time_manager: &TimeManager,
     ) -> Option<(&GameChanges<T>, &GameChanges<T>, f32)> {
+        if !time_manager.is_interpolating {
+            return None;
+        }
+
         if self.history.len() < 2 {
             return None;
         }
@@ -123,27 +119,32 @@ where
     }
 }
 
-impl ApplicationBuilder {
-    pub fn with_game_change_history<T, TrackerParams, RewinderParams>(
+impl<T> GameChangeHistory<T>
+where
+    T: GameChange + 'static,
+{
+    pub fn setup_systems<TrackerParams, RewinderParams>(
         self,
+        world: &mut World,
+        schedule: &mut Schedule,
         tracker_system: impl IntoSystemConfig<TrackerParams>,
         rewinder_system: impl IntoSystemConfig<RewinderParams>,
-    ) -> Self
-    where
+    ) where
         T: GameChange,
     {
-        self.with_resource(GameChangeHistory::<T>::new())
-            .with_system(
-                tracker_system
-                    .in_set(AppStage::Render)
-                    .run_if(not(is_rewinding)),
-            )
-            .with_system(
-                rewinder_system
-                    .in_set(AppStage::EventUpdate)
-                    .run_if(is_rewinding),
-            )
-            .with_system(clear_on_next_level::<T>.in_set(AppStage::StartFrame))
+        world.insert_resource(self);
+
+        schedule.add_system(
+            tracker_system
+                .in_set(AppStage::Render)
+                .run_if(not(is_rewinding)),
+        );
+        schedule.add_system(
+            rewinder_system
+                .in_set(AppStage::EventUpdate)
+                .run_if(is_rewinding),
+        );
+        schedule.add_system(clear_on_next_level::<T>.in_set(AppStage::StartFrame));
     }
 }
 
