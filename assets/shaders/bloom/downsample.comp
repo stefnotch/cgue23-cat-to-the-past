@@ -96,5 +96,7 @@ void main() {
         downsample = soft_threshold(downsample, pass.threshold, pass.knee);
     }
 
+    downsample = max(downsample, 0.0001f);
+
     imageStore(outputImage, texel_output, vec4(downsample, 1.0));
 }

@@ -7,6 +7,7 @@ use rapier3d::na::Vector3;
 
 use cat_to_the_past::core::application::{AppConfig, ApplicationBuilder};
 use cat_to_the_past::player::{PlayerControllerSettings, PlayerSpawnSettings};
+use cat_to_the_past::scene::light::{Light, PointLight};
 use cat_to_the_past::scene::material::Material;
 use cat_to_the_past::scene::mesh::Mesh;
 use cat_to_the_past::scene::model::{Model, Primitive};
@@ -19,7 +20,21 @@ fn spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
 
     let sphere = Mesh::sphere(64, 32, 1.0, &memory_allocator);
 
-    // TODO: add missing lights
+    let mut spawn_light = |position: Point3<f32>| {
+        commands.spawn((
+            Light::Point(PointLight {
+                color: Vector3::new(1.0, 1.0, 1.0),
+                range: 1000.0,
+                intensity: 1000.0,
+            }),
+            TransformBuilder::new().position(position).build(),
+        ));
+    };
+
+    spawn_light([-10.0, 10.0, 10.0].into());
+    spawn_light([10.0, 10.0, 10.0].into());
+    spawn_light([-10.0, -10.0, 10.0].into());
+    spawn_light([10.0, -10.0, 10.0].into());
 
     let spacing: f32 = 1.25;
 
@@ -57,8 +72,6 @@ fn spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
 }
 
 fn main() {
-    std::env::set_var("RUST_BACKTRACE", "1");
-
     let config = AppConfig {
         resolution: (1280, 720),
         fullscreen: false,

@@ -10,8 +10,7 @@ use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::image::view::{ImageView, ImageViewCreateInfo, ImageViewCreationError};
 use vulkano::image::{
-    AttachmentImage, ImageAccess, ImageCreateFlags, ImageSubresourceRange, ImageUsage,
-    ImageViewAbstract,
+    AttachmentImage, ImageAccess, ImageSubresourceRange, ImageUsage, ImageViewAbstract,
 };
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::{ComputePipeline, Pipeline, PipelineBindPoint};

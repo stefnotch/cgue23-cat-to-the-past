@@ -4,16 +4,13 @@ pub mod level_time;
 use std::{collections::VecDeque, time::Duration};
 
 use bevy_ecs::{
-    prelude::{Component, Entity, EventReader},
+    prelude::{Component, Entity},
     query::Changed,
     system::{Commands, Query, Res, ResMut, Resource},
 };
-use winit::event::{ElementState, MouseButton};
+use winit::event::MouseButton;
 
-use crate::{
-    input::{events::MouseInput, input_map::InputMap},
-    scene::transform::Transform,
-};
+use crate::{input::input_map::InputMap, scene::transform::Transform};
 
 use self::{game_change::GameChange, level_time::LevelTime};
 

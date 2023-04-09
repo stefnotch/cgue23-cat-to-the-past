@@ -253,14 +253,6 @@ impl SwapchainContainer {
                 .surface_capabilities(&surface, SurfaceInfo::default())
                 .expect("could not fetch surface capabilities");
 
-            println!(
-                "{:#?}",
-                device
-                    .physical_device()
-                    .surface_formats(&surface, SurfaceInfo::default())
-                    .expect("could not fetch surface formats")
-            );
-
             let image_format = Some(
                 device
                     .physical_device()

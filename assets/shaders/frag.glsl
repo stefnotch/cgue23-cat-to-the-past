@@ -116,7 +116,7 @@ vec3 pbr_common(vec3 lightIntensity, vec3 l, vec3 n, vec3 v, vec3 albedo, vec3 f
 vec3 pbr(PointLight pointLight, vec3 n, vec3 v, vec3 worldPos, vec3 albedo, vec3 f0) {
     vec3 positionToLight = pointLight.position - worldPos;
     vec3 l = normalize(positionToLight);
-    float dSquared = dot(positionToLight, positionToLight);
+    float dSquared = max(dot(positionToLight, positionToLight), 0.000001);
 
     float attenuation = 1.0 / dSquared;
     vec3 lightIntensity = pointLight.color * pointLight.intensity * attenuation;
