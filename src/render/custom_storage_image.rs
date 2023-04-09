@@ -8,12 +8,12 @@
 // according to those terms.
 
 use std::hash::{Hash, Hasher};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use vulkano::device::{Device, DeviceOwned};
 use vulkano::format::Format;
 use vulkano::image::sys::{Image, ImageCreateInfo, RawImage};
 use vulkano::image::traits::ImageContent;
-use vulkano::image::view::ImageView;
 use vulkano::image::{
     ImageAccess, ImageCreateFlags, ImageDescriptorLayouts, ImageDimensions, ImageError, ImageInner,
     ImageLayout, ImageUsage,
@@ -24,51 +24,34 @@ use vulkano::memory::allocator::{
 use vulkano::memory::DedicatedAllocation;
 use vulkano::sync::Sharing;
 
-/// General-purpose image in device memory. Can be used for any usage, but will be slower than a
-/// specialized image.
+/// Similar to vulkano's StorageImage but with multi mip-level support
 #[derive(Debug)]
-pub struct StorageImage {
+pub struct CustomStorageImage {
     inner: Arc<Image>,
+
+    // If true, then the image is in the layout `General`. If false, then it
+    // is still `Undefined`.
+    layout_initialized: AtomicBool,
 }
 
-impl StorageImage {
-    /// Creates a new image with the given dimensions and format.
-    pub fn new(
+impl CustomStorageImage {
+    /// Builds an uninitialized storage image.
+    ///
+    /// Returns the uninitialized image
+    pub fn uninitialized(
         allocator: &(impl MemoryAllocator + ?Sized),
-        dimensions: ImageDimensions,
+        dimensions: [u32; 2],
         format: Format,
-    ) -> Result<Arc<StorageImage>, ImageError> {
-        let aspects = format.aspects();
-        let is_depth = aspects.depth || aspects.stencil;
-
-        if format.compression().is_some() {
-            panic!() // TODO: message?
-        }
-
-        let usage = ImageUsage {
-            transfer_src: true,
-            transfer_dst: true,
-            sampled: true,
-            storage: true,
-            color_attachment: !is_depth,
-            depth_stencil_attachment: is_depth,
-            input_attachment: true,
-            ..ImageUsage::empty()
-        };
-        let flags = ImageCreateFlags::empty();
-
-        StorageImage::with_usage(allocator, dimensions, format, usage, flags)
-    }
-
-    /// Same as `new`, but allows specifying the usage.
-    pub fn with_usage(
-        allocator: &(impl MemoryAllocator + ?Sized),
-        dimensions: ImageDimensions,
-        format: Format,
+        num_mip_levels: u32,
         usage: ImageUsage,
-        flags: ImageCreateFlags,
-    ) -> Result<Arc<StorageImage>, ImageError> {
-        assert!(!flags.disjoint); // TODO: adjust the code below to make this safe
+    ) -> Result<Arc<CustomStorageImage>, ImageError> {
+        let dimensions = ImageDimensions::Dim2d {
+            width: dimensions[0],
+            height: dimensions[1],
+            array_layers: 1,
+        };
+
+        let flags = ImageCreateFlags::empty();
 
         let raw_image = RawImage::new(
             allocator.device().clone(),
@@ -76,75 +59,58 @@ impl StorageImage {
                 flags,
                 dimensions,
                 format: Some(format),
+                mip_levels: num_mip_levels,
                 usage,
-                sharing: Sharing::Exclusive,
-                mip_levels: 2,
+                sharing: Sharing::Exclusive, // Note: assuming exclusive sharing
                 ..Default::default()
             },
         )?;
         let requirements = raw_image.memory_requirements()[0];
-        let create_info = AllocationCreateInfo {
-            requirements,
-            allocation_type: AllocationType::NonLinear,
-            usage: MemoryUsage::GpuOnly,
-            allocate_preference: MemoryAllocatePreference::Unknown,
-            dedicated_allocation: Some(DedicatedAllocation::Image(&raw_image)),
-            ..Default::default()
+        let res = unsafe {
+            allocator.allocate_unchecked(
+                requirements,
+                AllocationType::NonLinear,
+                AllocationCreateInfo {
+                    usage: MemoryUsage::DeviceOnly,
+                    allocate_preference: MemoryAllocatePreference::Unknown,
+                    ..Default::default()
+                },
+                Some(DedicatedAllocation::Image(&raw_image)),
+            )
         };
 
-        match unsafe { allocator.allocate_unchecked(create_info) } {
+        match res {
             Ok(alloc) => {
-                debug_assert!(alloc.offset() % requirements.alignment == 0);
-                debug_assert!(alloc.size() == requirements.size);
-                let inner = Arc::new(unsafe {
-                    raw_image
-                        .bind_memory_unchecked([alloc])
-                        .map_err(|(err, _, _)| err)?
+                debug_assert!(
+                    alloc.offset() & (requirements.layout.alignment().as_devicesize() - 1) == 0
+                );
+                debug_assert!(alloc.size() == requirements.layout.size());
+
+                let inner = Arc::new(
+                    unsafe { raw_image.bind_memory_unchecked([alloc]) }
+                        .map_err(|(err, _, _)| err)?,
+                );
+
+                let image = Arc::new(CustomStorageImage {
+                    inner,
+                    layout_initialized: AtomicBool::new(false),
                 });
 
-                Ok(Arc::new(StorageImage { inner }))
+                Ok(image)
             }
             Err(err) => Err(err.into()),
         }
     }
-
-    /// Allows the creation of a simple 2D general purpose image view from `StorageImage`.
-    #[inline]
-    pub fn general_purpose_image_view(
-        allocator: &(impl MemoryAllocator + ?Sized),
-        size: [u32; 2],
-        format: Format,
-        usage: ImageUsage,
-    ) -> Result<Arc<ImageView<StorageImage>>, ImageError> {
-        let dims = ImageDimensions::Dim2d {
-            width: size[0],
-            height: size[1],
-            array_layers: 1,
-        };
-        let flags = ImageCreateFlags::empty();
-        let image_result = StorageImage::with_usage(allocator, dims, format, usage, flags);
-
-        match image_result {
-            Ok(image) => {
-                let image_view = ImageView::new_default(image);
-                match image_view {
-                    Ok(view) => Ok(view),
-                    Err(e) => Err(ImageError::DirectImageViewCreationFailed(e)),
-                }
-            }
-            Err(e) => Err(e),
-        }
-    }
 }
 
-unsafe impl DeviceOwned for StorageImage {
+unsafe impl DeviceOwned for CustomStorageImage {
     #[inline]
     fn device(&self) -> &Arc<Device> {
         self.inner.device()
     }
 }
 
-unsafe impl ImageAccess for StorageImage {
+unsafe impl ImageAccess for CustomStorageImage {
     #[inline]
     fn inner(&self) -> ImageInner<'_> {
         ImageInner {
@@ -154,6 +120,16 @@ unsafe impl ImageAccess for StorageImage {
             first_mipmap_level: 0,
             num_mipmap_levels: self.inner.mip_levels(),
         }
+    }
+
+    #[inline]
+    unsafe fn layout_initialized(&self) {
+        self.layout_initialized.store(true, Ordering::Relaxed);
+    }
+
+    #[inline]
+    fn is_layout_initialized(&self) -> bool {
+        self.layout_initialized.load(Ordering::Relaxed)
     }
 
     #[inline]
@@ -177,22 +153,22 @@ unsafe impl ImageAccess for StorageImage {
     }
 }
 
-unsafe impl<P> ImageContent<P> for StorageImage {
+unsafe impl<P> ImageContent<P> for CustomStorageImage {
     fn matches_format(&self) -> bool {
         true // FIXME:
     }
 }
 
-impl PartialEq for StorageImage {
+impl PartialEq for CustomStorageImage {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.inner() == other.inner()
     }
 }
 
-impl Eq for StorageImage {}
+impl Eq for CustomStorageImage {}
 
-impl Hash for StorageImage {
+impl Hash for CustomStorageImage {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.inner().hash(state);
     }
