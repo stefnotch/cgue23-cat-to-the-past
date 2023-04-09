@@ -9,7 +9,6 @@ use bevy_ecs::prelude::{
 };
 use bevy_ecs::query::{Changed, Without};
 use nalgebra::{Point3, UnitQuaternion};
-use rapier3d::control::KinematicCharacterController;
 use rapier3d::na::Vector3;
 use rapier3d::prelude::*;
 

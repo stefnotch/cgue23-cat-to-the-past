@@ -12,7 +12,7 @@ use vulkano::descriptor_set::layout::DescriptorSetLayout;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
-use vulkano::image::{AttachmentImage, SwapchainImage};
+use vulkano::image::SwapchainImage;
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::vertex_input::Vertex;
@@ -32,7 +32,6 @@ pub struct QuadRenderer {
     index_buffer: Subbuffer<[u32]>,
     vertex_buffer: Subbuffer<[QuadVertex]>,
 
-    memory_allocator: Arc<StandardMemoryAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
 }
@@ -140,7 +139,6 @@ impl QuadRenderer {
             index_buffer,
             vertex_buffer,
 
-            memory_allocator,
             command_buffer_allocator,
             descriptor_set_allocator,
         }
