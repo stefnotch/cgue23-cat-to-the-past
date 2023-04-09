@@ -1,25 +1,57 @@
+use std::collections::HashMap;
+
 use bevy_ecs::{
     query::Changed,
-    system::{Query, ResMut},
+    system::{Query, Res, ResMut},
 };
 
 use crate::scene::transform::Transform;
 
-use super::{game_change::GameChange, TimeManager, TimeTracked};
+use super::{
+    game_change::{GameChange, GameChangeHistory},
+    TimeManager, TimeTracked,
+};
+
+// TODO: Am not sure if this is the best place for this code.
 
 pub fn time_manager_track_transform(
     mut time_manager: ResMut<TimeManager>,
+    mut history: ResMut<GameChangeHistory<TransformChange>>,
     query: Query<(&TimeTracked, &Transform), Changed<Transform>>,
 ) {
     for (time_tracked, transform) in &query {
-        time_manager.add_command(Box::new(TransformChange::new(
-            time_tracked,
-            transform.clone(),
-        )));
+        time_manager.add_command(
+            TransformChange::new(time_tracked, transform.clone()),
+            &mut history,
+        );
     }
 }
 
-struct TransformChange {
+pub fn time_manager_rewind_transform(
+    time_manager: Res<TimeManager>,
+    mut history: ResMut<GameChangeHistory<TransformChange>>,
+    mut query: Query<(&TimeTracked, &mut Transform)>,
+) {
+    let mut entities: HashMap<_, _> = query
+        .iter_mut()
+        .map(|(time_tracked, transform)| (time_tracked.id, transform))
+        .collect();
+
+    let commands = history.get_commands_to_apply(&time_manager);
+    for command_collection in commands {
+        for command in command_collection.commands {
+            if let Some(v) = entities.get_mut(&command.id) {
+                (v.as_mut()).clone_from(&command.new_transform);
+            }
+        }
+    }
+
+    if let Some(interpolation) = history.get_commands_to_interpolate(&time_manager) {
+        // TODO: Interpolation logic
+    }
+}
+
+pub struct TransformChange {
     id: uuid::Uuid,
     new_transform: Transform,
 }

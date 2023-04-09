@@ -64,13 +64,24 @@ impl TimeManager {
 
     pub fn start_frame(&mut self, delta: Duration) {
         if !self.will_rewind_next_frame {
-            self.level_time += delta;
             // If we were rewinding in the previous frame
+            if self.is_rewinding && self.is_interpolating {
+                // Keep level time unchanged and stop interpolating
+
+                self.is_rewinding = true;
+                self.is_interpolating = false;
+            } else {
+                // Otherwise we can finally stop rewinding
+                self.is_rewinding = false;
+                self.is_interpolating = false;
+            }
         } else {
-            self.level_time = (self.level_time - delta).max(LevelTime::zero());
+            // Rewinding
+            self.level_time = self.level_time.sub_or_zero(delta);
+            self.is_rewinding = true;
+            self.is_interpolating = true;
         }
-        self.is_rewinding = self.will_rewind_next_frame;
-        self.is_interpolating = ..;
+
         self.current_frame_timestamp = Some(self.level_time.clone());
     }
 
@@ -78,7 +89,7 @@ impl TimeManager {
         self.current_frame_timestamp = None;
     }
 
-    pub fn add_command<T>(&mut self, command: T, world: &mut World)
+    pub fn add_command<T>(&mut self, command: T, history: &mut GameChangeHistory<T>)
     where
         T: GameChange,
     {
@@ -86,7 +97,6 @@ impl TimeManager {
         let timestamp = self
             .current_frame_timestamp
             .expect("Cannot add commands outside of a frame");
-        let mut history = world.get_resource_mut::<GameChangeHistory<T>>().unwrap();
         history.add_command(timestamp, command);
     }
 
@@ -100,6 +110,10 @@ impl TimeManager {
 
     pub fn is_rewinding(&self) -> bool {
         self.is_rewinding
+    }
+
+    pub fn is_interpolating(&self) -> bool {
+        self.is_interpolating
     }
 
     // TODO:
