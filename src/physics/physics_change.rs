@@ -66,6 +66,7 @@ pub(super) fn time_manager_rewind_rigid_body_velocity(
     mut history: ResMut<GameChangeHistory<VelocityChange>>,
     query: Query<(&TimeTracked, &RapierRigidBodyHandle)>,
 ) {
+    // TODO: Make kinematic?
     let entities: HashMap<_, _> = query
         .into_iter()
         .map(|(time_tracked, handle)| (time_tracked.id(), handle))
@@ -125,6 +126,8 @@ pub(super) fn time_manager_rewind_rigid_body_type(
     mut history: ResMut<GameChangeHistory<RigidBodyTypeChange>>,
     query: Query<(&TimeTracked, &RapierRigidBodyHandle)>,
 ) {
+    // TODO: Make kinematic?
+
     let entities: HashMap<_, _> = query
         .into_iter()
         .map(|(time_tracked, handle)| (time_tracked.id(), handle))
