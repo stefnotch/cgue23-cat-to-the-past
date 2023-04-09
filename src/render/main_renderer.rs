@@ -78,8 +78,6 @@ impl Renderer {
 
         let bloom_renderer = BloomRenderer::new(
             context,
-            dimensions,
-            swapchain_image_count,
             scene_renderer.output_images().clone(),
             memory_allocator.clone(),
             command_buffer_allocator.clone(),
@@ -88,7 +86,7 @@ impl Renderer {
 
         let quad_renderer = QuadRenderer::new(
             context,
-            scene_renderer.output_images(),
+            bloom_renderer.output_images(),
             &swapchain.images,
             swapchain.swapchain.image_format(),
             memory_allocator.clone(),
@@ -159,10 +157,10 @@ pub fn render(
         renderer.scene_renderer.resize(&renderer.swapchain.images);
         renderer
             .bloom_renderer
-            .resize(renderer.scene_renderer.output_images());
+            .resize(renderer.scene_renderer.output_images().clone());
         renderer.quad_renderer.resize(
             &renderer.swapchain.images,
-            renderer.scene_renderer.output_images(),
+            renderer.bloom_renderer.output_images(),
         );
 
         renderer.recreate_swapchain = false;

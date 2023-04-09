@@ -148,5 +148,5 @@ void main() {
 
     vec3 color = Lo + ambient;
 
-    f_color = vec4(color, 1.0);
+    f_color = vec4(color + material.emissivity, 1.0);
 }
