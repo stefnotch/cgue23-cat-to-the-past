@@ -1,4 +1,5 @@
 use crate::render::context::Context;
+use crate::render::custom_storage_image::CustomStorageImage;
 use std::sync::Arc;
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -39,7 +40,7 @@ pub struct QuadRenderer {
 impl QuadRenderer {
     pub fn new(
         context: &Context,
-        input_images: &[Arc<ImageView<AttachmentImage>>],
+        input_images: &[Arc<ImageView<CustomStorageImage>>],
         output_images: &[Arc<ImageView<SwapchainImage>>],
         final_output_format: Format,
         memory_allocator: Arc<StandardMemoryAllocator>,
@@ -148,7 +149,7 @@ impl QuadRenderer {
     pub fn resize(
         &mut self,
         output_images: &[Arc<ImageView<SwapchainImage>>],
-        input_images: &[Arc<ImageView<AttachmentImage>>],
+        input_images: &[Arc<ImageView<CustomStorageImage>>],
     ) {
         self.framebuffers = Self::create_framebuffers(self.render_pass.clone(), output_images);
 
@@ -182,7 +183,7 @@ impl QuadRenderer {
 
     fn create_descriptor_sets(
         layout: &Arc<DescriptorSetLayout>,
-        images: &[Arc<ImageView<AttachmentImage>>],
+        images: &[Arc<ImageView<CustomStorageImage>>],
         sampler: Arc<Sampler>,
         descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     ) -> Vec<Arc<PersistentDescriptorSet>> {
