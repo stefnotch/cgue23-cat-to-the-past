@@ -1,4 +1,5 @@
 use crate::core::camera::Camera;
+use crate::render::bloom_renderer::BloomRenderer;
 use crate::render::context::Context;
 use crate::render::quad_renderer::QuadRenderer;
 use crate::render::scene_renderer::SceneRenderer;
@@ -30,6 +31,7 @@ pub struct Renderer {
     previous_frame_end: Option<Box<dyn GpuFuture>>,
     swapchain: SwapchainContainer,
     scene_renderer: SceneRenderer,
+    bloom_renderer: BloomRenderer,
     quad_renderer: QuadRenderer,
     viewport: Viewport,
 }
@@ -74,9 +76,17 @@ impl Renderer {
             descriptor_set_allocator.clone(),
         );
 
+        let bloom_renderer = BloomRenderer::new(
+            context,
+            scene_renderer.output_images().clone(),
+            memory_allocator.clone(),
+            command_buffer_allocator.clone(),
+            descriptor_set_allocator.clone(),
+        );
+
         let quad_renderer = QuadRenderer::new(
             context,
-            scene_renderer.output_images(),
+            bloom_renderer.output_images(),
             &swapchain.images,
             swapchain.swapchain.image_format(),
             memory_allocator.clone(),
@@ -89,6 +99,7 @@ impl Renderer {
             previous_frame_end,
             swapchain,
             scene_renderer,
+            bloom_renderer,
             quad_renderer,
             viewport,
         }
@@ -144,9 +155,12 @@ pub fn render(
         // https://doc.rust-lang.org/nomicon/borrow-splitting.html
         let renderer = renderer.as_mut();
         renderer.scene_renderer.resize(&renderer.swapchain.images);
+        renderer
+            .bloom_renderer
+            .resize(renderer.scene_renderer.output_images().clone());
         renderer.quad_renderer.resize(
             &renderer.swapchain.images,
-            renderer.scene_renderer.output_images(),
+            renderer.bloom_renderer.output_images(),
         );
 
         renderer.recreate_swapchain = false;
@@ -194,6 +208,10 @@ pub fn render(
         image_index,
         &renderer.viewport,
     );
+
+    let future = renderer
+        .bloom_renderer
+        .render(&context, future, image_index);
 
     let future = renderer
         .quad_renderer
