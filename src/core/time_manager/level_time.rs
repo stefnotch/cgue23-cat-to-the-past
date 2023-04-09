@@ -1,9 +1,9 @@
 use std::{
-    ops::{Add, AddAssign},
+    ops::{Add, AddAssign, Sub, SubAssign},
     time::Duration,
 };
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LevelTime {
     elapsed: Duration,
 }
@@ -32,5 +32,21 @@ impl Add<Duration> for LevelTime {
 impl AddAssign<Duration> for LevelTime {
     fn add_assign(&mut self, other: Duration) {
         self.elapsed += other;
+    }
+}
+
+impl Sub<Duration> for LevelTime {
+    type Output = Self;
+
+    fn sub(self, other: Duration) -> LevelTime {
+        LevelTime {
+            elapsed: self.elapsed - other,
+        }
+    }
+}
+
+impl SubAssign<Duration> for LevelTime {
+    fn sub_assign(&mut self, other: Duration) {
+        self.elapsed -= other;
     }
 }

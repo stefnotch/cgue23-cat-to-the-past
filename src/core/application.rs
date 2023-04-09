@@ -14,14 +14,17 @@ use bevy_ecs::schedule::ExecutorKind;
 use nalgebra::{Point3, UnitQuaternion};
 use winit::dpi::{LogicalSize, PhysicalSize};
 use winit::event::{
-    DeviceEvent, ElementState, Event, KeyboardInput as KeyboardInputWinit, VirtualKeyCode,
-    WindowEvent,
+    DeviceEvent, Event, KeyboardInput as KeyboardInputWinit, VirtualKeyCode, WindowEvent,
 };
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Fullscreen::Exclusive;
-use winit::window::{CursorGrabMode, WindowBuilder, Icon};
+use winit::window::{CursorGrabMode, Icon, WindowBuilder};
 
-use super::time_manager::{is_rewinding, time_manager_track_transform, TimeManager};
+use super::time::update_time;
+use super::time_manager::{
+    is_rewinding, time_manager_end_frame, time_manager_input, time_manager_start_frame,
+    time_manager_track_transform, TimeManager,
+};
 
 pub struct AppConfig {
     pub resolution: (u32, u32),
@@ -39,12 +42,14 @@ pub struct AppConfig {
 
 #[derive(SystemSet, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum AppStage {
+    StartFrame,
     EventUpdate,
     Update,
     UpdatePhysics,
-    /// after physics, maybe we should name it "BeforeRender", because I keep confusing myself
-    PostUpdate,
+    /// after physics
+    BeforeRender,
     Render,
+    EndFrame,
 }
 
 pub struct ApplicationBuilder {
@@ -61,11 +66,13 @@ impl ApplicationBuilder {
         let mut schedule = Schedule::default();
         schedule.configure_sets(
             (
+                AppStage::StartFrame,
                 AppStage::EventUpdate,
                 AppStage::Update,
                 AppStage::UpdatePhysics,
-                AppStage::PostUpdate,
+                AppStage::BeforeRender,
                 AppStage::Render,
+                AppStage::EndFrame,
             )
                 .chain(),
         );
@@ -166,14 +173,47 @@ impl Application {
             100.0,
         );
         schedule.add_system(update_camera_aspect_ratio.in_set(AppStage::EventUpdate));
-        schedule.add_system(update_camera.in_set(AppStage::PostUpdate));
+        schedule.add_system(update_camera.in_set(AppStage::BeforeRender));
         world.insert_resource(camera);
 
         let physics_context = PhysicsContext::new();
         physics_context.setup_systems(world, schedule);
 
+        let time = Time::new();
+        world.insert_resource(time);
         let time_manager = TimeManager::new();
         world.insert_resource(time_manager);
+
+        schedule.add_system(update_time.in_set(AppStage::StartFrame));
+        schedule.add_system(
+            time_manager_start_frame
+                .in_set(AppStage::StartFrame)
+                .after(update_time),
+        );
+
+        schedule.add_system(time_manager_input.in_set(AppStage::Update));
+
+        schedule.add_system(
+            time_manager_track_transform
+                .in_set(AppStage::Render)
+                .run_if(not(is_rewinding)),
+        );
+
+        schedule.add_system(time_manager_end_frame.in_set(AppStage::EndFrame));
+        /*
+        let mut time = self.world.get_resource_mut::<Time>().unwrap();
+                    time.update();
+
+                    let delta = time.delta();
+
+                    let mut time_manager = self.world.get_resource_mut::<TimeManager>().unwrap();
+                    time_manager.start_frame(is_rewinding_next_frame, delta);
+
+                    self.schedule.run(&mut self.world);
+
+                    let mut time_manager = self.world.get_resource_mut::<TimeManager>().unwrap();
+                    time_manager.end_frame();
+                     */
 
         // TODO: Move that code to the input.rs file?
         let input_map = InputMap::new();
@@ -201,19 +241,10 @@ impl Application {
         world.insert_non_send_resource(renderer);
         schedule.add_system(render.in_set(AppStage::Render));
 
-        let time = Time::new();
-        world.insert_resource(time);
-        schedule.add_system(
-            time_manager_track_transform
-                .in_set(AppStage::Render)
-                .run_if(not(is_rewinding)),
-        );
-
         schedule.add_system(lock_mouse);
 
         startup_schedule.run(&mut world);
 
-        let mut is_rewinding_next_frame = false;
         self.event_loop
             .run(move |event, _, control_flow| match event {
                 Event::WindowEvent {
@@ -253,9 +284,6 @@ impl Application {
                     }
                     WindowEvent::MouseInput { button, state, .. } => {
                         self.world.send_event(MouseInput { button, state });
-                        if button == winit::event::MouseButton::Right {
-                            is_rewinding_next_frame = state == ElementState::Pressed;
-                        }
                     }
                     WindowEvent::Focused(focused) => {
                         self.world
@@ -272,18 +300,7 @@ impl Application {
                 },
 
                 Event::RedrawEventsCleared => {
-                    let mut time = self.world.get_resource_mut::<Time>().unwrap();
-                    time.update();
-
-                    let delta = time.delta();
-
-                    let mut time_manager = self.world.get_resource_mut::<TimeManager>().unwrap();
-                    time_manager.start_frame(is_rewinding_next_frame, delta);
-
                     self.schedule.run(&mut self.world);
-
-                    let mut time_manager = self.world.get_resource_mut::<TimeManager>().unwrap();
-                    time_manager.end_frame();
                 }
 
                 _ => (),
@@ -310,9 +327,7 @@ impl Application {
             Icon::from_rgba(image.into_bytes(), width, height)
         }) {
             //.with_taskbar_icon(taskbar_icon)
-            window_builder = window_builder.with_window_icon(Some(
-                icon,
-            ));
+            window_builder = window_builder.with_window_icon(Some(icon));
         }
 
         if config.fullscreen {
