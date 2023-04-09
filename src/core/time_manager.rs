@@ -72,6 +72,7 @@ impl TimeManager {
                 self.is_interpolating = false;
             } else {
                 // Otherwise we can finally stop rewinding
+                self.level_time += delta;
                 self.is_rewinding = false;
                 self.is_interpolating = false;
             }
