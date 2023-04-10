@@ -246,7 +246,7 @@ impl SceneRenderer {
                     //
                     // Only attachments that have `LoadOp::Clear` are provided with clear
                     // values, any others should use `ClearValue::None` as the clear value.
-                    clear_values: vec![Some([0.2, 0.4, 0.8, 1.0].into()), Some(1f32.into())],
+                    clear_values: vec![Some([0.0, 0.0, 0.0, 1.0].into()), Some(1f32.into())],
                     ..RenderPassBeginInfo::framebuffer(
                         self.framebuffers[swapchain_frame_index as usize].clone(),
                     )

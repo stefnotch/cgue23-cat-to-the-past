@@ -6,12 +6,13 @@ use nalgebra::Vector3;
 
 use super::{material::Material, mesh::Mesh};
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Model {
     pub primitives: Vec<Primitive>,
 }
 
 /// Why yes, this mirrors whatever gltf does
+#[derive(Clone)]
 pub struct Primitive {
     pub mesh: Arc<Mesh>,
     pub material: Arc<Material>,
