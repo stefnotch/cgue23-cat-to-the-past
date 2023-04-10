@@ -170,7 +170,7 @@ impl BloomRenderer {
             let downsample_pass = cs::downsample::Pass {
                 inputTexelSize: input_size.width_height().map(|v| 1.0 / (v as f32)).into(),
 
-                useThreshold: (input_miplevel == 0) as u32,
+                isFirstPass: (input_miplevel == 0) as u32,
                 threshold: 1.0, // TODO: make this configurable
                 knee: 0.1,
             };
