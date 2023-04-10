@@ -25,7 +25,7 @@ fn spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
             Light::Point(PointLight {
                 color: Vector3::new(1.0, 1.0, 1.0),
                 range: 1000.0,
-                intensity: 1000.0,
+                intensity: 300.0,
             }),
             TransformBuilder::new().position(position).build(),
         ));
