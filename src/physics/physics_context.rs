@@ -7,7 +7,7 @@ use bevy_ecs::prelude::{
     Added, Commands, Component, Entity, IntoSystemConfig, Query, Res, ResMut, Resource, Schedule,
     With, World,
 };
-use bevy_ecs::query::Without;
+use bevy_ecs::query::{Changed, Without};
 use nalgebra::{Point3, UnitQuaternion};
 use rapier3d::na::Vector3;
 use rapier3d::prelude::*;
@@ -113,7 +113,8 @@ impl PhysicsContext {
         world.insert_resource(self);
         // Keep ECS and physics world in sync
         schedule.add_system(apply_collider_changes.in_set(AppStage::Update));
-        schedule.add_system(apply_rigid_body_changes.in_set(AppStage::Update));
+        schedule.add_system(apply_rigid_body_added.in_set(AppStage::Update));
+        schedule.add_system(apply_rigid_body_type_change.in_set(AppStage::Update));
         schedule.add_system(apply_player_character_controller_changes.in_set(AppStage::Update));
 
         // Update physics world and write back to ECS world
@@ -200,7 +201,7 @@ pub fn apply_collider_changes(
     }
 }
 
-pub fn apply_rigid_body_changes(
+pub fn apply_rigid_body_added(
     mut commands: Commands,
     mut physics_context: ResMut<PhysicsContext>,
     mut rigid_body_query: Query<(Entity, &BoxCollider, &Transform, &RigidBody), Added<RigidBody>>,
@@ -226,6 +227,21 @@ pub fn apply_rigid_body_changes(
         commands
             .entity(entity)
             .insert(RapierRigidBodyHandle { handle });
+    }
+}
+
+fn apply_rigid_body_type_change(
+    mut physics_context: ResMut<PhysicsContext>,
+    mut query: Query<(&RigidBody, &RapierRigidBodyHandle), Changed<RigidBody>>,
+) {
+    for (RigidBody(body_type), RapierRigidBodyHandle { handle }) in query.iter_mut() {
+        let rigid_body = physics_context
+            .rigid_bodies
+            .get_mut(*handle)
+            .expect("Rigid body not found");
+
+        // Technically this is uselessly executed when a rigid body is created, but eh
+        rigid_body.set_body_type(body_type.clone(), true);
     }
 }
 

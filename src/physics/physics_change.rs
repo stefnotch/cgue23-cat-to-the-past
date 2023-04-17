@@ -3,13 +3,14 @@ use std::collections::HashMap;
 use bevy_ecs::{
     query::Changed,
     system::{Query, Res, ResMut},
+    world::Mut,
 };
 use nalgebra::Vector3;
 use rapier3d::prelude::RigidBodyType;
 
 use crate::core::time_manager::{
     game_change::{GameChange, GameChangeHistory},
-    TimeManager, TimeTracked,
+    TimeManager, TimeState, TimeTracked,
 };
 
 use super::physics_context::{PhysicsContext, RapierRigidBodyHandle, RigidBody};
@@ -120,31 +121,41 @@ pub(super) fn time_manager_track_rigid_body_type(
     }
 }
 
+// TODO: I'm not sure if this is the most elegant way to do this.
 pub(super) fn time_manager_rewind_rigid_body_type(
-    mut physics_context: ResMut<PhysicsContext>,
-    time_manager: Res<TimeManager>,
+    mut time_manager: ResMut<TimeManager>,
     mut history: ResMut<GameChangeHistory<RigidBodyTypeChange>>,
-    query: Query<(&TimeTracked, &RapierRigidBodyHandle)>,
+    mut query: Query<(&TimeTracked, &mut RigidBody)>,
 ) {
-    // TODO: Make kinematic?
+    match time_manager.time_state() {
+        TimeState::Normal => return,
+        TimeState::StartRewinding => {
+            // We note down the type of the rigid body
+            // and then make it kinematic
+            for (time_tracked, mut rigidbody) in query.iter_mut() {
+                time_manager.add_command(
+                    RigidBodyTypeChange::new(time_tracked, rigidbody.0),
+                    &mut history,
+                );
 
-    let entities: HashMap<_, _> = query
-        .into_iter()
-        .map(|(time_tracked, handle)| (time_tracked.id(), handle))
-        .collect();
+                rigidbody.0 = RigidBodyType::KinematicPositionBased;
+            }
+        }
+        TimeState::Rewinding => return,
+        TimeState::StopRewinding => {
+            let mut entities: HashMap<_, Mut<RigidBody>> = query
+                .iter_mut()
+                .map(|(time_tracked, rigidbody)| (time_tracked.id(), rigidbody))
+                .collect();
 
-    let commands = history.get_commands_to_apply(&time_manager);
-    for command_collection in commands {
-        for command in command_collection.commands {
-            if let Some(v) = entities.get(&command.id) {
-                let rigidbody = physics_context
-                    .rigid_bodies
-                    .get_mut(v.handle)
-                    .expect("RigidBody not found in physics context");
-                rigidbody.set_body_type(command.body_type, true);
+            let commands = history.get_commands_to_apply(&time_manager);
+            for command_collection in commands {
+                for command in command_collection.commands {
+                    if let Some(v) = entities.get_mut(&command.id) {
+                        v.0 = command.body_type;
+                    }
+                }
             }
         }
     }
-
-    // No interpolation for rigid body type.
 }

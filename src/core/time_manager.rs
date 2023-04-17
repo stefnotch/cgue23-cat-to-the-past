@@ -135,6 +135,10 @@ impl TimeManager {
         }
     }
 
+    pub fn time_state(&self) -> &TimeState {
+        &self.time_state
+    }
+
     pub fn is_interpolating(&self) -> bool {
         match self.time_state {
             TimeState::Normal => false,
