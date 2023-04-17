@@ -38,17 +38,24 @@ impl TimeTracked {
     }
 }
 
+/// The 4 time states to cycle through
+pub enum TimeState {
+    Normal,
+    StartRewinding,
+    Rewinding,
+    StopRewinding,
+}
+
 #[derive(Resource)]
 pub struct TimeManager {
     current_frame_timestamp: Option<LevelTime>,
     will_rewind_next_frame: bool,
-    is_rewinding: bool,
-    is_interpolating: bool,
+    time_state: TimeState,
     level_time: LevelTime,
 }
 
 pub fn is_rewinding(time_manager: Res<TimeManager>) -> bool {
-    time_manager.is_rewinding
+    time_manager.is_rewinding()
 }
 
 impl TimeManager {
@@ -56,31 +63,41 @@ impl TimeManager {
         Self {
             current_frame_timestamp: Some(LevelTime::zero()),
             will_rewind_next_frame: false,
-            is_rewinding: false,
-            is_interpolating: false,
+            time_state: TimeState::Normal,
             level_time: LevelTime::zero(),
         }
     }
 
     pub fn start_frame(&mut self, delta: Duration) {
-        if !self.will_rewind_next_frame {
-            // If we were rewinding in the previous frame
-            if self.is_rewinding && self.is_interpolating {
-                // Keep level time unchanged and stop interpolating
-
-                self.is_rewinding = true;
-                self.is_interpolating = false;
-            } else {
-                // Otherwise we can finally stop rewinding
-                self.level_time += delta;
-                self.is_rewinding = false;
-                self.is_interpolating = false;
-            }
-        } else {
+        if self.will_rewind_next_frame {
             // Rewinding
             self.level_time = self.level_time.sub_or_zero(delta);
-            self.is_rewinding = true;
-            self.is_interpolating = true;
+            match self.time_state {
+                TimeState::Normal => {
+                    self.time_state = TimeState::StartRewinding;
+                }
+                TimeState::StartRewinding => {
+                    self.time_state = TimeState::Rewinding;
+                }
+                TimeState::Rewinding => {}
+                TimeState::StopRewinding => {
+                    self.time_state = TimeState::Rewinding;
+                }
+            }
+        } else {
+            match self.time_state {
+                TimeState::Normal => {
+                    self.level_time += delta;
+                }
+                TimeState::StartRewinding | TimeState::Rewinding => {
+                    // Keep level time unchanged and stop interpolating
+                    self.time_state = TimeState::StopRewinding;
+                }
+                TimeState::StopRewinding => {
+                    self.level_time += delta;
+                    self.time_state = TimeState::Normal;
+                }
+            }
         }
 
         self.current_frame_timestamp = Some(self.level_time.clone());
@@ -94,7 +111,7 @@ impl TimeManager {
     where
         T: GameChange,
     {
-        assert!(!self.is_rewinding, "Cannot add commands while rewinding");
+        assert!(!self.is_rewinding(), "Cannot add commands while rewinding");
         let timestamp = self
             .current_frame_timestamp
             .expect("Cannot add commands outside of a frame");
@@ -110,11 +127,21 @@ impl TimeManager {
     }
 
     pub fn is_rewinding(&self) -> bool {
-        self.is_rewinding
+        match self.time_state {
+            TimeState::Normal => false,
+            TimeState::StartRewinding => true,
+            TimeState::Rewinding => true,
+            TimeState::StopRewinding => true,
+        }
     }
 
     pub fn is_interpolating(&self) -> bool {
-        self.is_interpolating
+        match self.time_state {
+            TimeState::Normal => false,
+            TimeState::StartRewinding => true,
+            TimeState::Rewinding => true,
+            TimeState::StopRewinding => false,
+        }
     }
 
     // TODO:

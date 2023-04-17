@@ -97,7 +97,7 @@ where
         &self,
         time_manager: &TimeManager,
     ) -> Option<(&GameChanges<T>, &GameChanges<T>, f32)> {
-        if !time_manager.is_interpolating {
+        if !time_manager.is_interpolating() {
             return None;
         }
 
