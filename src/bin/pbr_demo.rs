@@ -1,3 +1,4 @@
+use std::cmp::max;
 use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Res};
@@ -43,7 +44,7 @@ fn spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
     for row in 0..n {
         let metallic: f32 = row as f32 / (n as f32 - 1.0);
         for col in 0..n {
-            let roughness: f32 = col as f32 / (n as f32 - 1.0);
+            let roughness: f32 = (col as f32 / (n as f32 - 1.0)).max(0.05);
 
             commands.spawn((
                 Model {

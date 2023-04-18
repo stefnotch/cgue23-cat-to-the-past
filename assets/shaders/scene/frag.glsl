@@ -8,41 +8,7 @@ layout(location = 0) out vec4 f_color;
 
 const float PI = 3.14159265359;
 
-// TODO: import structs to reduce code duplication and to keep the structs in sync in both vertex and fragment shader
-
-struct PointLight {
-    vec3 position;
-    vec3 color;
-    float range;
-    float intensity;
-};
-
-#define MAX_NUM_TOTAL_LIGHTS 32
-
-layout(set = 0, binding = 0) uniform Scene {
-    PointLight pointLights[MAX_NUM_TOTAL_LIGHTS];
-    int numLights;
-} scene;
-
-layout(set = 1, binding = 0) uniform Camera {
-    mat4 view;
-    mat4 proj;
-    vec3 position;
-} camera;
-
-layout(set = 2, binding = 0) uniform Material {
-    vec3 baseColor;
-    float roughness;
-    float metallic;
-    vec3 emissivity;
-} material;
-
-layout(set = 2, binding = 1) uniform sampler2D baseColorTexture;
-
-layout(set = 3, binding = 0) uniform Entity {
-    mat4 model;
-    mat4 normalMatrix;
-} entity;
+#include "common.glsl"
 
 vec3 ambientLightColor = vec3(1.0, 1.0, 1.0);
 
@@ -105,6 +71,7 @@ vec3 pbr_common(vec3 lightIntensity, vec3 l, vec3 n, vec3 v, vec3 albedo, vec3 f
 
     vec3 ks = F;
     vec3 kd = vec3(1.0) - ks;
+    kd *= 1.0-material.metallic;
 
     vec3 diffuseBRDF = kd * fLambert;
     vec3 specularBRDF = /* ks + */ fCookTorrance;
