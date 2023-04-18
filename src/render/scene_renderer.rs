@@ -452,7 +452,7 @@ fn default_shader_point_light() -> vs::PointLight {
 impl From<&Material> for vs::Material {
     fn from(value: &Material) -> Self {
         vs::Material {
-            base_color: value.base_color.into(),
+            baseColor: value.base_color.into(),
             roughness: value.roughness_factor,
             metallic: Padded::from(value.metallic_factor),
             emissivity: value.emissivity.into(),
@@ -463,13 +463,13 @@ impl From<&Material> for vs::Material {
 mod vs {
     vulkano_shaders::shader! {
         ty: "vertex",
-        path: "assets/shaders/vert.glsl",
+        path: "assets/shaders/scene/vert.glsl",
     }
 }
 
 mod fs {
     vulkano_shaders::shader! {
         ty: "fragment",
-        path: "assets/shaders/frag.glsl",
+        path: "assets/shaders/scene/frag.glsl",
     }
 }
