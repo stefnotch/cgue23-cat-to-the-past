@@ -11,4 +11,4 @@
 ## Tested on
 
 - NVIDIA GeForce GTX 1060
-- ...?
+- NVIDIA GeForce RTX 2060 SUPER
