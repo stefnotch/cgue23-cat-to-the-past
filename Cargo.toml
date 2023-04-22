@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "scene",
     "math",
     "windowing",
     "game",
