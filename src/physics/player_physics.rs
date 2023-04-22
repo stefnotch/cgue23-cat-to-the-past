@@ -1,5 +1,6 @@
 use bevy_ecs::prelude::*;
 use nalgebra::Vector3;
+use rapier3d::geometry::ActiveCollisionTypes;
 use rapier3d::pipeline::ActiveEvents;
 use rapier3d::{
     control::KinematicCharacterController,
@@ -53,7 +54,8 @@ pub(super) fn apply_player_character_controller_changes(
                     // TODO: understand why this is needed
                     Vector3::new(0.0, player_character_controller.collider_height / 2.0, 0.0),
                 )
-                .active_events(ActiveEvents::COLLISION_EVENTS);
+                .active_events(ActiveEvents::COLLISION_EVENTS)
+                .active_collision_types(ActiveCollisionTypes::all());
 
         context
             .colliders
@@ -116,9 +118,7 @@ pub(super) fn step_character_controllers(
                 character_collider.shape(),
                 character_mass,
                 collision,
-                QueryFilter::new()
-                    .exclude_rigid_body(rigid_body_handle.handle)
-                    .exclude_sensors(),
+                QueryFilter::new().exclude_rigid_body(rigid_body_handle.handle),
             )
         }
 
@@ -132,34 +132,5 @@ pub(super) fn step_character_controllers(
         character_body.set_next_kinematic_translation(new_position);
 
         transform.position = new_position.into();
-    }
-}
-
-pub(super) fn step_character_controller_collisions(
-    physics_context: ResMut<PhysicsContext>,
-    query: Query<&RapierRigidBodyHandle, With<PlayerCharacterController>>,
-) {
-    for rigid_body_handle in &query {
-        let character_rigid_body = physics_context
-            .rigid_bodies
-            .get(rigid_body_handle.handle)
-            .unwrap();
-
-        let character_collider = physics_context
-            .colliders
-            .get(character_rigid_body.colliders()[0])
-            .unwrap();
-
-        physics_context.query_pipeline.intersections_with_shape(
-            &physics_context.rigid_bodies,
-            &physics_context.colliders,
-            character_collider.position(),
-            character_collider.shape(),
-            QueryFilter::new().exclude_rigid_body(rigid_body_handle.handle),
-            |handle| {
-                println!("Received player collision: {:?}", handle);
-                true
-            },
-        );
     }
 }
