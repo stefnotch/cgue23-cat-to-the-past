@@ -463,13 +463,13 @@ impl From<&Material> for vs::Material {
 mod vs {
     vulkano_shaders::shader! {
         ty: "vertex",
-        path: "assets/shaders/scene/vert.glsl",
+        path: "../assets/shaders/scene/vert.glsl",
     }
 }
 
 mod fs {
     vulkano_shaders::shader! {
         ty: "fragment",
-        path: "assets/shaders/scene/frag.glsl",
+        path: "../assets/shaders/scene/frag.glsl",
     }
 }

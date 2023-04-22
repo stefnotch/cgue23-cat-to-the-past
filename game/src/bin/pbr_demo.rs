@@ -2,17 +2,17 @@ use std::cmp::max;
 use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Res};
-use cat_to_the_past::render::context::Context;
+use game::render::context::Context;
 use nalgebra::Point3;
 use rapier3d::na::Vector3;
 
-use cat_to_the_past::core::application::{AppConfig, ApplicationBuilder};
-use cat_to_the_past::player::{PlayerControllerSettings, PlayerSpawnSettings};
-use cat_to_the_past::scene::light::{Light, PointLight};
-use cat_to_the_past::scene::material::Material;
-use cat_to_the_past::scene::mesh::Mesh;
-use cat_to_the_past::scene::model::{Model, Primitive};
-use cat_to_the_past::scene::transform::TransformBuilder;
+use game::core::application::{AppConfig, ApplicationBuilder};
+use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
+use game::scene::light::{Light, PointLight};
+use game::scene::material::Material;
+use game::scene::mesh::Mesh;
+use game::scene::model::{Model, Primitive};
+use game::scene::transform::TransformBuilder;
 
 fn spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
     let memory_allocator = Arc::new(

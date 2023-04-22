@@ -1,20 +1,20 @@
 use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Res};
-use cat_to_the_past::render::context::Context;
+use game::render::context::Context;
 use nalgebra::Point3;
 use rapier3d::dynamics::RigidBodyType;
 use rapier3d::na::Vector3;
 
-use cat_to_the_past::core::application::{AppConfig, ApplicationBuilder};
-use cat_to_the_past::physics::physics_context::{BoxCollider, RigidBody, Sensor};
-use cat_to_the_past::player::{PlayerControllerSettings, PlayerSpawnSettings};
-use cat_to_the_past::scene::bounding_box::BoundingBox;
-use cat_to_the_past::scene::light::{Light, PointLight};
-use cat_to_the_past::scene::material::Material;
-use cat_to_the_past::scene::mesh::Mesh;
-use cat_to_the_past::scene::model::{Model, Primitive};
-use cat_to_the_past::scene::transform::{Transform, TransformBuilder};
+use game::core::application::{AppConfig, ApplicationBuilder};
+use game::physics::physics_context::{BoxCollider, RigidBody, Sensor};
+use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
+use game::scene::light::{Light, PointLight};
+use game::scene::material::Material;
+use game::scene::mesh::Mesh;
+use game::scene::model::{Model, Primitive};
+use game::scene::transform::{Transform, TransformBuilder};
+use math::bounding_box::BoundingBox;
 
 fn spawn_world(mut commands: Commands, context: Res<Context>) {
     let memory_allocator = Arc::new(
@@ -118,12 +118,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
 }
 
 fn main() {
-    let config = AppConfig {
-        resolution: (1280, 720),
-        fullscreen: false,
-        brightness: 1.0,
-        refresh_rate: 60,
-    };
+    let config = AppConfig::default();
 
     let player_controller_settings = PlayerControllerSettings::new(5.0, 1.0, 9.81);
 

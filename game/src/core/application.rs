@@ -1,5 +1,6 @@
+use core::time::{update_time, Time};
+
 use crate::core::camera::{update_camera, update_camera_aspect_ratio, Camera};
-use crate::core::time::Time;
 use crate::input::events::{
     KeyboardInput, MouseInput, MouseMovement, WindowFocusChanged, WindowResize,
 };
@@ -12,15 +13,16 @@ use angle::Deg;
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ExecutorKind;
 use nalgebra::{Point3, UnitQuaternion};
+use windowing::config::WindowConfig;
+use windowing::icon::get_icon;
 use winit::dpi::{LogicalSize, PhysicalSize};
 use winit::event::{
     DeviceEvent, Event, KeyboardInput as KeyboardInputWinit, VirtualKeyCode, WindowEvent,
 };
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Fullscreen::Exclusive;
-use winit::window::{CursorGrabMode, Icon, WindowBuilder};
+use winit::window::{CursorGrabMode, WindowBuilder};
 
-use super::time::update_time;
 use super::time_manager::game_change::GameChangeHistory;
 use super::time_manager::transform_change::{
     time_manager_rewind_transform, time_manager_track_transform, TransformChange,
@@ -28,26 +30,21 @@ use super::time_manager::transform_change::{
 use super::time_manager::TimeManager;
 
 pub struct AppConfig {
-    pub resolution: (u32, u32),
-    pub fullscreen: bool,
+    pub window: WindowConfig,
     /// Projectors are usually very dark, this parameter should control how bright your total
     /// scene is, e.g., an illumination multiplier
     pub brightness: f32,
-    /// The desired refresh rate of the game in fullscreen mode.
-    /// Maps to "GLFW_REFRESH_RATE" in an OpenGL application, which only applies to fullscreen mode.
-    /// We should query all video modes https://docs.rs/winit/latest/winit/monitor/struct.MonitorHandle.html#method.video_modes
-    /// and pick the closest one to the desired refresh rate. https://docs.rs/winit/latest/winit/monitor/struct.VideoMode.html#method.refresh_rate_millihertz
-    /// Then, we use that video mode to create the window in fullscreen mode.
-    pub refresh_rate: u32,
 }
 
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            resolution: (1280, 720),
-            fullscreen: false,
+            window: WindowConfig {
+                resolution: (1280, 720),
+                fullscreen: false,
+                refresh_rate: 60,
+            },
             brightness: 1.0,
-            refresh_rate: 60,
         }
     }
 }
@@ -160,7 +157,7 @@ impl Application {
         Self: 'static,
     {
         let config = &self.config;
-        let window_builder = self.create_window(config);
+        let window_builder = self.create_window(&config.window);
 
         let context = Context::new(window_builder, &self.event_loop);
         let renderer = Renderer::new(&context);
@@ -169,7 +166,7 @@ impl Application {
         let schedule = &mut self.schedule;
         let startup_schedule = &mut self.startup_schedule;
 
-        let aspect_ratio = config.resolution.0 as f32 / config.resolution.1 as f32;
+        let aspect_ratio = config.window.resolution.0 as f32 / config.window.resolution.1 as f32;
 
         let asset_server = AssetServer::new();
         world.insert_resource(asset_server);
@@ -297,7 +294,7 @@ impl Application {
             });
     }
 
-    fn create_window(&self, config: &AppConfig) -> WindowBuilder {
+    fn create_window(&self, config: &WindowConfig) -> WindowBuilder {
         let monitor = self
             .event_loop
             .available_monitors()
@@ -311,11 +308,7 @@ impl Application {
             })
             .with_title("Cat to the past");
 
-        if let Ok(Ok(icon)) = image::open("assets/icon.png").map(|image| {
-            let width = image.width();
-            let height = image.height();
-            Icon::from_rgba(image.into_bytes(), width, height)
-        }) {
+        if let Ok(icon) = get_icon() {
             //.with_taskbar_icon(taskbar_icon)
             window_builder = window_builder.with_window_icon(Some(icon));
         }
