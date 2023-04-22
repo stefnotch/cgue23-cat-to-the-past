@@ -19,8 +19,8 @@ use super::physics_change::{
     RigidBodyTypeChange, VelocityChange,
 };
 use super::player_physics::{
-    apply_player_character_controller_changes, step_character_controllers,
-    PlayerCharacterController,
+    apply_player_character_controller_changes, step_character_controller_collisions,
+    step_character_controllers, PlayerCharacterController,
 };
 
 #[derive(Resource)]
@@ -131,8 +131,21 @@ impl PhysicsContext {
 
         // Update physics world and write back to ECS world
         schedule.add_system(step_physics_simulation.in_set(AppStage::UpdatePhysics));
-        schedule.add_system(step_character_controllers.in_set(AppStage::BeforeRender));
-        schedule.add_system(update_transform_system.in_set(AppStage::BeforeRender));
+        schedule.add_system(
+            step_character_controllers
+                .in_set(AppStage::UpdatePhysics)
+                .after(step_physics_simulation),
+        );
+        schedule.add_system(
+            step_character_controller_collisions
+                .in_set(AppStage::UpdatePhysics)
+                .after(step_character_controllers),
+        );
+        schedule.add_system(
+            update_transform_system
+                .in_set(AppStage::UpdatePhysics)
+                .after(step_physics_simulation),
+        );
 
         // Time rewinding
         let velocity_history = GameChangeHistory::<VelocityChange>::new();
@@ -160,7 +173,7 @@ impl PhysicsContext {
     }
 }
 
-pub fn step_physics_simulation(mut physics_context: ResMut<PhysicsContext>, time: Res<Time>) {
+fn step_physics_simulation(mut physics_context: ResMut<PhysicsContext>, time: Res<Time>) {
     let time = time.as_ref();
 
     physics_context.step_simulation(time);
@@ -193,7 +206,7 @@ pub struct BoxCollider {
     pub bounds: BoundingBox<Vector3<f32>>,
 }
 
-pub fn create_box_collider(box_collider: &BoxCollider, transform: &Transform) -> Collider {
+fn create_box_collider(box_collider: &BoxCollider, transform: &Transform) -> Collider {
     let scaled_bounds = box_collider.bounds.scale(&transform.scale);
     let half_size: Vector3<f32> = scaled_bounds.size() * 0.5;
     let collider_offset = scaled_bounds.min + half_size;

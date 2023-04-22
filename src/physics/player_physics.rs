@@ -10,11 +10,21 @@ use crate::scene::transform::Transform;
 
 use super::physics_context::{BoxCollider, PhysicsContext, RapierRigidBodyHandle, RigidBody};
 
-#[derive(Component, Default)]
+#[derive(Component)]
 pub struct PlayerCharacterController {
     pub collider_height: f32,
     pub desired_movement: Vector3<f32>,
     pub grounded: bool,
+}
+
+impl Default for PlayerCharacterController {
+    fn default() -> Self {
+        Self {
+            collider_height: 1.85,
+            desired_movement: Vector3::zeros(),
+            grounded: false,
+        }
+    }
 }
 
 pub(super) fn apply_player_character_controller_changes(
@@ -70,11 +80,9 @@ pub(super) fn step_character_controllers(
 
         let character_rigid_body = context.rigid_bodies.get(rigid_body_handle.handle).unwrap();
 
-        let character_collider_handle = character_rigid_body.colliders()[0];
-
         let character_collider = &context
             .colliders
-            .get(character_collider_handle.clone())
+            .get(character_rigid_body.colliders()[0])
             .unwrap();
 
         let character_mass = character_rigid_body.mass();
@@ -108,16 +116,10 @@ pub(super) fn step_character_controllers(
                 character_collider.shape(),
                 character_mass,
                 collision,
-                QueryFilter::new().exclude_rigid_body(rigid_body_handle.handle),
+                QueryFilter::new()
+                    .exclude_rigid_body(rigid_body_handle.handle)
+                    .exclude_sensors(),
             )
-        }
-
-        let intersections = context
-            .narrow_phase
-            .intersections_with(character_collider_handle.clone());
-
-        for intersection in intersections {
-            println!("{:#?}", intersection);
         }
 
         let character_body = context
@@ -130,5 +132,34 @@ pub(super) fn step_character_controllers(
         character_body.set_next_kinematic_translation(new_position);
 
         transform.position = new_position.into();
+    }
+}
+
+pub(super) fn step_character_controller_collisions(
+    physics_context: ResMut<PhysicsContext>,
+    query: Query<&RapierRigidBodyHandle, With<PlayerCharacterController>>,
+) {
+    for rigid_body_handle in &query {
+        let character_rigid_body = physics_context
+            .rigid_bodies
+            .get(rigid_body_handle.handle)
+            .unwrap();
+
+        let character_collider = physics_context
+            .colliders
+            .get(character_rigid_body.colliders()[0])
+            .unwrap();
+
+        physics_context.query_pipeline.intersections_with_shape(
+            &physics_context.rigid_bodies,
+            &physics_context.colliders,
+            character_collider.position(),
+            character_collider.shape(),
+            QueryFilter::new().exclude_rigid_body(rigid_body_handle.handle),
+            |handle| {
+                println!("Received player collision: {:?}", handle);
+                true
+            },
+        );
     }
 }
