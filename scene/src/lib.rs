@@ -1,3 +1,6 @@
+pub mod light;
+pub mod transform;
+
 pub fn add(left: usize, right: usize) -> usize {
     left + right
 }

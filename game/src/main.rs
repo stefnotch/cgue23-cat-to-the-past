@@ -22,7 +22,7 @@ use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
 use game::scene::material::Material;
 use game::scene::mesh::Mesh;
 use game::scene::model::{Model, Primitive};
-use game::scene::transform::{Transform, TransformBuilder};
+use scene::transform::{Transform, TransformBuilder};
 
 fn _spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
     let memory_allocator = Arc::new(

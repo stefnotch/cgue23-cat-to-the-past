@@ -1,10 +1,8 @@
 use crate::core::time_manager::TimeTracked;
 use crate::physics::physics_context::{BoxCollider, RigidBody};
 use crate::render::context::Context;
-use crate::scene::light::{Light, PointLight};
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::{Model, Primitive};
-use crate::scene::transform::Transform;
 use bevy_ecs::prelude::*;
 use gltf::khr_lights_punctual::Kind;
 use gltf::texture::{MagFilter, MinFilter, WrappingMode};
@@ -12,6 +10,8 @@ use gltf::{import, khr_lights_punctual, Node, Semantic};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
 use rapier3d::dynamics::RigidBodyType;
+use scene::light::{Light, PointLight};
+use scene::transform::Transform;
 use std::hash::Hash;
 use std::iter::repeat;
 use std::sync::Arc;
@@ -141,7 +141,7 @@ impl AssetServer {
         parent_transform: &Transform,
         context: &Context,
     ) {
-        let local_transform: Transform = node.transform().into();
+        let local_transform: Transform = from_gltf_transform(node.transform());
         let global_transform = parent_transform * local_transform;
 
         for child in node.children() {
@@ -213,21 +213,18 @@ impl AssetServer {
     }
 }
 
-impl From<gltf::scene::Transform> for Transform {
-    fn from(value: gltf::scene::Transform) -> Self {
-        // rotation is a quaternion
-        let (translation, rotation, scale) = value.decomposed();
+fn from_gltf_transform(value: gltf::scene::Transform) -> Transform {
+    // rotation is a quaternion
+    let (translation, rotation, scale) = value.decomposed();
 
-        let position: Point3<f32> = translation.into();
-        let rotation: UnitQuaternion<f32> =
-            UnitQuaternion::new_normalize(Quaternion::from(rotation));
-        let scale: Vector3<f32> = Vector3::from_row_slice(&scale);
+    let position: Point3<f32> = translation.into();
+    let rotation: UnitQuaternion<f32> = UnitQuaternion::new_normalize(Quaternion::from(rotation));
+    let scale: Vector3<f32> = Vector3::from_row_slice(&scale);
 
-        Self {
-            position,
-            rotation,
-            scale,
-        }
+    Transform {
+        position,
+        rotation,
+        scale,
     }
 }
 
