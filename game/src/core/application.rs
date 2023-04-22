@@ -1,5 +1,6 @@
+use core::time::{update_time, Time};
+
 use crate::core::camera::{update_camera, update_camera_aspect_ratio, Camera};
-use crate::core::time::Time;
 use crate::input::events::{
     KeyboardInput, MouseInput, MouseMovement, WindowFocusChanged, WindowResize,
 };
@@ -20,9 +21,8 @@ use winit::event::{
 };
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Fullscreen::Exclusive;
-use winit::window::{CursorGrabMode, Icon, WindowBuilder};
+use winit::window::{CursorGrabMode, WindowBuilder};
 
-use super::time::update_time;
 use super::time_manager::game_change::GameChangeHistory;
 use super::time_manager::transform_change::{
     time_manager_rewind_transform, time_manager_track_transform, TransformChange,

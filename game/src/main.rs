@@ -1,4 +1,5 @@
 use bevy_ecs::prelude::{Component, Query, With};
+use core::time::Time;
 use game::core::time_manager::TimeManager;
 use game::scene::loader::AssetServer;
 use std::f32::consts::PI;
@@ -16,7 +17,6 @@ use game::core::application::{AppConfig, ApplicationBuilder};
 #[cfg(feature = "trace")]
 use game::debug::tracing::start_tracing;
 
-use game::core::time::Time;
 use game::physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
 use game::scene::material::Material;

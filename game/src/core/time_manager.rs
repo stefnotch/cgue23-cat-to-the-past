@@ -2,6 +2,7 @@ pub mod game_change;
 pub mod level_time;
 pub mod transform_change;
 
+use core::time::{update_time, Time};
 use std::time::Duration;
 
 use bevy_ecs::{
@@ -16,11 +17,7 @@ use crate::{core::time_manager::game_change::GameChangeHistory, input::input_map
 
 use self::{game_change::GameChange, level_time::LevelTime};
 
-use super::{
-    application::AppStage,
-    events::NextLevel,
-    time::{update_time, Time},
-};
+use super::{application::AppStage, events::NextLevel};
 
 #[derive(Component)]
 pub struct TimeTracked {

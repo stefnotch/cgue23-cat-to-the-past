@@ -2,6 +2,7 @@
 
 members = [
     "scene",
+    "core",
     "math",
     "windowing",
     "game",

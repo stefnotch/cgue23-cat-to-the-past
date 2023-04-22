@@ -22,6 +22,7 @@ uuid = { version = "1.3.0", features = ["v4", "fast-rng"]}
 crossbeam = "0.8.2"
 math = { path = "../math" }
 windowing = { path = "../windowing" }
+core = { path = "../core" }
 
 bevy_utils = { version = "0.10.1", optional = true, features = ["detailed_trace"] }
 tracing-chrome = { version = "0.7.1", optional = true }
