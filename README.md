@@ -14,10 +14,10 @@ Should make for an interesting puzzle game. Or a stealth:tm: game, because you c
 
 ## Controls
 
-- WASD for moving
+- WASD+Mouse for moving
 - T for swiTching to freecam
-- right mouse button for time rewinding
-- left mouse button for interacting
+- Right mouse button for time rewinding
+- Left mouse button for interacting
 - Esc to quit
 
 ## Technical Details

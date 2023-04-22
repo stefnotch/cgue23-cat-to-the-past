@@ -1,6 +1,7 @@
 use crate::core::application::AppStage;
 use crate::core::time::Time;
 use crate::core::time_manager::game_change::GameChangeHistory;
+use crate::core::time_manager::{is_rewinding, TimeTracked};
 use crate::scene::bounding_box::BoundingBox;
 use crate::scene::transform::{Transform, TransformBuilder};
 use bevy_ecs::prelude::{
@@ -111,18 +112,19 @@ impl PhysicsContext {
 
     pub fn setup_systems(self, world: &mut World, schedule: &mut Schedule) {
         world.insert_resource(self);
-        // Keep ECS and physics world in sync
+        // Keep ECS and physics world in sync, do note that we should probably do this after update and before physics.
         schedule.add_system(apply_collider_changes.in_set(AppStage::Update));
         schedule.add_system(apply_rigid_body_added.in_set(AppStage::Update));
         schedule.add_system(apply_rigid_body_type_change.in_set(AppStage::Update));
         schedule.add_system(apply_player_character_controller_changes.in_set(AppStage::Update));
+        schedule.add_system(update_move_body_position_system.in_set(AppStage::Update));
 
         // Update physics world and write back to ECS world
         schedule.add_system(step_physics_simulation.in_set(AppStage::UpdatePhysics));
         schedule.add_system(step_character_controllers.in_set(AppStage::BeforeRender));
         schedule.add_system(update_transform_system.in_set(AppStage::BeforeRender));
-        schedule.add_system(update_move_body_position_system.in_set(AppStage::BeforeRender));
 
+        // Time rewinding
         let velocity_history = GameChangeHistory::<VelocityChange>::new();
         velocity_history.setup_systems(
             world,
@@ -137,6 +139,13 @@ impl PhysicsContext {
             schedule,
             time_manager_track_rigid_body_type,
             time_manager_rewind_rigid_body_type,
+        );
+
+        // Special logic for time rewinding with a Transform component
+        schedule.add_system(
+            time_rewinding_move_body_transform
+                .in_set(AppStage::Update)
+                .run_if(is_rewinding),
         );
     }
 }
@@ -276,4 +285,25 @@ fn update_move_body_position_system(
     }
 }
 
-// TODO: Put "apply time rewinding function here"?
+fn time_rewinding_move_body_transform(
+    mut physics_context: ResMut<PhysicsContext>,
+    query: Query<(&RapierRigidBodyHandle, &Transform), (With<RigidBody>, With<TimeTracked>)>,
+) {
+    for (
+        rigid_body_handle,
+        Transform {
+            position,
+            rotation,
+            scale: _,
+        },
+    ) in query.iter()
+    {
+        // We aren't using the MoveBodyPosition for this, since if we did, we might mess up entities that already have a MoveBodyPosition
+        let rigid_body = physics_context
+            .rigid_bodies
+            .get_mut(rigid_body_handle.handle)
+            .unwrap();
+        rigid_body.set_next_kinematic_translation(position.coords);
+        rigid_body.set_next_kinematic_rotation(rotation.clone());
+    }
+}
