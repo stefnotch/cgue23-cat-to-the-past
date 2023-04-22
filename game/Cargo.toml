@@ -28,5 +28,5 @@ debug = { path = "../debug" }
 scene = { path = "../scene" }
 
 [features]
-default = ["trace"]
+default = []
 trace = ["debug/trace"]
