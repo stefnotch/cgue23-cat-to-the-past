@@ -1,23 +1,22 @@
 pub mod game_change;
 pub mod level_time;
-pub mod transform_change;
 
-use core::time::{update_time, Time};
+use crate::time::{update_time, Time};
 use std::time::Duration;
 
+use crate::events::NextLevel;
 use bevy_ecs::{
     prelude::{Component, EventReader, Events},
     schedule::{IntoSystemConfig, Schedule},
     system::{Res, ResMut, Resource},
     world::World,
 };
-use winit::event::MouseButton;
 
-use crate::{core::time_manager::game_change::GameChangeHistory, input::input_map::InputMap};
+use crate::time_manager::game_change::GameChangeHistory;
 
 use self::{game_change::GameChange, level_time::LevelTime};
 
-use super::{application::AppStage, events::NextLevel};
+use crate::application::AppStage;
 
 #[derive(Component)]
 pub struct TimeTracked {
@@ -46,7 +45,7 @@ pub enum TimeState {
 #[derive(Resource)]
 pub struct TimeManager {
     current_frame_timestamp: Option<LevelTime>,
-    will_rewind_next_frame: bool,
+    pub will_rewind_next_frame: bool,
     time_state: TimeState,
     level_time: LevelTime,
 }
@@ -176,7 +175,6 @@ impl TimeManager {
     pub fn setup_systems(self, world: &mut World, schedule: &mut Schedule) {
         world.insert_resource(self);
         schedule.add_system(start_frame.in_set(AppStage::StartFrame).after(update_time));
-        schedule.add_system(read_input.in_set(AppStage::Update));
         schedule.add_system(end_frame.in_set(AppStage::EndFrame));
 
         world.insert_resource(Events::<NextLevel>::default());
@@ -190,10 +188,6 @@ fn start_frame(time: Res<Time>, mut time_manager: ResMut<TimeManager>) {
 
 fn end_frame(mut time_manager: ResMut<TimeManager>) {
     time_manager.end_frame();
-}
-
-fn read_input(mut time_manager: ResMut<TimeManager>, mouse_input: Res<InputMap>) {
-    time_manager.will_rewind_next_frame = mouse_input.is_mouse_pressed(MouseButton::Right);
 }
 
 fn next_level(mut time_manager: ResMut<TimeManager>, mut next_level: EventReader<NextLevel>) {

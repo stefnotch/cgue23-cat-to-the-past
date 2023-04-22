@@ -1,4 +1,4 @@
-use core::time::{update_time, Time};
+use game_core::time::{update_time, Time};
 
 use crate::input::events::{
     KeyboardInput, MouseInput, MouseMovement, WindowFocusChanged, WindowResize,
@@ -11,23 +11,25 @@ use crate::scene::loader::AssetServer;
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ExecutorKind;
-use core::camera::{update_camera, Camera};
+use game_core::application::AppStage;
+use game_core::camera::{update_camera, Camera};
 use nalgebra::{Point3, UnitQuaternion};
 use windowing::config::WindowConfig;
 use windowing::icon::get_icon;
 use winit::dpi::{LogicalSize, PhysicalSize};
 use winit::event::{
-    DeviceEvent, Event, KeyboardInput as KeyboardInputWinit, VirtualKeyCode, WindowEvent,
+    DeviceEvent, Event, KeyboardInput as KeyboardInputWinit, MouseButton, VirtualKeyCode,
+    WindowEvent,
 };
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Fullscreen::Exclusive;
 use winit::window::{CursorGrabMode, WindowBuilder};
 
-use super::time_manager::game_change::GameChangeHistory;
-use super::time_manager::transform_change::{
+use crate::core::transform_change::{
     time_manager_rewind_transform, time_manager_track_transform, TransformChange,
 };
-use super::time_manager::TimeManager;
+use game_core::time_manager::game_change::GameChangeHistory;
+use game_core::time_manager::TimeManager;
 
 pub struct AppConfig {
     pub window: WindowConfig,
@@ -47,18 +49,6 @@ impl Default for AppConfig {
             brightness: 1.0,
         }
     }
-}
-
-#[derive(SystemSet, Clone, PartialEq, Eq, Hash, Debug)]
-pub enum AppStage {
-    StartFrame,
-    EventUpdate,
-    Update,
-    UpdatePhysics,
-    /// after physics
-    BeforeRender,
-    Render,
-    EndFrame,
 }
 
 pub struct ApplicationBuilder {
@@ -224,6 +214,8 @@ impl Application {
         schedule.add_system(handle_keyboard_input.in_set(AppStage::EventUpdate));
         schedule.add_system(handle_mouse_input.in_set(AppStage::EventUpdate));
 
+        schedule.add_system(read_input.in_set(AppStage::Update));
+
         world.insert_resource(context);
         world.insert_non_send_resource(renderer);
         schedule.add_system(render.in_set(AppStage::Render));
@@ -352,4 +344,8 @@ fn update_camera_aspect_ratio(mut camera: ResMut<Camera>, mut reader: EventReade
     for event in reader.iter() {
         camera.update_aspect_ratio(event.width as f32 / event.height as f32);
     }
+}
+
+fn read_input(mut time_manager: ResMut<TimeManager>, mouse_input: Res<InputMap>) {
+    time_manager.will_rewind_next_frame = mouse_input.is_mouse_pressed(MouseButton::Right);
 }

@@ -427,15 +427,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core"
-version = "0.1.0"
-dependencies = [
- "angle",
- "bevy_ecs",
- "nalgebra",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -695,9 +686,9 @@ version = "0.1.0"
 dependencies = [
  "angle",
  "bevy_ecs",
- "core",
  "crossbeam",
  "debug",
+ "game_core",
  "gltf",
  "image",
  "math",
@@ -710,6 +701,16 @@ dependencies = [
  "vulkano-win",
  "windowing",
  "winit",
+]
+
+[[package]]
+name = "game_core"
+version = "0.1.0"
+dependencies = [
+ "angle",
+ "bevy_ecs",
+ "nalgebra",
+ "uuid",
 ]
 
 [[package]]

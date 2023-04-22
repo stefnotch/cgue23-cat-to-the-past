@@ -4,7 +4,7 @@ use crate::render::quad_renderer::QuadRenderer;
 use crate::render::scene_renderer::SceneRenderer;
 use crate::scene::model::Model;
 use bevy_ecs::system::{NonSendMut, Query, Res};
-use core::camera::Camera;
+use game_core::camera::Camera;
 use scene::light::Light;
 use scene::transform::Transform;
 use std::sync::Arc;

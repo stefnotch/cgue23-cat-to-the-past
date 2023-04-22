@@ -1,13 +1,13 @@
-use core::time::Time;
+use game_core::time::Time;
 
-use crate::core::application::AppStage;
-use crate::core::time_manager::game_change::GameChangeHistory;
-use crate::core::time_manager::{is_rewinding, TimeTracked};
 use bevy_ecs::prelude::{
     Added, Commands, Component, Entity, IntoSystemConfig, Query, Res, ResMut, Resource, Schedule,
     With, World,
 };
 use bevy_ecs::query::{Changed, Without};
+use game_core::application::AppStage;
+use game_core::time_manager::game_change::GameChangeHistory;
+use game_core::time_manager::{is_rewinding, TimeTracked};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, UnitQuaternion};
 use rapier3d::na::Vector3;

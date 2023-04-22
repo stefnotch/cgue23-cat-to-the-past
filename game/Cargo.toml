@@ -23,7 +23,7 @@ crossbeam = "0.8.2"
 
 math = { path = "../math" }
 windowing = { path = "../windowing" }
-core = { path = "../core" }
+game_core = { path = "../game_core" }
 debug = { path = "../debug" }
 scene = { path = "../scene" }
 
