@@ -1,4 +1,4 @@
-use crate::scene::bounding_box::BoundingBox;
+use math::bounding_box::BoundingBox;
 use nalgebra::{Vector2, Vector3};
 use std::f32::consts::PI;
 use std::sync::Arc;

@@ -1,6 +1,7 @@
+use core::time::Time;
+
 use crate::core::application::{AppStage, ApplicationBuilder};
 use crate::core::camera::Camera;
-use crate::core::time::Time;
 use crate::core::time_manager::is_rewinding;
 use crate::input::events::{KeyboardInput, MouseMovement};
 use crate::input::input_map::InputMap;

@@ -1,7 +1,6 @@
 use crate::core::time_manager::TimeTracked;
 use crate::physics::physics_context::{BoxCollider, RigidBody};
 use crate::render::context::Context;
-use crate::scene::bounding_box::BoundingBox;
 use crate::scene::light::{Light, PointLight};
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::{Model, Primitive};
@@ -10,6 +9,7 @@ use bevy_ecs::prelude::*;
 use gltf::khr_lights_punctual::Kind;
 use gltf::texture::{MagFilter, MinFilter, WrappingMode};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
+use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
 use rapier3d::dynamics::RigidBodyType;
 use std::hash::Hash;

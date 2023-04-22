@@ -382,30 +382,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cat-to-the-past"
-version = "0.1.0"
-dependencies = [
- "angle",
- "bevy_ecs",
- "bevy_utils",
- "crossbeam",
- "gltf",
- "image",
- "nalgebra",
- "rapier3d",
- "tracing-chrome",
- "tracing-error",
- "tracing-log",
- "tracing-subscriber",
- "tracing-tracy",
- "uuid",
- "vulkano",
- "vulkano-shaders",
- "vulkano-win",
- "winit",
-]
-
-[[package]]
 name = "cc"
 version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -448,6 +424,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62ec6771ecfa0762d24683ee5a32ad78487a3d3afdc0fb8cae19d2c5deb50b7c"
 dependencies = [
  "crossbeam-utils",
+]
+
+[[package]]
+name = "core"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
 ]
 
 [[package]]
@@ -692,6 +675,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "game"
+version = "0.1.0"
+dependencies = [
+ "angle",
+ "bevy_ecs",
+ "bevy_utils",
+ "core",
+ "crossbeam",
+ "gltf",
+ "image",
+ "math",
+ "nalgebra",
+ "rapier3d",
+ "tracing-chrome",
+ "tracing-error",
+ "tracing-log",
+ "tracing-subscriber",
+ "tracing-tracy",
+ "uuid",
+ "vulkano",
+ "vulkano-shaders",
+ "vulkano-win",
+ "windowing",
+ "winit",
+]
+
+[[package]]
 name = "generator"
 version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -933,6 +943,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8263075bb86c5a1b1427b5ae862e8889656f126e9f77c484496e8b47cf5c5558"
 dependencies = [
  "regex-automata",
+]
+
+[[package]]
+name = "math"
+version = "0.1.0"
+dependencies = [
+ "nalgebra",
 ]
 
 [[package]]
@@ -1546,6 +1563,10 @@ checksum = "794821e4ccb0d9f979512f9c1973480123f9bd62a90d74ab0f9426fcf8f4a529"
 dependencies = [
  "bytemuck",
 ]
+
+[[package]]
+name = "scene"
+version = "0.1.0"
 
 [[package]]
 name = "scoped-tls"
@@ -2244,6 +2265,14 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "windowing"
+version = "0.1.0"
+dependencies = [
+ "image",
+ "winit",
+]
 
 [[package]]
 name = "windows"
