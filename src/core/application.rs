@@ -21,10 +21,11 @@ use winit::window::Fullscreen::Exclusive;
 use winit::window::{CursorGrabMode, Icon, WindowBuilder};
 
 use super::time::update_time;
-use super::time_manager::{
-    is_rewinding, time_manager_end_frame, time_manager_input, time_manager_start_frame,
-    time_manager_track_transform, TimeManager,
+use super::time_manager::game_change::GameChangeHistory;
+use super::time_manager::transform_change::{
+    time_manager_rewind_transform, time_manager_track_transform, TransformChange,
 };
+use super::time_manager::TimeManager;
 
 pub struct AppConfig {
     pub resolution: (u32, u32),
@@ -181,39 +182,18 @@ impl Application {
 
         let time = Time::new();
         world.insert_resource(time);
-        let time_manager = TimeManager::new();
-        world.insert_resource(time_manager);
-
         schedule.add_system(update_time.in_set(AppStage::StartFrame));
-        schedule.add_system(
-            time_manager_start_frame
-                .in_set(AppStage::StartFrame)
-                .after(update_time),
+
+        let time_manager = TimeManager::new();
+        time_manager.setup_systems(world, schedule);
+
+        let transform_history = GameChangeHistory::<TransformChange>::new();
+        transform_history.setup_systems(
+            world,
+            schedule,
+            time_manager_track_transform,
+            time_manager_rewind_transform,
         );
-
-        schedule.add_system(time_manager_input.in_set(AppStage::Update));
-
-        schedule.add_system(
-            time_manager_track_transform
-                .in_set(AppStage::Render)
-                .run_if(not(is_rewinding)),
-        );
-
-        schedule.add_system(time_manager_end_frame.in_set(AppStage::EndFrame));
-        /*
-        let mut time = self.world.get_resource_mut::<Time>().unwrap();
-                    time.update();
-
-                    let delta = time.delta();
-
-                    let mut time_manager = self.world.get_resource_mut::<TimeManager>().unwrap();
-                    time_manager.start_frame(is_rewinding_next_frame, delta);
-
-                    self.schedule.run(&mut self.world);
-
-                    let mut time_manager = self.world.get_resource_mut::<TimeManager>().unwrap();
-                    time_manager.end_frame();
-                     */
 
         // TODO: Move that code to the input.rs file?
         let input_map = InputMap::new();

@@ -1,18 +1,23 @@
 use crate::core::application::AppStage;
 use crate::core::time::Time;
-use crate::core::time_manager::{is_rewinding, TimeManager, TimeTracked};
+use crate::core::time_manager::game_change::GameChangeHistory;
+use crate::core::time_manager::{is_rewinding, TimeTracked};
 use crate::scene::bounding_box::BoundingBox;
 use crate::scene::transform::{Transform, TransformBuilder};
 use bevy_ecs::prelude::{
-    not, Added, Commands, Component, Entity, IntoSystemConfig, Query, Res, ResMut, Resource,
-    Schedule, With, World,
+    Added, Commands, Component, Entity, IntoSystemConfig, Query, Res, ResMut, Resource, Schedule,
+    With, World,
 };
 use bevy_ecs::query::{Changed, Without};
 use nalgebra::{Point3, UnitQuaternion};
 use rapier3d::na::Vector3;
 use rapier3d::prelude::*;
 
-use super::physics_change::{RigidBodyTypeChange, VelocityChange};
+use super::physics_change::{
+    time_manager_rewind_rigid_body_type, time_manager_rewind_rigid_body_velocity,
+    time_manager_track_rigid_body_type, time_manager_track_rigid_body_velocity,
+    RigidBodyTypeChange, VelocityChange,
+};
 use super::player_physics::{
     apply_player_character_controller_changes, step_character_controllers,
     PlayerCharacterController,
@@ -107,27 +112,40 @@ impl PhysicsContext {
 
     pub fn setup_systems(self, world: &mut World, schedule: &mut Schedule) {
         world.insert_resource(self);
-        // Keep ECS and physics world in sync
+        // Keep ECS and physics world in sync, do note that we should probably do this after update and before physics.
         schedule.add_system(apply_collider_changes.in_set(AppStage::Update));
-        schedule.add_system(apply_rigid_body_changes.in_set(AppStage::Update));
+        schedule.add_system(apply_rigid_body_added.in_set(AppStage::Update));
+        schedule.add_system(apply_rigid_body_type_change.in_set(AppStage::Update));
         schedule.add_system(apply_player_character_controller_changes.in_set(AppStage::Update));
+        schedule.add_system(update_move_body_position_system.in_set(AppStage::Update));
 
         // Update physics world and write back to ECS world
         schedule.add_system(step_physics_simulation.in_set(AppStage::UpdatePhysics));
         schedule.add_system(step_character_controllers.in_set(AppStage::BeforeRender));
         schedule.add_system(update_transform_system.in_set(AppStage::BeforeRender));
-        schedule.add_system(update_move_body_position_system.in_set(AppStage::BeforeRender));
 
-        schedule.add_system(
-            time_manager_track_rigid_body_type
-                .in_set(AppStage::Render)
-                .run_if(not(is_rewinding)),
+        // Time rewinding
+        let velocity_history = GameChangeHistory::<VelocityChange>::new();
+        velocity_history.setup_systems(
+            world,
+            schedule,
+            time_manager_track_rigid_body_velocity,
+            time_manager_rewind_rigid_body_velocity,
         );
 
+        let body_type_history = GameChangeHistory::<RigidBodyTypeChange>::new();
+        body_type_history.setup_systems(
+            world,
+            schedule,
+            time_manager_track_rigid_body_type,
+            time_manager_rewind_rigid_body_type,
+        );
+
+        // Special logic for time rewinding with a Transform component
         schedule.add_system(
-            time_manager_track_rigid_body_velocity
-                .in_set(AppStage::Render)
-                .run_if(not(is_rewinding)),
+            time_rewinding_move_body_transform
+                .in_set(AppStage::Update)
+                .run_if(is_rewinding),
         );
     }
 }
@@ -192,7 +210,7 @@ pub fn apply_collider_changes(
     }
 }
 
-pub fn apply_rigid_body_changes(
+pub fn apply_rigid_body_added(
     mut commands: Commands,
     mut physics_context: ResMut<PhysicsContext>,
     mut rigid_body_query: Query<(Entity, &BoxCollider, &Transform, &RigidBody), Added<RigidBody>>,
@@ -221,6 +239,21 @@ pub fn apply_rigid_body_changes(
     }
 }
 
+fn apply_rigid_body_type_change(
+    mut physics_context: ResMut<PhysicsContext>,
+    mut query: Query<(&RigidBody, &RapierRigidBodyHandle), Changed<RigidBody>>,
+) {
+    for (RigidBody(body_type), RapierRigidBodyHandle { handle }) in query.iter_mut() {
+        let rigid_body = physics_context
+            .rigid_bodies
+            .get_mut(*handle)
+            .expect("Rigid body not found");
+
+        // Technically this is uselessly executed when a rigid body is created, but eh
+        rigid_body.set_body_type(body_type.clone(), true);
+    }
+}
+
 fn update_transform_system(
     physics_context: Res<PhysicsContext>,
     mut query: Query<(&mut Transform, &RapierRigidBodyHandle), Without<PlayerCharacterController>>,
@@ -241,7 +274,7 @@ fn update_transform_system(
 
 fn update_move_body_position_system(
     mut physics_context: ResMut<PhysicsContext>,
-    mut query: Query<(&RapierRigidBodyHandle, &mut MoveBodyPosition), With<RigidBody>>,
+    query: Query<(&RapierRigidBodyHandle, &MoveBodyPosition), With<RigidBody>>,
 ) {
     for (rigid_body_handle, MoveBodyPosition { new_position }) in query.iter() {
         let rigid_body = physics_context
@@ -252,45 +285,25 @@ fn update_move_body_position_system(
     }
 }
 
-fn apply_time_rewinding(
+fn time_rewinding_move_body_transform(
     mut physics_context: ResMut<PhysicsContext>,
-    time: Res<TimeManager>,
-    query: Query<&RapierRigidBodyHandle, With<TimeTracked>>,
+    query: Query<(&RapierRigidBodyHandle, &Transform), (With<RigidBody>, With<TimeTracked>)>,
 ) {
-    if time.is_rewinding() {
-        // Rapier internally checks if the rigid body is actually being set to a new type
-    } else {
-    }
-    // physics_rigid_body.set_body_type(RigidBodyType::KinematicPositionBased, true);
-}
-
-fn time_manager_track_rigid_body_type(
-    mut time_manager: ResMut<TimeManager>,
-    query: Query<(&TimeTracked, &RigidBody), Changed<RigidBody>>,
-) {
-    for (time_tracked, rigidbody) in &query {
-        time_manager.add_command(Box::new(RigidBodyTypeChange::new(
-            time_tracked,
-            rigidbody.0,
-        )));
-    }
-}
-
-fn time_manager_track_rigid_body_velocity(
-    physics_context: Res<PhysicsContext>,
-    mut time_manager: ResMut<TimeManager>,
-    query: Query<(&TimeTracked, &RapierRigidBodyHandle)>,
-) {
-    for (time_tracked, rigid_body_handle) in &query {
-        let rigidbody = physics_context
+    for (
+        rigid_body_handle,
+        Transform {
+            position,
+            rotation,
+            scale: _,
+        },
+    ) in query.iter()
+    {
+        // We aren't using the MoveBodyPosition for this, since if we did, we might mess up entities that already have a MoveBodyPosition
+        let rigid_body = physics_context
             .rigid_bodies
-            .get(rigid_body_handle.handle)
+            .get_mut(rigid_body_handle.handle)
             .unwrap();
-
-        time_manager.add_command(Box::new(VelocityChange::new(
-            time_tracked,
-            rigidbody.linvel().clone(),
-            rigidbody.angvel().clone(),
-        )));
+        rigid_body.set_next_kinematic_translation(position.coords);
+        rigid_body.set_next_kinematic_rotation(rotation.clone());
     }
 }
