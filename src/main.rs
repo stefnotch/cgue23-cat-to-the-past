@@ -76,7 +76,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
     let before = Instant::now();
     asset_server
         .load_default_scene(
-            "./assets/scene/testing/closed_room/closed.gltf",
+            "./assets/scene/testing/prototype/prototype.glb",
             &mut commands,
             &memory_allocator,
             &context,
@@ -129,7 +129,7 @@ pub fn move_cubes(
     for mut move_body_position in query.iter_mut() {
         let shift = Translation3::new(
             0.0,
-            0.0,
+            1.0,
             4.0 * (time.level_time_seconds() * PI / 2.0 * 0.5).sin(),
         );
         move_body_position.new_position = shift.transform_point(&origin);
@@ -154,7 +154,9 @@ fn main() {
     let player_controller_settings = PlayerControllerSettings::new(5.0, 1.0, 9.81);
 
     let player_spawn_settings = PlayerSpawnSettings {
-        initial_transform: Default::default(),
+        initial_transform: TransformBuilder::new()
+            .position([0.0, 5.0, 0.0].into())
+            .build(),
         controller_settings: player_controller_settings,
         free_cam_activated: false,
     };
