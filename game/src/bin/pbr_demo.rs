@@ -8,11 +8,11 @@ use rapier3d::na::Vector3;
 
 use game::core::application::{AppConfig, ApplicationBuilder};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
-use game::scene::light::{Light, PointLight};
 use game::scene::material::Material;
 use game::scene::mesh::Mesh;
 use game::scene::model::{Model, Primitive};
-use game::scene::transform::TransformBuilder;
+use scene::light::{Light, PointLight};
+use scene::transform::TransformBuilder;
 
 fn spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
     let memory_allocator = Arc::new(

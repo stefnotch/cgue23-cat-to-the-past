@@ -7,7 +7,7 @@ use rapier3d::{
     prelude::{ColliderBuilder, QueryFilter, RigidBodyBuilder},
 };
 
-use crate::scene::transform::Transform;
+use scene::transform::Transform;
 
 use super::physics_context::{BoxCollider, PhysicsContext, RapierRigidBodyHandle, RigidBody};
 
