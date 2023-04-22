@@ -2,6 +2,7 @@
 
 members = [
     "math",
+    "windowing",
     "game",
 ]
 
