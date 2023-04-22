@@ -3,7 +3,6 @@ use core::time::Time;
 use crate::core::application::AppStage;
 use crate::core::time_manager::game_change::GameChangeHistory;
 use crate::core::time_manager::{is_rewinding, TimeTracked};
-use crate::scene::transform::{Transform, TransformBuilder};
 use bevy_ecs::prelude::{
     Added, Commands, Component, Entity, IntoSystemConfig, Query, Res, ResMut, Resource, Schedule,
     With, World,
@@ -13,6 +12,7 @@ use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, UnitQuaternion};
 use rapier3d::na::Vector3;
 use rapier3d::prelude::*;
+use scene::transform::{Transform, TransformBuilder};
 
 use super::physics_change::{
     time_manager_rewind_rigid_body_type, time_manager_rewind_rigid_body_velocity,
