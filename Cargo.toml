@@ -1,42 +1,8 @@
-[package]
-name = "cat-to-the-past"
-version = "0.1.0"
-edition = "2021"
-default-run = "cat-to-the-past"
+[workspace]
 
-[dependencies]
-vulkano = { version = "0.33.0", features = []}
-vulkano-win = "0.33.0"
-winit = "0.28"
-vulkano-shaders = "0.33.0"
-nalgebra = {version = "0.32.2", features = ["macros"] }
-angle = "0.5.0"
-rapier3d = { version = "0.17.2", features = [ "simd-stable", "debug-render" ] }
-bevy_ecs = { version = "0.10.1" }
-gltf = { git = "https://github.com/stefnotch/gltf.git", branch = "feat/emissive_strength", features = ["extras", "names", "KHR_lights_punctual", "KHR_materials_emissive_strength"] }
-image = { version = "0.24.6", default-features = false }
-uuid = { version = "1.3.0", features = ["v4", "fast-rng"]}
-crossbeam = "0.8.2"
-
-bevy_utils = { version = "0.10.1", optional = true, features = ["detailed_trace"] }
-tracing-chrome = { version = "0.7.1", optional = true }
-tracing-subscriber = { version = "0.3.16", optional = true, features = ["registry", "env-filter"] }
-tracing-log = { version = "0.1.3", optional = true }
-tracing-error = { version = "0.2.0", optional = true }
-tracing-tracy = { version = "0.10.2", optional = true }
-
-[features]
-default = []
-trace = ["tracing-core", "tracing-tracy"]
-tracing-core = [
-  "dep:bevy_utils", 
-  "dep:tracing-subscriber", 
-  "dep:tracing-log", 
-  "dep:tracing-error", 
-  "bevy_ecs/trace",
+members = [
+    "game",
 ]
-tracing-chrome = ["dep:tracing-chrome"]
-tracing-tracy = ["dep:tracing-tracy"]
 
-[profile.dev]
+[profile.dev.overrides.game]
 opt-level = 1

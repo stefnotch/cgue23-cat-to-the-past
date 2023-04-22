@@ -321,14 +321,14 @@ mod cs {
     pub mod downsample {
         vulkano_shaders::shader! {
             ty: "compute",
-            path: "assets/shaders/bloom/downsample.comp",
+            path: "../assets/shaders/bloom/downsample.comp",
         }
     }
 
     pub mod upsample {
         vulkano_shaders::shader! {
             ty: "compute",
-            path: "assets/shaders/bloom/upsample.comp",
+            path: "../assets/shaders/bloom/upsample.comp",
         }
     }
 }
