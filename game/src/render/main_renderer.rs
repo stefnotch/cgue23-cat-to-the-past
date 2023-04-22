@@ -1,4 +1,3 @@
-use crate::core::camera::Camera;
 use crate::render::bloom_renderer::BloomRenderer;
 use crate::render::context::Context;
 use crate::render::quad_renderer::QuadRenderer;
@@ -7,6 +6,7 @@ use crate::scene::light::Light;
 use crate::scene::model::Model;
 use crate::scene::transform::Transform;
 use bevy_ecs::system::{NonSendMut, Query, Res};
+use core::camera::Camera;
 use std::sync::Arc;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;

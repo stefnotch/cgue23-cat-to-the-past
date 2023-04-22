@@ -14,8 +14,7 @@ use rapier3d::na::Vector3;
 
 use game::core::application::{AppConfig, ApplicationBuilder};
 
-#[cfg(feature = "trace")]
-use game::debug::tracing::start_tracing;
+use debug::tracing::start_tracing;
 
 use game::physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
@@ -137,7 +136,6 @@ pub fn move_cubes(
 }
 
 fn main() {
-    #[cfg(feature = "trace")]
     let _guard = start_tracing();
 
     // TODO: remove this

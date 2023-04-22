@@ -1,9 +1,9 @@
-use crate::core::camera::Camera;
 use crate::render::context::Context;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::Model;
 use crate::scene::texture::Texture;
 use crate::scene::transform::Transform;
+use core::camera::Camera;
 
 use crate::scene::light::{Light, PointLight};
 use crate::scene::material::Material;
