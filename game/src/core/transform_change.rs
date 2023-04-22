@@ -7,7 +7,7 @@ use bevy_ecs::{
 
 use scene::transform::Transform;
 
-use super::{
+use game_core::time_manager::{
     game_change::{GameChange, GameChangeHistory, InterpolationType},
     TimeManager, TimeTracked,
 };
@@ -34,7 +34,7 @@ pub fn time_manager_rewind_transform(
 ) {
     let mut entities: HashMap<_, _> = query
         .iter_mut()
-        .map(|(time_tracked, transform)| (time_tracked.id, transform))
+        .map(|(time_tracked, transform)| (time_tracked.id(), transform))
         .collect();
 
     let (commands, _interpolation) =
@@ -59,7 +59,7 @@ pub struct TransformChange {
 impl TransformChange {
     fn new(time_tracked: &TimeTracked, transform: Transform) -> Self {
         Self {
-            id: time_tracked.id,
+            id: time_tracked.id(),
             new_transform: transform,
         }
     }

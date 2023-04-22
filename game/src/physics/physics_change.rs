@@ -8,7 +8,7 @@ use bevy_ecs::{
 use nalgebra::Vector3;
 use rapier3d::prelude::RigidBodyType;
 
-use crate::core::time_manager::{
+use game_core::time_manager::{
     game_change::{GameChange, GameChangeHistory, InterpolationType},
     TimeManager, TimeState, TimeTracked,
 };

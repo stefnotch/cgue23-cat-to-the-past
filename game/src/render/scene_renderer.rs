@@ -2,7 +2,7 @@ use crate::render::context::Context;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::Model;
 use crate::scene::texture::Texture;
-use core::camera::Camera;
+use game_core::camera::Camera;
 use scene::transform::Transform;
 
 use crate::scene::material::Material;

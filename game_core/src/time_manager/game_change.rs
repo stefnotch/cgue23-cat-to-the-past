@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 
+use crate::events::NextLevel;
 use bevy_ecs::{
     prelude::{not, EventReader},
     schedule::{IntoSystemConfig, Schedule},
@@ -7,7 +8,7 @@ use bevy_ecs::{
     world::World,
 };
 
-use crate::core::{application::AppStage, events::NextLevel};
+use crate::application::AppStage;
 
 use super::{is_rewinding, level_time::LevelTime, TimeManager};
 
@@ -65,7 +66,7 @@ where
         }
     }
 
-    pub(super) fn add_command(&mut self, timestamp: LevelTime, command: T) {
+    pub fn add_command(&mut self, timestamp: LevelTime, command: T) {
         if let Some(last) = self.history.back_mut() {
             if last.timestamp == timestamp {
                 last.commands.push(command);
