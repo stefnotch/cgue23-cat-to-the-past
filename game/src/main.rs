@@ -76,7 +76,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
     let before = Instant::now();
     asset_server
         .load_default_scene(
-            "../assets/scene/testing/prototype/prototype.glb",
+            "./assets/scene/testing/prototype/prototype.glb",
             &mut commands,
             &memory_allocator,
             &context,

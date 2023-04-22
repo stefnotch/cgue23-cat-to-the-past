@@ -1,8 +1,9 @@
 [workspace]
 
 members = [
+    "math",
     "game",
 ]
 
-[profile.dev.overrides.game]
+[profile.dev.package.game]
 opt-level = 1

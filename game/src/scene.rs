@@ -1,4 +1,3 @@
-pub mod bounding_box;
 pub mod light;
 pub mod loader;
 pub mod material;
