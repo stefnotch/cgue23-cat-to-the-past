@@ -382,30 +382,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cat-to-the-past"
-version = "0.1.0"
-dependencies = [
- "angle",
- "bevy_ecs",
- "bevy_utils",
- "crossbeam",
- "gltf",
- "image",
- "nalgebra",
- "rapier3d",
- "tracing-chrome",
- "tracing-error",
- "tracing-log",
- "tracing-subscriber",
- "tracing-tracy",
- "uuid",
- "vulkano",
- "vulkano-shaders",
- "vulkano-win",
- "winit",
-]
-
-[[package]]
 name = "cc"
 version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -689,6 +665,30 @@ dependencies = [
  "parking",
  "pin-project-lite",
  "waker-fn",
+]
+
+[[package]]
+name = "game"
+version = "0.1.0"
+dependencies = [
+ "angle",
+ "bevy_ecs",
+ "bevy_utils",
+ "crossbeam",
+ "gltf",
+ "image",
+ "nalgebra",
+ "rapier3d",
+ "tracing-chrome",
+ "tracing-error",
+ "tracing-log",
+ "tracing-subscriber",
+ "tracing-tracy",
+ "uuid",
+ "vulkano",
+ "vulkano-shaders",
+ "vulkano-win",
+ "winit",
 ]
 
 [[package]]

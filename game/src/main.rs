@@ -1,28 +1,28 @@
 use bevy_ecs::prelude::{Component, Query, With};
-use cat_to_the_past::core::time_manager::TimeManager;
-use cat_to_the_past::scene::loader::AssetServer;
+use game::core::time_manager::TimeManager;
+use game::scene::loader::AssetServer;
 use std::f32::consts::PI;
 use std::sync::Arc;
 use std::time::Instant;
 
 use bevy_ecs::system::{Commands, Res};
-use cat_to_the_past::render::context::Context;
+use game::render::context::Context;
 use nalgebra::{Point3, Translation3};
 use rapier3d::dynamics::RigidBodyType;
 use rapier3d::na::Vector3;
 
-use cat_to_the_past::core::application::{AppConfig, ApplicationBuilder};
+use game::core::application::{AppConfig, ApplicationBuilder};
 
 #[cfg(feature = "trace")]
-use cat_to_the_past::debug::tracing::start_tracing;
+use game::debug::tracing::start_tracing;
 
-use cat_to_the_past::core::time::Time;
-use cat_to_the_past::physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody};
-use cat_to_the_past::player::{PlayerControllerSettings, PlayerSpawnSettings};
-use cat_to_the_past::scene::material::Material;
-use cat_to_the_past::scene::mesh::Mesh;
-use cat_to_the_past::scene::model::{Model, Primitive};
-use cat_to_the_past::scene::transform::{Transform, TransformBuilder};
+use game::core::time::Time;
+use game::physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody};
+use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
+use game::scene::material::Material;
+use game::scene::mesh::Mesh;
+use game::scene::model::{Model, Primitive};
+use game::scene::transform::{Transform, TransformBuilder};
 
 fn _spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
     let memory_allocator = Arc::new(
@@ -76,7 +76,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<
     let before = Instant::now();
     asset_server
         .load_default_scene(
-            "./assets/scene/testing/prototype/prototype.glb",
+            "../assets/scene/testing/prototype/prototype.glb",
             &mut commands,
             &memory_allocator,
             &context,

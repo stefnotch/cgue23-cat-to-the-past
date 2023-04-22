@@ -292,13 +292,13 @@ const fn quad_mesh() -> ([QuadVertex; 4], [u32; 6]) {
 mod vs {
     vulkano_shaders::shader! {
         ty: "vertex",
-        path: "assets/shaders/bloom/quad.vert",
+        path: "../assets/shaders/bloom/quad.vert",
     }
 }
 
 mod fs {
     vulkano_shaders::shader! {
         ty: "fragment",
-        path: "assets/shaders/bloom/quad.frag",
+        path: "../assets/shaders/bloom/quad.frag",
     }
 }
