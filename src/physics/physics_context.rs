@@ -19,8 +19,8 @@ use super::physics_change::{
     RigidBodyTypeChange, VelocityChange,
 };
 use super::player_physics::{
-    apply_player_character_controller_changes, step_character_controller_collisions,
-    step_character_controllers, PlayerCharacterController,
+    apply_player_character_controller_changes, step_character_controllers,
+    PlayerCharacterController,
 };
 
 #[derive(Resource)]
@@ -135,11 +135,6 @@ impl PhysicsContext {
             step_character_controllers
                 .in_set(AppStage::UpdatePhysics)
                 .after(step_physics_simulation),
-        );
-        schedule.add_system(
-            step_character_controller_collisions
-                .in_set(AppStage::UpdatePhysics)
-                .after(step_character_controllers),
         );
         schedule.add_system(
             update_transform_system
