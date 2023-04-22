@@ -17,6 +17,21 @@ where
 {
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum InterpolationType {
+    None,
+    Linear,
+}
+
+pub struct GameChangeInterpolation<'history, T>
+where
+    T: GameChange,
+{
+    pub from: &'history GameChanges<T>,
+    pub to: &'history GameChanges<T>,
+    pub factor: f32,
+}
+
 /// All game changes in one frame
 /// Multiple commands, because we have multiple entities
 pub struct GameChanges<T>
@@ -67,20 +82,23 @@ where
         self.history.clear();
     }
 
-    pub fn get_commands_to_apply(&mut self, time_manager: &TimeManager) -> Vec<GameChanges<T>> {
+    /// Returns the commands that need to be applied to the game state
+    pub fn take_commands_to_apply(
+        &mut self,
+        time_manager: &TimeManager,
+        with_interpolation: InterpolationType,
+    ) -> (Vec<GameChanges<T>>, Option<GameChangeInterpolation<T>>) {
         let mut commands = Vec::new();
         loop {
-            if self.history.len() < 3 {
+            if self.history.len() <= 1 {
                 // If there's only one element, we can't really rewind time any further
-                // If there are only two elements, we don't have to apply any commands, instead we interpolate between them
                 break;
             }
 
-            let _top = self.history.get(self.history.len() - 1).unwrap();
-            let previous = self.history.get(self.history.len() - 2).unwrap();
+            let top = self.history.back().unwrap();
 
             // If we're further back in the past
-            if time_manager.level_time < previous.timestamp {
+            if time_manager.level_time < top.timestamp {
                 // We can pop the top and apply it
                 let top = self.history.pop_back().unwrap();
                 commands.push(top);
@@ -90,32 +108,44 @@ where
             }
         }
 
-        commands
-    }
+        let interpolation = if with_interpolation == InterpolationType::Linear
+            && commands
+                .last()
+                .map(|v| self.can_interpolate(v, time_manager))
+                == Some(true)
+        {
+            // We add it back to the history
+            let top = commands.pop().unwrap();
+            self.history.push_back(top);
+            let top = self.history.back().unwrap();
 
-    pub fn get_commands_to_interpolate(
-        &self,
-        time_manager: &TimeManager,
-    ) -> Option<(&GameChanges<T>, &GameChanges<T>, f32)> {
-        if !time_manager.is_interpolating() {
-            return None;
-        }
-
-        if self.history.len() < 2 {
-            return None;
-        }
-
-        let top = self.history.get(self.history.len() - 1).unwrap();
-        let previous = self.history.get(self.history.len() - 2).unwrap();
-
-        if time_manager.level_time < top.timestamp {
+            // And return the desired interpolation data
+            let previous = self.history.get(self.history.len() - 2).unwrap();
+            assert!(previous.timestamp <= top.timestamp);
             let factor = previous
                 .timestamp
                 .inverse_lerp(&top.timestamp, time_manager.level_time);
-            Some((previous, top, factor))
+            Some(GameChangeInterpolation {
+                from: previous,
+                to: top,
+                factor,
+            })
         } else {
             None
+        };
+
+        (commands, interpolation)
+    }
+
+    fn can_interpolate(&self, top: &GameChanges<T>, time_manager: &TimeManager) -> bool {
+        if !time_manager.is_interpolating() {
+            return false;
         }
+        if self.history.len() < 1 {
+            return false;
+        }
+
+        return time_manager.level_time < top.timestamp;
     }
 }
 

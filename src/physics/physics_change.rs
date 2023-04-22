@@ -9,7 +9,7 @@ use nalgebra::Vector3;
 use rapier3d::prelude::RigidBodyType;
 
 use crate::core::time_manager::{
-    game_change::{GameChange, GameChangeHistory},
+    game_change::{GameChange, GameChangeHistory, InterpolationType},
     TimeManager, TimeState, TimeTracked,
 };
 
@@ -67,13 +67,14 @@ pub(super) fn time_manager_rewind_rigid_body_velocity(
     mut history: ResMut<GameChangeHistory<VelocityChange>>,
     query: Query<(&TimeTracked, &RapierRigidBodyHandle)>,
 ) {
-    // TODO: Make kinematic?
+    // The code below makes it kinematic
     let entities: HashMap<_, _> = query
         .into_iter()
         .map(|(time_tracked, handle)| (time_tracked.id(), handle))
         .collect();
 
-    let commands = history.get_commands_to_apply(&time_manager);
+    let (commands, _interpolation) =
+        history.take_commands_to_apply(&time_manager, InterpolationType::None);
     for command_collection in commands {
         for command in command_collection.commands {
             if let Some(v) = entities.get(&command.id) {
@@ -87,9 +88,7 @@ pub(super) fn time_manager_rewind_rigid_body_velocity(
         }
     }
 
-    if let Some(interpolation) = history.get_commands_to_interpolate(&time_manager) {
-        // TODO: Interpolation logic
-    }
+    // TODO: Interpolation logic
 }
 
 pub(super) struct RigidBodyTypeChange {
@@ -133,7 +132,7 @@ pub(super) fn time_manager_rewind_rigid_body_type(
             // We note down the type of the rigid body
             // and then make it kinematic
             for (time_tracked, mut rigidbody) in query.iter_mut() {
-                time_manager.add_command(
+                time_manager.add_rewinder_command(
                     RigidBodyTypeChange::new(time_tracked, rigidbody.0),
                     &mut history,
                 );
@@ -148,7 +147,8 @@ pub(super) fn time_manager_rewind_rigid_body_type(
                 .map(|(time_tracked, rigidbody)| (time_tracked.id(), rigidbody))
                 .collect();
 
-            let commands = history.get_commands_to_apply(&time_manager);
+            let (commands, _interpolation) =
+                history.take_commands_to_apply(&time_manager, InterpolationType::None);
             for command_collection in commands {
                 for command in command_collection.commands {
                     if let Some(v) = entities.get_mut(&command.id) {

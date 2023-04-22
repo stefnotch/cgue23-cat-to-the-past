@@ -94,7 +94,7 @@ impl TimeManager {
                     self.time_state = TimeState::StopRewinding;
                 }
                 TimeState::StopRewinding => {
-                    self.level_time += delta;
+                    // Keep level time unchanged and stop interpolating
                     self.time_state = TimeState::Normal;
                 }
             }
@@ -116,6 +116,21 @@ impl TimeManager {
             .current_frame_timestamp
             .expect("Cannot add commands outside of a frame");
         history.add_command(timestamp, command);
+    }
+
+    pub fn add_rewinder_command<T>(&mut self, command: T, history: &mut GameChangeHistory<T>)
+    where
+        T: GameChange,
+    {
+        assert!(
+            self.is_rewinding(),
+            "Can only add rewinder commands while rewinding"
+        );
+        let timestamp = self
+            .current_frame_timestamp
+            .expect("Cannot add commands outside of a frame");
+        // + 1 ns, to make sure the command will actually be executed by the rewinder
+        history.add_command(timestamp + Duration::from_nanos(1), command);
     }
 
     pub fn level_time_seconds(&self) -> f32 {
