@@ -13,6 +13,7 @@ use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ExecutorKind;
 use nalgebra::{Point3, UnitQuaternion};
 use windowing::config::WindowConfig;
+use windowing::icon::get_icon;
 use winit::dpi::{LogicalSize, PhysicalSize};
 use winit::event::{
     DeviceEvent, Event, KeyboardInput as KeyboardInputWinit, VirtualKeyCode, WindowEvent,
@@ -307,11 +308,7 @@ impl Application {
             })
             .with_title("Cat to the past");
 
-        if let Ok(Ok(icon)) = image::open("assets/icon.png").map(|image| {
-            let width = image.width();
-            let height = image.height();
-            Icon::from_rgba(image.into_bytes(), width, height)
-        }) {
+        if let Ok(icon) = get_icon() {
             //.with_taskbar_icon(taskbar_icon)
             window_builder = window_builder.with_window_icon(Some(icon));
         }
