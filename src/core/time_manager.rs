@@ -1,20 +1,26 @@
 pub mod game_change;
 pub mod level_time;
+pub mod transform_change;
 
-use std::{collections::VecDeque, time::Duration};
+use std::time::Duration;
 
 use bevy_ecs::{
-    prelude::{Component, Entity},
-    query::Changed,
-    system::{Commands, Query, Res, ResMut, Resource},
+    prelude::{Component, EventReader, Events},
+    schedule::{IntoSystemConfig, Schedule},
+    system::{Res, ResMut, Resource},
+    world::World,
 };
 use winit::event::MouseButton;
 
-use crate::{input::input_map::InputMap, scene::transform::Transform};
+use crate::{core::time_manager::game_change::GameChangeHistory, input::input_map::InputMap};
 
 use self::{game_change::GameChange, level_time::LevelTime};
 
-use super::time::Time;
+use super::{
+    application::AppStage,
+    events::NextLevel,
+    time::{update_time, Time},
+};
 
 #[derive(Component)]
 pub struct TimeTracked {
@@ -32,86 +38,99 @@ impl TimeTracked {
     }
 }
 
+/// The 4 time states to cycle through
+pub enum TimeState {
+    Normal,
+    StartRewinding,
+    Rewinding,
+    StopRewinding,
+}
+
 #[derive(Resource)]
 pub struct TimeManager {
-    /// To limit the size of this, we could either
-    /// - have a countdown for every level
-    /// - only save actual changes, so when the user is AFK, we don't save anything
-    /// - have a max size and remove the oldest commands,
-    ///   this is especially useful when it's always possible to restart the level simply by walking back to the beginning
-    commands: VecDeque<GameChanges>,
-    current_frame_commands: GameChanges,
+    current_frame_timestamp: Option<LevelTime>,
     will_rewind_next_frame: bool,
-    is_rewinding: bool,
+    time_state: TimeState,
     level_time: LevelTime,
 }
 
 pub fn is_rewinding(time_manager: Res<TimeManager>) -> bool {
-    time_manager.is_rewinding
-}
-
-/// All game changes in one frame
-struct GameChanges {
-    timestamp: LevelTime,
-    commands: Vec<Box<dyn GameChange>>,
+    time_manager.is_rewinding()
 }
 
 impl TimeManager {
     pub fn new() -> Self {
         Self {
-            commands: VecDeque::new(),
-            current_frame_commands: GameChanges {
-                timestamp: LevelTime::zero(),
-                commands: Vec::new(),
-            },
+            current_frame_timestamp: Some(LevelTime::zero()),
             will_rewind_next_frame: false,
-            is_rewinding: false,
+            time_state: TimeState::Normal,
             level_time: LevelTime::zero(),
         }
     }
 
     pub fn start_frame(&mut self, delta: Duration) {
-        if !self.will_rewind_next_frame {
-            self.level_time += delta;
-            // If we were rewinding in the previous frame
-            if self.is_rewinding {
-                // Jump to the closest place where you actually have all the required data
-                // We gotta be careful with the compression here, wouldn't want funny glitches
+        if self.will_rewind_next_frame {
+            // Rewinding
+            self.level_time = self.level_time.sub_or_zero(delta);
+            match self.time_state {
+                TimeState::Normal => {
+                    self.time_state = TimeState::StartRewinding;
+                }
+                TimeState::StartRewinding => {
+                    self.time_state = TimeState::Rewinding;
+                }
+                TimeState::Rewinding => {}
+                TimeState::StopRewinding => {
+                    self.time_state = TimeState::Rewinding;
+                }
             }
         } else {
-            self.level_time = (self.level_time - delta).max(LevelTime::zero());
-            // Apply undo stack
-            self.apply_commands();
-            // Apply interpolated time
+            match self.time_state {
+                TimeState::Normal => {
+                    self.level_time += delta;
+                }
+                TimeState::StartRewinding | TimeState::Rewinding => {
+                    // Keep level time unchanged and stop interpolating
+                    self.time_state = TimeState::StopRewinding;
+                }
+                TimeState::StopRewinding => {
+                    // Keep level time unchanged and stop interpolating
+                    self.time_state = TimeState::Normal;
+                }
+            }
         }
-        self.is_rewinding = self.will_rewind_next_frame;
-        self.current_frame_commands.timestamp = self.level_time.clone();
+
+        self.current_frame_timestamp = Some(self.level_time.clone());
     }
 
     pub fn end_frame(&mut self) {
-        // Swap the current frame commands with an empty one
-        let current_commands = std::mem::replace(
-            &mut self.current_frame_commands,
-            GameChanges {
-                timestamp: self.level_time.clone(),
-                commands: Vec::new(),
-            },
+        self.current_frame_timestamp = None;
+    }
+
+    pub fn add_command<T>(&mut self, command: T, history: &mut GameChangeHistory<T>)
+    where
+        T: GameChange,
+    {
+        assert!(!self.is_rewinding(), "Cannot add commands while rewinding");
+        let timestamp = self
+            .current_frame_timestamp
+            .expect("Cannot add commands outside of a frame");
+        history.add_command(timestamp, command);
+    }
+
+    pub fn add_rewinder_command<T>(&mut self, command: T, history: &mut GameChangeHistory<T>)
+    where
+        T: GameChange,
+    {
+        assert!(
+            self.is_rewinding(),
+            "Can only add rewinder commands while rewinding"
         );
-
-        // Only if any commands were added, add them to the queue
-        if current_commands.commands.len() > 0 {
-            self.commands.push_back(current_commands);
-        }
-    }
-
-    pub fn add_command(&mut self, command: Box<dyn GameChange>) {
-        assert!(!self.is_rewinding, "Cannot add commands while rewinding");
-        self.current_frame_commands.commands.push(command);
-    }
-
-    /// Usually called when a next level is started
-    pub fn reset(&mut self) {
-        self.commands.clear()
+        let timestamp = self
+            .current_frame_timestamp
+            .expect("Cannot add commands outside of a frame");
+        // + 1 ns, to make sure the command will actually be executed by the rewinder
+        history.add_command(timestamp + Duration::from_nanos(1), command);
     }
 
     pub fn level_time_seconds(&self) -> f32 {
@@ -120,33 +139,27 @@ impl TimeManager {
 
     pub fn next_level(&mut self) {
         self.level_time = LevelTime::zero();
-        self.reset();
     }
 
     pub fn is_rewinding(&self) -> bool {
-        self.is_rewinding
+        match self.time_state {
+            TimeState::Normal => false,
+            TimeState::StartRewinding => true,
+            TimeState::Rewinding => true,
+            TimeState::StopRewinding => true,
+        }
     }
 
-    fn apply_commands(&mut self) {
-        loop {
-            if self.commands.len() < 3 {
-                // If there's only one element, we can't really rewind time any further
-                // If there are only two elements, we don't have to apply any commands, instead we interpolate between them
-                return;
-            }
+    pub fn time_state(&self) -> &TimeState {
+        &self.time_state
+    }
 
-            let _top = self.commands.get(self.commands.len() - 1).unwrap();
-            let previous = self.commands.get(self.commands.len() - 2).unwrap();
-
-            // If we're further back in the past
-            if self.level_time < previous.timestamp {
-                // We can pop the top and apply it
-                let top = self.commands.pop_back().unwrap();
-                //top.apply()
-            } else {
-                // Nothing to do
-                break;
-            }
+    pub fn is_interpolating(&self) -> bool {
+        match self.time_state {
+            TimeState::Normal => false,
+            TimeState::StartRewinding => true,
+            TimeState::Rewinding => true,
+            TimeState::StopRewinding => false,
         }
     }
 
@@ -162,58 +175,32 @@ impl TimeManager {
     // Apply game changes
     // - kinematic character controller
     // - ...
-}
 
-/// Only tracks translations for now
-pub fn time_manager_track_transform(
-    mut time_manager: ResMut<TimeManager>,
-    query: Query<(&TimeTracked, &Transform), Changed<Transform>>,
-) {
-    for (time_tracked, transform) in &query {
-        time_manager.add_command(Box::new(TransformChange::new(
-            time_tracked,
-            transform.clone(),
-        )));
+    pub fn setup_systems(self, world: &mut World, schedule: &mut Schedule) {
+        world.insert_resource(self);
+        schedule.add_system(start_frame.in_set(AppStage::StartFrame).after(update_time));
+        schedule.add_system(read_input.in_set(AppStage::Update));
+        schedule.add_system(end_frame.in_set(AppStage::EndFrame));
+
+        world.insert_resource(Events::<NextLevel>::default());
+        schedule.add_system(next_level.in_set(AppStage::StartFrame));
     }
 }
 
-pub fn time_manager_start_frame(
-    mut commands: Commands,
-    time: Res<Time>,
-    mut time_manager: ResMut<TimeManager>,
-    query: Query<(Entity, &TimeTracked)>,
-) {
+fn start_frame(time: Res<Time>, mut time_manager: ResMut<TimeManager>) {
     time_manager.start_frame(time.delta());
 }
 
-pub fn time_manager_end_frame(mut time_manager: ResMut<TimeManager>) {
+fn end_frame(mut time_manager: ResMut<TimeManager>) {
     time_manager.end_frame();
 }
 
-pub fn time_manager_input(mut time_manager: ResMut<TimeManager>, mouse_input: Res<InputMap>) {
+fn read_input(mut time_manager: ResMut<TimeManager>, mouse_input: Res<InputMap>) {
     time_manager.will_rewind_next_frame = mouse_input.is_mouse_pressed(MouseButton::Right);
 }
 
-struct TransformChange {
-    id: uuid::Uuid,
-    new_transform: Transform,
-}
-
-impl TransformChange {
-    fn new(time_tracked: &TimeTracked, transform: Transform) -> Self {
-        Self {
-            id: time_tracked.id,
-            new_transform: transform,
-        }
-    }
-}
-
-impl GameChange for TransformChange {
-    fn is_similar(&self, other: &Self) -> bool
-    where
-        Self: Sized,
-    {
-        // TODO: check if the transform is on the LERP path...
-        self.id == other.id && self.new_transform == other.new_transform
+fn next_level(mut time_manager: ResMut<TimeManager>, mut next_level: EventReader<NextLevel>) {
+    if next_level.iter().next().is_some() {
+        time_manager.next_level();
     }
 }
