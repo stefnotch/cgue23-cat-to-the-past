@@ -61,7 +61,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
         },
         TransformBuilder::new()
             .position([0.0, -1.0, 0.0].into())
-            .scale([20.0, 1.0, 20.0].into())
+            .scale([30.0, 1.0, 20.0].into())
             .build(),
     ));
 
@@ -81,22 +81,40 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
             .build(),
     ));
 
-    // commands.spawn((
-    //     Model {
-    //         primitives: vec![Primitive {
-    //             mesh: cube.clone(),
-    //             material: white_material.clone(),
-    //         }],
-    //     },
-    //     BoxCollider {
-    //         bounds: bounding_box.clone(),
-    //     },
-    //     RigidBody(RigidBodyType::Dynamic),
-    //     TransformBuilder::new()
-    //         .scale([0.5; 3].into())
-    //         .position([0.0, 3.0, -3.0].into())
-    //         .build(),
-    // ));
+    // Stairs
+    for i in 0..5 {
+        commands.spawn((
+            Model {
+                primitives: vec![Primitive {
+                    mesh: cube.clone(),
+                    material: white_material.clone(),
+                }],
+            },
+            BoxCollider {
+                bounds: bounding_box.clone(),
+            },
+            TransformBuilder::new()
+                .position([10.0 + i as f32, i as f32 * 0.25, -3.0].into())
+                .build(),
+        ));
+    }
+
+    commands.spawn((
+        Model {
+            primitives: vec![Primitive {
+                mesh: cube.clone(),
+                material: white_material.clone(),
+            }],
+        },
+        BoxCollider {
+            bounds: bounding_box.clone(),
+        },
+        RigidBody(RigidBodyType::Dynamic),
+        TransformBuilder::new()
+            .scale([0.5; 3].into())
+            .position([0.0, 3.0, -3.0].into())
+            .build(),
+    ));
 }
 
 fn main() {
