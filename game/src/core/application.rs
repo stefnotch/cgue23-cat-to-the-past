@@ -1,6 +1,5 @@
 use core::time::{update_time, Time};
 
-use crate::core::camera::{update_camera, update_camera_aspect_ratio, Camera};
 use crate::input::events::{
     KeyboardInput, MouseInput, MouseMovement, WindowFocusChanged, WindowResize,
 };
@@ -12,6 +11,7 @@ use crate::scene::loader::AssetServer;
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ExecutorKind;
+use core::camera::{update_camera, Camera};
 use nalgebra::{Point3, UnitQuaternion};
 use windowing::config::WindowConfig;
 use windowing::icon::get_icon;
@@ -345,5 +345,11 @@ fn lock_mouse(context: Res<Context>, mut event: EventReader<WindowFocusChanged>)
             window.set_cursor_grab(CursorGrabMode::None).unwrap();
             window.set_cursor_visible(true);
         }
+    }
+}
+
+fn update_camera_aspect_ratio(mut camera: ResMut<Camera>, mut reader: EventReader<WindowResize>) {
+    for event in reader.iter() {
+        camera.update_aspect_ratio(event.width as f32 / event.height as f32);
     }
 }

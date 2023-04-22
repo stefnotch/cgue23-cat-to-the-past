@@ -430,7 +430,9 @@ dependencies = [
 name = "core"
 version = "0.1.0"
 dependencies = [
+ "angle",
  "bevy_ecs",
+ "nalgebra",
 ]
 
 [[package]]
@@ -557,6 +559,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 
 [[package]]
+name = "debug"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "bevy_utils",
+ "tracing-chrome",
+ "tracing-error",
+ "tracing-log",
+ "tracing-subscriber",
+ "tracing-tracy",
+]
+
+[[package]]
 name = "dispatch"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -680,19 +695,14 @@ version = "0.1.0"
 dependencies = [
  "angle",
  "bevy_ecs",
- "bevy_utils",
  "core",
  "crossbeam",
+ "debug",
  "gltf",
  "image",
  "math",
  "nalgebra",
  "rapier3d",
- "tracing-chrome",
- "tracing-error",
- "tracing-log",
- "tracing-subscriber",
- "tracing-tracy",
  "uuid",
  "vulkano",
  "vulkano-shaders",

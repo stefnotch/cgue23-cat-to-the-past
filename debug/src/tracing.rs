@@ -106,3 +106,9 @@ pub fn start_tracing() -> FlushGuard {
     }
     guard
 }
+
+#[cfg(not(feature = "trace"))]
+pub fn start_tracing() -> FlushGuard {
+    // Dummy
+    FlushGuard {}
+}

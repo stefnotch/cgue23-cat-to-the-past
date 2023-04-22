@@ -6,6 +6,7 @@ members = [
     "math",
     "windowing",
     "game",
+    "debug"
 ]
 
 [profile.dev.package.game]

@@ -1,7 +1,6 @@
 use core::time::Time;
 
 use crate::core::application::{AppStage, ApplicationBuilder};
-use crate::core::camera::Camera;
 use crate::core::time_manager::is_rewinding;
 use crate::input::events::{KeyboardInput, MouseMovement};
 use crate::input::input_map::InputMap;
@@ -10,6 +9,7 @@ use crate::scene::transform::Transform;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
+use core::camera::Camera;
 use nalgebra::{UnitQuaternion, Vector3};
 use winit::event::ElementState::Released;
 use winit::event::VirtualKeyCode;
