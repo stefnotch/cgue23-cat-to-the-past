@@ -73,12 +73,7 @@ fn spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
 }
 
 fn main() {
-    let config = AppConfig {
-        resolution: (1280, 720),
-        fullscreen: false,
-        brightness: 1.0,
-        refresh_rate: 60,
-    };
+    let config = AppConfig::default();
 
     let player_controller_settings = PlayerControllerSettings::new(5.0, 1.0, 9.81);
 

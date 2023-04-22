@@ -41,6 +41,17 @@ pub struct AppConfig {
     pub refresh_rate: u32,
 }
 
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            resolution: (1280, 720),
+            fullscreen: false,
+            brightness: 1.0,
+            refresh_rate: 60,
+        }
+    }
+}
+
 #[derive(SystemSet, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum AppStage {
     StartFrame,
