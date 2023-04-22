@@ -331,7 +331,11 @@ impl<'a> SceneLoadingData<'a> {
                 material.clone()
             } else {
                 let gltf_material_pbr = gltf_material.pbr_metallic_roughness();
-                let material = Arc::new(Material {
+                let emissive_strength = gltf_material.emissive_strength().unwrap_or(1.0);
+                let emissive_factor = gltf_material
+                    .emissive_factor()
+                    .map(|v| v * emissive_strength);
+                let material = Arc::new(dbg!(Material {
                     base_color: Vector3::from_row_slice(
                         &gltf_material_pbr.base_color_factor()[0..3],
                     ),
@@ -341,8 +345,8 @@ impl<'a> SceneLoadingData<'a> {
                     }),
                     roughness_factor: gltf_material_pbr.roughness_factor(),
                     metallic_factor: gltf_material_pbr.metallic_factor(),
-                    emissivity: gltf_material.emissive_factor().into(),
-                });
+                    emissivity: emissive_factor.into(),
+                }));
 
                 self.materials.insert(material_index, material.clone());
                 material.clone()
