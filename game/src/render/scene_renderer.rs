@@ -2,11 +2,11 @@ use crate::render::context::Context;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::Model;
 use crate::scene::texture::Texture;
-use crate::scene::transform::Transform;
 use core::camera::Camera;
+use scene::transform::Transform;
 
-use crate::scene::light::{Light, PointLight};
 use crate::scene::material::Material;
+use scene::light::{Light, PointLight};
 use std::sync::Arc;
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
 use vulkano::buffer::BufferUsage;

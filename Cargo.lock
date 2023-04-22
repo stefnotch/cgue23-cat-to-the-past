@@ -703,6 +703,12 @@ dependencies = [
  "math",
  "nalgebra",
  "rapier3d",
+ "scene",
+ "tracing-chrome",
+ "tracing-error",
+ "tracing-log",
+ "tracing-subscriber",
+ "tracing-tracy",
  "uuid",
  "vulkano",
  "vulkano-shaders",
@@ -1577,6 +1583,10 @@ dependencies = [
 [[package]]
 name = "scene"
 version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "nalgebra",
+]
 
 [[package]]
 name = "scoped-tls"

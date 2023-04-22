@@ -5,7 +5,7 @@ use bevy_ecs::{
     system::{Query, Res, ResMut},
 };
 
-use crate::scene::transform::Transform;
+use scene::transform::Transform;
 
 use super::{
     game_change::{GameChange, GameChangeHistory, InterpolationType},
