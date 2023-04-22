@@ -164,9 +164,8 @@ impl Application {
         world.insert_resource(asset_server);
         AssetServer::insert_asset_types(&mut world);
 
-        // TODO: add interface to change the position and orientation of the camera
         let camera = Camera::new(
-            Point3::new(0.0, 0.0, 8.0),
+            Point3::origin(), // Note: The player updates this
             UnitQuaternion::identity(),
             aspect_ratio,
             Deg(60.0),
