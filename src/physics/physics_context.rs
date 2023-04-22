@@ -54,10 +54,6 @@ pub struct PhysicsContext {
     /// colliders
     pub physics_hooks: (),
 
-    /// can be used to get notified when two non-sensor colliders start/stop having contacts, and
-    /// when one sensor collider and one other collider start/stop intersecting
-    pub event_handler: (),
-
     pub gravity: Vector3<Real>,
 
     pub substeps: u32,
@@ -83,7 +79,6 @@ impl PhysicsContext {
             query_pipeline: QueryPipeline::new(),
 
             physics_hooks: (),
-            event_handler: (),
 
             gravity: Vector3::new(0.0, -9.81, 0.0),
             substeps: 1,
@@ -92,6 +87,10 @@ impl PhysicsContext {
 
     pub fn step_simulation(&mut self, time: &Time) {
         self.integration_parameters.dt = (time.delta_seconds() as Real) / (self.substeps as Real);
+
+        let (collision_send, collision_recv) = crossbeam::channel::unbounded();
+        let (contact_force_send, contact_force_recv) = crossbeam::channel::unbounded();
+        let event_handler = ChannelEventCollector::new(collision_send, contact_force_send);
 
         self.physics_pipeline.step(
             &self.gravity,
@@ -106,8 +105,18 @@ impl PhysicsContext {
             &mut self.ccd_solver,
             Some(&mut self.query_pipeline),
             &self.physics_hooks,
-            &self.event_handler,
+            &event_handler,
         );
+
+        while let Ok(collision_event) = collision_recv.try_recv() {
+            // Handle the collision event.
+            println!("Received collision event: {:?}", collision_event);
+        }
+
+        while let Ok(contact_force_event) = contact_force_recv.try_recv() {
+            // Handle the contact force event.
+            println!("Received contact force event: {:?}", contact_force_event);
+        }
     }
 
     pub fn setup_systems(self, world: &mut World, schedule: &mut Schedule) {
@@ -116,6 +125,7 @@ impl PhysicsContext {
         schedule.add_system(apply_collider_changes.in_set(AppStage::Update));
         schedule.add_system(apply_rigid_body_added.in_set(AppStage::Update));
         schedule.add_system(apply_rigid_body_type_change.in_set(AppStage::Update));
+        schedule.add_system(apply_collider_sensor_change.in_set(AppStage::Update));
         schedule.add_system(apply_player_character_controller_changes.in_set(AppStage::Update));
         schedule.add_system(update_move_body_position_system.in_set(AppStage::Update));
 
@@ -155,6 +165,9 @@ pub fn step_physics_simulation(mut physics_context: ResMut<PhysicsContext>, time
 
     physics_context.step_simulation(time);
 }
+
+#[derive(Component)]
+pub struct Sensor;
 
 #[derive(Component)]
 pub struct MoveBodyPosition {
@@ -251,6 +264,21 @@ fn apply_rigid_body_type_change(
 
         // Technically this is uselessly executed when a rigid body is created, but eh
         rigid_body.set_body_type(body_type.clone(), true);
+    }
+}
+
+fn apply_collider_sensor_change(
+    mut physics_context: ResMut<PhysicsContext>,
+    mut query: Query<&RapierColliderHandle, With<Sensor>>,
+) {
+    for RapierColliderHandle { handle } in query.iter_mut() {
+        let collider = physics_context
+            .colliders
+            .get_mut(*handle)
+            .expect("Collider not found");
+
+        collider.set_sensor(true);
+        collider.set_active_events(ActiveEvents::COLLISION_EVENTS);
     }
 }
 

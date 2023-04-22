@@ -1,5 +1,6 @@
 use bevy_ecs::prelude::*;
 use nalgebra::Vector3;
+use rapier3d::pipeline::ActiveEvents;
 use rapier3d::{
     control::KinematicCharacterController,
     prelude::{ColliderBuilder, QueryFilter, RigidBodyBuilder},
@@ -41,7 +42,8 @@ pub(super) fn apply_player_character_controller_changes(
                 .translation(
                     // TODO: understand why this is needed
                     Vector3::new(0.0, player_character_controller.collider_height / 2.0, 0.0),
-                );
+                )
+                .active_events(ActiveEvents::COLLISION_EVENTS);
 
         context
             .colliders
@@ -68,9 +70,11 @@ pub(super) fn step_character_controllers(
 
         let character_rigid_body = context.rigid_bodies.get(rigid_body_handle.handle).unwrap();
 
+        let character_collider_handle = character_rigid_body.colliders()[0];
+
         let character_collider = &context
             .colliders
-            .get(character_rigid_body.colliders()[0])
+            .get(character_collider_handle.clone())
             .unwrap();
 
         let character_mass = character_rigid_body.mass();
@@ -84,12 +88,16 @@ pub(super) fn step_character_controllers(
             character_collider.shape(),
             character_collider.position(),
             character_controller.desired_movement * context.integration_parameters.dt,
-            QueryFilter::new().exclude_rigid_body(rigid_body_handle.handle),
+            QueryFilter::new()
+                .exclude_rigid_body(rigid_body_handle.handle)
+                .exclude_sensors(),
             |c| collisions.push(c),
         );
 
         character_controller.grounded = effective_movement.grounded;
         character_controller.desired_movement = Vector3::zeros();
+
+        // println!("{:#?}", collisions);
 
         for collision in &collisions {
             controller.solve_character_collision_impulses(
@@ -102,6 +110,14 @@ pub(super) fn step_character_controllers(
                 collision,
                 QueryFilter::new().exclude_rigid_body(rigid_body_handle.handle),
             )
+        }
+
+        let intersections = context
+            .narrow_phase
+            .intersections_with(character_collider_handle.clone());
+
+        for intersection in intersections {
+            println!("{:#?}", intersection);
         }
 
         let character_body = context
