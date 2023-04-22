@@ -9,12 +9,12 @@ use rapier3d::na::Vector3;
 use game::core::application::{AppConfig, ApplicationBuilder};
 use game::physics::physics_context::{BoxCollider, RigidBody, Sensor};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
-use game::scene::bounding_box::BoundingBox;
 use game::scene::light::{Light, PointLight};
 use game::scene::material::Material;
 use game::scene::mesh::Mesh;
 use game::scene::model::{Model, Primitive};
 use game::scene::transform::{Transform, TransformBuilder};
+use math::bounding_box::BoundingBox;
 
 fn spawn_world(mut commands: Commands, context: Res<Context>) {
     let memory_allocator = Arc::new(

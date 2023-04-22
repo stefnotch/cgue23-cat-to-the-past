@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::scene::bounding_box::BoundingBox;
 use bevy_ecs::prelude::*;
+use math::bounding_box::BoundingBox;
 use nalgebra::Vector3;
 
 use super::{material::Material, mesh::Mesh};
