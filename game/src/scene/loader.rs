@@ -1,4 +1,3 @@
-use crate::physics::physics_context::{BoxCollider, RigidBody};
 use crate::render::context::Context;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::{Model, Primitive};
@@ -9,6 +8,7 @@ use gltf::texture::{MagFilter, MinFilter, WrappingMode};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
+use physics::physics_context::{BoxCollider, RigidBody};
 use rapier3d::dynamics::RigidBodyType;
 use scene::light::{Light, PointLight};
 use scene::transform::Transform;

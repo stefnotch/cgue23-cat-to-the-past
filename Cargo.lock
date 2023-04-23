@@ -690,9 +690,9 @@ dependencies = [
  "debug",
  "game_core",
  "gltf",
- "image",
  "math",
  "nalgebra",
+ "physics",
  "rapier3d",
  "scene",
  "uuid",
@@ -1360,6 +1360,19 @@ checksum = "4dd7d28ee937e54fe3080c91faa1c3a46c06de6252988a7f4592ba2310ef22a4"
 dependencies = [
  "fixedbitset",
  "indexmap",
+]
+
+[[package]]
+name = "physics"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "crossbeam",
+ "game_core",
+ "math",
+ "nalgebra",
+ "rapier3d",
+ "scene",
 ]
 
 [[package]]

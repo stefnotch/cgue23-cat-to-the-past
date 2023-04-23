@@ -10,13 +10,13 @@ use rapier3d::prelude::RigidBodyType;
 
 use game_core::time_manager::{
     game_change::{GameChange, GameChangeHistory, InterpolationType},
-    TimeManager, TimeState, TimeTracked,
+    TimeManager, TimeState, TimeTracked, TimeTrackedId,
 };
 
 use super::physics_context::{PhysicsContext, RapierRigidBodyHandle, RigidBody};
 
 pub(super) struct VelocityChange {
-    id: uuid::Uuid,
+    id: TimeTrackedId,
     linvel: Vector3<f32>,
     angvel: Vector3<f32>,
 }
@@ -92,7 +92,7 @@ pub(super) fn time_manager_rewind_rigid_body_velocity(
 }
 
 pub(super) struct RigidBodyTypeChange {
-    id: uuid::Uuid,
+    id: TimeTrackedId,
     body_type: RigidBodyType,
 }
 

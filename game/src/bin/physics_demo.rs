@@ -7,12 +7,12 @@ use rapier3d::dynamics::RigidBodyType;
 use rapier3d::na::Vector3;
 
 use game::core::application::{AppConfig, ApplicationBuilder};
-use game::physics::physics_context::{BoxCollider, RigidBody, Sensor};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
 use game::scene::material::Material;
 use game::scene::mesh::Mesh;
 use game::scene::model::{Model, Primitive};
 use math::bounding_box::BoundingBox;
+use physics::physics_context::{BoxCollider, RigidBody, Sensor};
 use scene::light::{Light, PointLight};
 use scene::transform::{Transform, TransformBuilder};
 
