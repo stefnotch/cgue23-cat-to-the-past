@@ -696,9 +696,6 @@ dependencies = [
  "render",
  "scene",
  "uuid",
- "vulkano",
- "vulkano-shaders",
- "vulkano-win",
  "windowing",
  "winit",
 ]
