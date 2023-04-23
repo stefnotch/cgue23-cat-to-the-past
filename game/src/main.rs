@@ -16,11 +16,11 @@ use game::core::application::{AppConfig, ApplicationBuilder};
 
 use debug::tracing::start_tracing;
 
-use game::physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
 use game::scene::material::Material;
 use game::scene::mesh::Mesh;
 use game::scene::model::{Model, Primitive};
+use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody};
 use scene::transform::{Transform, TransformBuilder};
 
 fn _spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {

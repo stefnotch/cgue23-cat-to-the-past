@@ -23,6 +23,8 @@ pub struct TimeTracked {
     id: uuid::Uuid,
 }
 
+pub type TimeTrackedId = uuid::Uuid;
+
 impl TimeTracked {
     pub fn new() -> Self {
         Self {
