@@ -1,6 +1,6 @@
-use crate::input::events::{KeyboardInput, MouseInput};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::{ResMut, Resource};
+use input::events::{KeyboardInput, MouseInput};
 use winit::event::{ElementState, MouseButton, VirtualKeyCode};
 
 const NUM_KEYS: usize = VirtualKeyCode::Cut as usize + 1;
