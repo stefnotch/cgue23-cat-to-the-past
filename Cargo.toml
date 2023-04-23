@@ -6,6 +6,7 @@ members = [
     "physics",
     "math",
     "windowing",
+    "input",
     "game",
     "debug"
 ]

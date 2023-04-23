@@ -24,6 +24,7 @@ game_core = { path = "../game_core" }
 debug = { path = "../debug" }
 scene = { path = "../scene" }
 physics = { path = "../physics" }
+input = { path = "../input" }
 
 [features]
 default = []

@@ -1,7 +1,6 @@
 use game_core::time::Time;
 
 use crate::core::application::ApplicationBuilder;
-use crate::input::events::{KeyboardInput, MouseMovement};
 use crate::input::input_map::InputMap;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
@@ -9,6 +8,7 @@ use bevy_ecs::prelude::*;
 use game_core::application::AppStage;
 use game_core::camera::Camera;
 use game_core::time_manager::is_rewinding;
+use input::events::{KeyboardInput, MouseMovement};
 use nalgebra::{UnitQuaternion, Vector3};
 use physics::player_physics::PlayerCharacterController;
 use scene::transform::Transform;
