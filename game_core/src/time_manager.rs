@@ -161,19 +161,6 @@ impl TimeManager {
         }
     }
 
-    // TODO:
-    // - Spawn Entity (Commands)
-    // - Delete Entity (Commands)
-    // - Change entity components (Commands)
-    // - Change entity values (mut)
-
-    // TODO:
-    // Pop
-    // Peek
-    // Apply game changes
-    // - kinematic character controller
-    // - ...
-
     pub fn setup_systems(self, world: &mut World, schedule: &mut Schedule) {
         world.insert_resource(self);
         schedule.add_system(start_frame.in_set(AppStage::StartFrame).after(update_time));
