@@ -31,7 +31,7 @@ impl TimeTracked {
             id: uuid::Uuid::new_v4(),
         }
     }
-    pub fn id(&self) -> uuid::Uuid {
+    pub fn id(&self) -> TimeTrackedId {
         self.id
     }
 }

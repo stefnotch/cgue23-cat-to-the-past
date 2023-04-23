@@ -8,9 +8,7 @@ use std::time::Instant;
 
 use bevy_ecs::system::{Commands, Res};
 use game::render::context::Context;
-use nalgebra::{Point3, Translation3};
-use rapier3d::dynamics::RigidBodyType;
-use rapier3d::na::Vector3;
+use nalgebra::{Point3, Translation3, Vector3};
 
 use game::core::application::{AppConfig, ApplicationBuilder};
 
@@ -20,7 +18,7 @@ use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
 use game::scene::material::Material;
 use game::scene::mesh::Mesh;
 use game::scene::model::{Model, Primitive};
-use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody};
+use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, RigidBodyType};
 use scene::transform::{Transform, TransformBuilder};
 
 fn _spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {

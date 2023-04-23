@@ -3,8 +3,7 @@ use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Res};
 use game::render::context::Context;
-use nalgebra::{Point3, UnitQuaternion, UnitVector3, Vector};
-use rapier3d::na::Vector3;
+use nalgebra::{Point3, UnitQuaternion, Vector3};
 
 use game::core::application::{AppConfig, ApplicationBuilder};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};

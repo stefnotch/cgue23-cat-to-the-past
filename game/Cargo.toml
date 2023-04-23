@@ -17,8 +17,6 @@ angle = "0.5.0"
 bevy_ecs = { version = "0.10.1" }
 gltf = { git = "https://github.com/stefnotch/gltf.git", branch = "feat/emissive_strength", features = ["extras", "names", "KHR_lights_punctual", "KHR_materials_emissive_strength"] }
 uuid = { version = "1.3.0", features = ["v4", "fast-rng"]}
-rapier3d = { version = "0.17.2", features = [ "simd-stable", "debug-render" ] }
-crossbeam = "0.8.2"
 
 math = { path = "../math" }
 windowing = { path = "../windowing" }
