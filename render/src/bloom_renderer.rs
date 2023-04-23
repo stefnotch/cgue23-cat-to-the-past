@@ -1,6 +1,6 @@
-use crate::render::context::Context;
+use crate::context::Context;
 
-use crate::render::custom_storage_image::CustomStorageImage;
+use crate::custom_storage_image::CustomStorageImage;
 use std::sync::Arc;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{

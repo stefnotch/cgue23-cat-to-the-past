@@ -1,4 +1,4 @@
-use crate::render::context::Context;
+use crate::context::Context;
 use std::sync::Arc;
 use vulkano::buffer::BufferContents;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;

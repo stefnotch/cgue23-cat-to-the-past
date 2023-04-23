@@ -25,6 +25,7 @@ debug = { path = "../debug" }
 scene = { path = "../scene" }
 physics = { path = "../physics" }
 input = { path = "../input" }
+render = { path = "../render" }
 
 [features]
 default = []

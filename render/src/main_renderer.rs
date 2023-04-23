@@ -1,8 +1,8 @@
-use crate::render::bloom_renderer::BloomRenderer;
-use crate::render::context::Context;
-use crate::render::quad_renderer::QuadRenderer;
-use crate::render::scene_renderer::SceneRenderer;
+use crate::bloom_renderer::BloomRenderer;
+use crate::context::Context;
+use crate::quad_renderer::QuadRenderer;
 use crate::scene::model::Model;
+use crate::scene_renderer::SceneRenderer;
 use bevy_ecs::system::{NonSendMut, Query, Res};
 use game_core::camera::Camera;
 use scene::light::Light;
