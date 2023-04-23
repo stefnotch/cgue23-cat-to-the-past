@@ -12,7 +12,7 @@ use input::events::{KeyboardInput, MouseInput, MouseMovement};
 use nalgebra::{Point3, UnitQuaternion};
 use physics::physics_context::PhysicsContext;
 use render::context::Context;
-use render::{render, Renderer};
+use render::Renderer;
 use windowing::config::WindowConfig;
 use windowing::icon::get_icon;
 use winit::dpi::{LogicalSize, PhysicalSize};

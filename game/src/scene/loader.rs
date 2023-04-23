@@ -9,7 +9,7 @@ use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
 use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType};
 use scene::light::{Light, PointLight};
 use scene::material::CpuMaterial;
-use scene::mesh::{CpuMesh, MeshVertex};
+use scene::mesh::{CpuMesh, CpuMeshVertex};
 use scene::model::{CpuPrimitive, Model};
 use scene::texture::{
     AddressMode, BytesTextureData, CpuTexture, Filter, SamplerInfo, TextureFormat,
@@ -29,6 +29,7 @@ pub struct AssetServer {}
 
 impl AssetServer {
     pub fn insert_asset_types(world: &mut World) {
+        // TODO: Those are unused, the loader doesn't add anything to them
         world.insert_resource(Assets::<CpuTexture>::default());
         world.insert_resource(Assets::<CpuMesh>::default());
         world.insert_resource(Assets::<CpuMaterial>::default());
@@ -202,7 +203,6 @@ struct SceneLoadingData {
     meshes: HashMap<MeshKey, Arc<CpuMesh>>,
     materials: HashMap<usize, Arc<CpuMaterial>>,
     missing_material: Arc<CpuMaterial>,
-    samplers: HashMap<SamplerKey, SamplerInfo>,
 }
 
 struct SceneLoadingResult {
@@ -228,7 +228,6 @@ impl SceneLoadingData {
             meshes: HashMap::new(),
             materials: HashMap::new(),
             missing_material: Arc::new(CpuMaterial::default()),
-            samplers: HashMap::new(),
         }
     }
 
@@ -259,7 +258,7 @@ impl SceneLoadingData {
 
                 // zippy zip https://stackoverflow.com/a/71494478/3492994
                 for (position, (normal, uv)) in positions.zip(normals.zip(uvs)) {
-                    vertices.push(MeshVertex {
+                    vertices.push(CpuMeshVertex {
                         position,
                         normal,
                         uv,
@@ -329,20 +328,11 @@ impl SceneLoadingData {
             gltf_wrapping_mode_to_vulkano(sampler.wrap_s()),
             AddressMode::ClampToEdge,
         ];
-
-        let sampler_key = SamplerKey {
+        SamplerInfo {
             min_filter,
             mag_filter,
-        };
-
-        self.samplers
-            .entry(sampler_key)
-            .or_insert_with(|| SamplerInfo {
-                min_filter,
-                mag_filter,
-                address_mode,
-            })
-            .clone()
+            address_mode,
+        }
     }
 
     fn get_texture(
@@ -441,10 +431,4 @@ struct MeshKey {
     vertex_buffer_positions_id: usize,
     vertex_buffer_normals_id: usize,
     vertex_buffer_uvs_id: Option<usize>,
-}
-
-#[derive(Eq, PartialEq, Debug, Hash)]
-struct SamplerKey {
-    min_filter: Filter,
-    mag_filter: Filter,
 }

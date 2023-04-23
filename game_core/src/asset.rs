@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use bevy_ecs::system::Resource;
 use uuid::Uuid;
@@ -11,7 +11,7 @@ pub type AssetId = uuid::Uuid;
 
 #[derive(Resource)]
 pub struct Assets<T: Asset> {
-    assets: HashMap<Uuid, T>,
+    pub assets: HashMap<Uuid, Arc<T>>,
 }
 
 impl<T: Asset> Default for Assets<T> {

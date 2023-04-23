@@ -4,7 +4,7 @@ use game_core::asset::{Asset, AssetId};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Vector2, Vector3};
 
-pub struct MeshVertex {
+pub struct CpuMeshVertex {
     pub position: [f32; 3],
     pub normal: [f32; 3],
     pub uv: [f32; 2],
@@ -12,7 +12,7 @@ pub struct MeshVertex {
 
 pub struct CpuMesh {
     pub id: AssetId,
-    pub vertices: Vec<MeshVertex>,
+    pub vertices: Vec<CpuMeshVertex>,
     pub indices: Vec<u32>,
     pub bounding_box: BoundingBox<Vector3<f32>>,
 }
@@ -25,7 +25,7 @@ impl Asset for CpuMesh {
 
 impl CpuMesh {
     pub fn new(
-        vertices: Vec<MeshVertex>,
+        vertices: Vec<CpuMeshVertex>,
         indices: Vec<u32>,
         bounding_box: BoundingBox<Vector3<f32>>,
     ) -> Arc<Self> {
@@ -96,13 +96,13 @@ impl CpuMesh {
             Vector2::new(0.0, 0.0),
         ];
 
-        let vertices: Vec<MeshVertex> = faces
+        let vertices: Vec<CpuMeshVertex> = faces
             .iter()
             .flat_map(|face| {
                 face.position_indices
                     .iter()
                     .enumerate()
-                    .map(|(i, pos_index)| MeshVertex {
+                    .map(|(i, pos_index)| CpuMeshVertex {
                         position: positions[*pos_index].into(),
                         normal: face.normal.into(),
                         uv: uvs_face[i].into(),
@@ -110,7 +110,7 @@ impl CpuMesh {
             })
             .collect();
 
-        let vertices: Vec<MeshVertex> = vertices
+        let vertices: Vec<CpuMeshVertex> = vertices
             .into_iter()
             .map(|mut vertex| {
                 vertex.position[0] *= width;
@@ -148,7 +148,7 @@ impl CpuMesh {
     }
 
     pub fn sphere(longitude_segments: u32, latitude_segments: u32, radius: f32) -> Arc<Self> {
-        let mut vertices: Vec<MeshVertex> = vec![];
+        let mut vertices: Vec<CpuMeshVertex> = vec![];
 
         let num_latitude_vertices = latitude_segments + 1;
         let num_longitude_vertices = longitude_segments + 2;
@@ -170,7 +170,7 @@ impl CpuMesh {
                     1.0 - j as f32 / (num_longitude_vertices - 1) as f32,
                     i as f32 / (num_latitude_vertices - 1) as f32,
                 );
-                vertices.push(MeshVertex {
+                vertices.push(CpuMeshVertex {
                     position: position.into(),
                     normal: normal.into(),
                     uv: uv.into(),

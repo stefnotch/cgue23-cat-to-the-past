@@ -1,5 +1,7 @@
+use game_core::asset::{Asset, AssetId};
 use math::bounding_box::BoundingBox;
 use nalgebra::Vector3;
+use scene::mesh::CpuMeshVertex;
 use std::sync::Arc;
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryAllocator, MemoryUsage};
@@ -18,7 +20,18 @@ pub struct MeshVertex {
     pub(super) uv: [f32; 2],
 }
 
+impl From<&CpuMeshVertex> for MeshVertex {
+    fn from(vertex: &CpuMeshVertex) -> Self {
+        Self {
+            position: vertex.position.into(),
+            normal: vertex.normal.into(),
+            uv: vertex.uv.into(),
+        }
+    }
+}
+
 pub struct Mesh {
+    pub id: AssetId,
     pub vertex_buffer: Subbuffer<[MeshVertex]>,
     pub index_buffer: Subbuffer<[u32]>,
     pub bounding_box: BoundingBox<Vector3<f32>>,
@@ -26,6 +39,7 @@ pub struct Mesh {
 
 impl Mesh {
     pub fn new(
+        id: AssetId,
         vertices: Vec<MeshVertex>,
         indices: Vec<u32>,
         bounding_box: BoundingBox<Vector3<f32>>,
@@ -34,6 +48,7 @@ impl Mesh {
         let (vertex_buffer, index_buffer) = Mesh::setup_buffers(&vertices, &indices, allocator);
 
         Arc::new(Self {
+            id,
             vertex_buffer,
             index_buffer,
             bounding_box,
@@ -74,5 +89,11 @@ impl Mesh {
         .expect("could not upload indices data to GPU");
 
         (vertex_buffer, index_buffer)
+    }
+}
+
+impl Asset for Mesh {
+    fn id(&self) -> AssetId {
+        self.id
     }
 }
