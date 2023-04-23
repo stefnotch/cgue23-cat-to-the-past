@@ -318,14 +318,12 @@ impl SceneLoadingData {
     fn get_sampler(&mut self, gltf_texture: &gltf::texture::Texture) -> SamplerInfo {
         let sampler = gltf_texture.sampler();
 
-        let min_filter =
-            gltf_min_filter_to_vulkano(sampler.min_filter().unwrap_or(MinFilter::Linear));
-        let mag_filter =
-            gltf_max_filter_to_vulkano(sampler.mag_filter().unwrap_or(MagFilter::Linear));
+        let min_filter = from_gltf_min_filter(sampler.min_filter().unwrap_or(MinFilter::Linear));
+        let mag_filter = from_gltf_max_filter(sampler.mag_filter().unwrap_or(MagFilter::Linear));
 
         let address_mode: [AddressMode; 3] = [
-            gltf_wrapping_mode_to_vulkano(sampler.wrap_s()),
-            gltf_wrapping_mode_to_vulkano(sampler.wrap_s()),
+            from_gltf_wrapping_mode(sampler.wrap_s()),
+            from_gltf_wrapping_mode(sampler.wrap_s()),
             AddressMode::ClampToEdge,
         ];
         SamplerInfo {
@@ -365,7 +363,7 @@ fn gltf_texture_to_cpu_texture(
     })
 }
 
-fn gltf_wrapping_mode_to_vulkano(wrapping_mode: WrappingMode) -> AddressMode {
+fn from_gltf_wrapping_mode(wrapping_mode: WrappingMode) -> AddressMode {
     match wrapping_mode {
         WrappingMode::ClampToEdge => AddressMode::ClampToEdge,
         WrappingMode::MirroredRepeat => AddressMode::MirroredRepeat,
@@ -373,14 +371,14 @@ fn gltf_wrapping_mode_to_vulkano(wrapping_mode: WrappingMode) -> AddressMode {
     }
 }
 
-fn gltf_max_filter_to_vulkano(linear: MagFilter) -> Filter {
+fn from_gltf_max_filter(linear: MagFilter) -> Filter {
     match linear {
         MagFilter::Nearest => Filter::Nearest,
         MagFilter::Linear => Filter::Linear,
     }
 }
 
-fn gltf_min_filter_to_vulkano(gltf_min_filter: MinFilter) -> Filter {
+fn from_gltf_min_filter(gltf_min_filter: MinFilter) -> Filter {
     match gltf_min_filter {
         MinFilter::Nearest => Filter::Nearest,
         MinFilter::Linear => Filter::Linear,
