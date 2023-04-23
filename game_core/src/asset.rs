@@ -3,7 +3,11 @@ use std::collections::HashMap;
 use bevy_ecs::system::Resource;
 use uuid::Uuid;
 
-pub trait Asset {}
+pub trait Asset {
+    fn id(&self) -> AssetId;
+}
+
+pub type AssetId = uuid::Uuid;
 
 #[derive(Resource)]
 pub struct Assets<T: Asset> {

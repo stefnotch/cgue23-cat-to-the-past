@@ -1,5 +1,5 @@
 use bevy_ecs::prelude::*;
-use game_core::asset::Assets;
+use game_core::asset::{AssetId, Assets};
 use game_core::time_manager::TimeTracked;
 use gltf::khr_lights_punctual::Kind;
 use gltf::texture::{MagFilter, MinFilter, WrappingMode};
@@ -295,6 +295,7 @@ impl SceneLoadingData {
                     .emissive_factor()
                     .map(|v| v * emissive_strength);
                 let material = Arc::new(CpuMaterial {
+                    id: AssetId::new_v4(),
                     base_color: Vector3::from_row_slice(
                         &gltf_material_pbr.base_color_factor()[0..3],
                     ),
@@ -368,6 +369,7 @@ fn gltf_texture_to_cpu_texture(
     let height = image_data.height;
     let (image, format) = gltf_image_format_to_vulkan_format(image_data.pixels, &image_data.format);
     Arc::new(CpuTexture {
+        id: AssetId::new_v4(),
         data: Box::new(BytesTextureData::new((width, height), format, image)),
         sampler_info: sampler,
     })

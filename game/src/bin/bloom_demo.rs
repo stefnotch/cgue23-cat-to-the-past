@@ -2,6 +2,7 @@ use std::f32::consts::PI;
 use std::sync::Arc;
 
 use bevy_ecs::system::Commands;
+use game_core::asset::AssetId;
 use nalgebra::{Point3, UnitQuaternion, Vector3};
 
 use game::core::application::{AppConfig, ApplicationBuilder};
@@ -16,6 +17,7 @@ fn spawn_bloom_demo(mut commands: Commands) {
     let cube = CpuMesh::cube(1.0, 1.0, 1.0);
 
     let material = CpuMaterial {
+        id: AssetId::new_v4(),
         base_color: [1.0, 1.0, 1.0].into(),
         base_color_texture: None,
         roughness_factor: 0.9,
@@ -68,6 +70,7 @@ fn spawn_bloom_demo(mut commands: Commands) {
                 primitives: vec![CpuPrimitive {
                     mesh: cube.clone(),
                     material: Arc::from(CpuMaterial {
+                        id: AssetId::new_v4(),
                         base_color: Vector3::new(1.0, 1.0, 1.0),
                         base_color_texture: None,
                         roughness_factor: 0.9,

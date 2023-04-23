@@ -6,6 +6,8 @@ use nalgebra::Vector3;
 
 use crate::{material::CpuMaterial, mesh::CpuMesh};
 
+/// Due to how upload_models works, as soon as the model has been uploaded to the Gpu,
+/// nothing can be changed anymore. No material changes either.
 #[derive(Component, Clone)]
 pub struct Model {
     pub primitives: Vec<CpuPrimitive>,

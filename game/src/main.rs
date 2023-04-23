@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::{Component, Query, With};
 use game::scene::loader::AssetServer;
-use game_core::time::Time;
 use game_core::time_manager::TimeManager;
+use game_core::{asset::AssetId, time::Time};
 use scene::{
     material::CpuMaterial,
     mesh::CpuMesh,
@@ -41,6 +41,7 @@ fn _spawn_pbr_demo(mut commands: Commands) {
                     primitives: vec![CpuPrimitive {
                         mesh: sphere.clone(),
                         material: Arc::new(CpuMaterial {
+                            id: AssetId::new_v4(),
                             base_color: Vector3::new(1.0, 0.0, 0.0),
                             base_color_texture: None,
                             roughness_factor: roughness,

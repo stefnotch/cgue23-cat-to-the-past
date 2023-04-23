@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Res};
+use game_core::asset::AssetId;
 use nalgebra::{Point3, Vector3};
 
 use game::core::application::{AppConfig, ApplicationBuilder};
@@ -23,6 +24,7 @@ fn spawn_world(mut commands: Commands) {
     };
 
     let white_material = Arc::new(CpuMaterial {
+        id: AssetId::new_v4(),
         base_color: [1.0; 3].into(),
         base_color_texture: None,
         roughness_factor: 1.0,
