@@ -2,12 +2,16 @@ use bevy_ecs::prelude::{Component, Query, With};
 use game::scene::loader::AssetServer;
 use game_core::time::Time;
 use game_core::time_manager::TimeManager;
+use scene::{
+    material::CpuMaterial,
+    mesh::CpuMesh,
+    model::{CpuPrimitive, Model},
+};
 use std::f32::consts::PI;
 use std::sync::Arc;
 use std::time::Instant;
 
 use bevy_ecs::system::{Commands, Res};
-use game::render::context::Context;
 use nalgebra::{Point3, Translation3, Vector3};
 
 use game::core::application::{AppConfig, ApplicationBuilder};
@@ -15,18 +19,11 @@ use game::core::application::{AppConfig, ApplicationBuilder};
 use debug::tracing::start_tracing;
 
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
-use game::scene::material::Material;
-use game::scene::mesh::Mesh;
-use game::scene::model::{Model, Primitive};
 use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, RigidBodyType};
 use scene::transform::{Transform, TransformBuilder};
 
-fn _spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
-    let memory_allocator = Arc::new(
-        vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
-    );
-
-    let sphere = Mesh::sphere(64, 32, 1.0, &memory_allocator);
+fn _spawn_pbr_demo(mut commands: Commands) {
+    let sphere = CpuMesh::sphere(64, 32, 1.0);
 
     // TODO: add missing lights
 
@@ -41,9 +38,9 @@ fn _spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
 
             commands.spawn((
                 Model {
-                    primitives: vec![Primitive {
+                    primitives: vec![CpuPrimitive {
                         mesh: sphere.clone(),
-                        material: Arc::new(Material {
+                        material: Arc::new(CpuMaterial {
                             base_color: Vector3::new(1.0, 0.0, 0.0),
                             base_color_texture: None,
                             roughness_factor: roughness,
@@ -65,18 +62,12 @@ fn _spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
     }
 }
 
-fn spawn_world(mut commands: Commands, context: Res<Context>, asset_server: Res<AssetServer>) {
-    let memory_allocator = Arc::new(
-        vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
-    );
-
+fn spawn_world(mut commands: Commands, asset_server: Res<AssetServer>) {
     let before = Instant::now();
     asset_server
         .load_default_scene(
             "./assets/scene/testing/prototype/prototype.glb",
             &mut commands,
-            &memory_allocator,
-            &context,
         )
         .unwrap();
     println!(
@@ -92,17 +83,13 @@ fn _print_fps(time: Res<Time>) {
 #[derive(Component)]
 pub struct MovingBox;
 
-pub fn spawn_moving_cube(mut commands: Commands, context: Res<Context>) {
-    let memory_allocator = Arc::new(
-        vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
-    );
-
-    let cube = Mesh::cube(1.0, 1.0, 1.0, &memory_allocator);
+pub fn spawn_moving_cube(mut commands: Commands) {
+    let cube = CpuMesh::cube(1.0, 1.0, 1.0);
 
     commands.spawn((
         Transform::default(),
         Model {
-            primitives: vec![Primitive {
+            primitives: vec![CpuPrimitive {
                 mesh: cube.clone(),
                 material: Arc::new(Default::default()),
             }],

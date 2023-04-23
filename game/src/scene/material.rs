@@ -2,8 +2,6 @@ use crate::scene::texture::Texture;
 use nalgebra::Vector3;
 use std::sync::Arc;
 
-use super::loader::Asset;
-
 /// references a shader and its inputs
 #[derive(Debug, Clone, PartialEq)]
 pub struct Material {
@@ -25,5 +23,3 @@ impl Default for Material {
         }
     }
 }
-
-impl Asset for Material {}

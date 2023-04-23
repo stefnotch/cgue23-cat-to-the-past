@@ -1,7 +1,5 @@
-use crate::render::context::Context;
-use crate::scene::mesh::MeshVertex;
-use crate::scene::model::{Model, Primitive};
 use bevy_ecs::prelude::*;
+use game_core::asset::Assets;
 use game_core::time_manager::TimeTracked;
 use gltf::khr_lights_punctual::Kind;
 use gltf::texture::{MagFilter, MinFilter, WrappingMode};
@@ -10,37 +8,17 @@ use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
 use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType};
 use scene::light::{Light, PointLight};
+use scene::material::CpuMaterial;
+use scene::mesh::{CpuMesh, MeshVertex};
+use scene::model::{CpuPrimitive, Model};
+use scene::texture::{
+    AddressMode, BytesTextureData, CpuTexture, Filter, SamplerInfo, TextureFormat,
+};
 use scene::transform::Transform;
 use std::hash::Hash;
 use std::iter::repeat;
 use std::sync::Arc;
 use std::{collections::HashMap, path::Path};
-use uuid::Uuid;
-use vulkano::memory::allocator::{MemoryAllocator, StandardMemoryAllocator};
-use vulkano::sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo};
-
-use super::material::Material;
-use super::mesh::Mesh;
-use super::texture::Texture;
-
-// textures
-// meshes
-// materials
-// lights
-pub trait Asset {}
-
-#[derive(Resource)]
-pub struct Assets<T: Asset> {
-    assets: HashMap<Uuid, T>,
-}
-
-impl<T: Asset> Default for Assets<T> {
-    fn default() -> Self {
-        Self {
-            assets: HashMap::new(),
-        }
-    }
-}
 
 // scene.json -> assets
 
@@ -51,9 +29,9 @@ pub struct AssetServer {}
 
 impl AssetServer {
     pub fn insert_asset_types(world: &mut World) {
-        world.insert_resource(Assets::<super::texture::Texture>::default());
-        world.insert_resource(Assets::<super::mesh::Mesh>::default());
-        world.insert_resource(Assets::<super::material::Material>::default());
+        world.insert_resource(Assets::<CpuTexture>::default());
+        world.insert_resource(Assets::<CpuMesh>::default());
+        world.insert_resource(Assets::<CpuMaterial>::default());
         // world.insert_resource(Assets::<Light>::default());
     }
 
@@ -62,8 +40,6 @@ impl AssetServer {
         &self,
         path: P,
         commands: &mut Commands,
-        memory_allocator: &Arc<StandardMemoryAllocator>,
-        context: &Context,
     ) -> Result<(), Box<dyn std::error::Error>>
     where
         P: AsRef<Path>,
@@ -78,7 +54,7 @@ impl AssetServer {
             )));
         }
 
-        let mut scene_loading_data = SceneLoadingData::new(memory_allocator, buffers, images);
+        let mut scene_loading_data = SceneLoadingData::new(buffers, images);
         let mut scene_loading_result = SceneLoadingResult::new();
 
         let scene = doc.default_scene().ok_or("Default scene is not set")?;
@@ -89,19 +65,18 @@ impl AssetServer {
                 &mut scene_loading_data,
                 &mut scene_loading_result,
                 &Transform::default(),
-                context,
             );
         }
 
-        let sphere = Mesh::sphere(10, 16, 0.1, memory_allocator);
+        let sphere = CpuMesh::sphere(10, 16, 0.1);
 
         for (transform, light) in scene_loading_result.lights {
             commands.spawn((
                 light,
                 Model {
-                    primitives: vec![Primitive {
+                    primitives: vec![CpuPrimitive {
                         mesh: sphere.clone(),
-                        material: Arc::new(Material::default()),
+                        material: Arc::new(CpuMaterial::default()),
                     }],
                 },
                 transform,
@@ -138,7 +113,6 @@ impl AssetServer {
         scene_loading_data: &mut SceneLoadingData,
         scene_loading_result: &mut SceneLoadingResult,
         parent_transform: &Transform,
-        context: &Context,
     ) {
         let local_transform: Transform = from_gltf_transform(node.transform());
         let global_transform = parent_transform * local_transform;
@@ -149,7 +123,6 @@ impl AssetServer {
                 scene_loading_data,
                 scene_loading_result,
                 &global_transform,
-                context,
             );
         }
 
@@ -170,7 +143,7 @@ impl AssetServer {
         if let Some(mesh) = node.mesh() {
             scene_loading_result.models.push((
                 global_transform.clone(),
-                Self::load_model(mesh, scene_loading_data, context),
+                Self::load_model(mesh, scene_loading_data),
                 rigidbody,
             ));
         }
@@ -192,20 +165,16 @@ impl AssetServer {
         }
     }
 
-    fn load_model(
-        mesh: gltf::Mesh,
-        scene_loading_data: &mut SceneLoadingData,
-        context: &Context,
-    ) -> Model {
+    fn load_model(mesh: gltf::Mesh, scene_loading_data: &mut SceneLoadingData) -> Model {
         let mut model = Model {
             primitives: Vec::new(),
         };
 
         for primitive in mesh.primitives() {
-            let material = scene_loading_data.get_material(&primitive, context);
+            let material = scene_loading_data.get_material(&primitive);
             let mesh = scene_loading_data.get_mesh(&primitive);
 
-            model.primitives.push(Primitive { mesh, material })
+            model.primitives.push(CpuPrimitive { mesh, material })
         }
 
         model
@@ -227,14 +196,13 @@ fn from_gltf_transform(value: gltf::scene::Transform) -> Transform {
     }
 }
 
-struct SceneLoadingData<'a> {
+struct SceneLoadingData {
     gltf_buffers: Vec<gltf::buffer::Data>,
     gltf_images: HashMap<usize, gltf::image::Data>,
-    meshes: HashMap<MeshKey, Arc<Mesh>>,
-    materials: HashMap<usize, Arc<Material>>,
-    missing_material: Arc<Material>,
-    samplers: HashMap<SamplerKey, Arc<Sampler>>,
-    allocator: &'a dyn MemoryAllocator,
+    meshes: HashMap<MeshKey, Arc<CpuMesh>>,
+    materials: HashMap<usize, Arc<CpuMaterial>>,
+    missing_material: Arc<CpuMaterial>,
+    samplers: HashMap<SamplerKey, SamplerInfo>,
 }
 
 struct SceneLoadingResult {
@@ -250,12 +218,8 @@ impl SceneLoadingResult {
     }
 }
 
-impl<'a> SceneLoadingData<'a> {
-    fn new(
-        memory_allocator: &'a dyn MemoryAllocator,
-        buffers: Vec<gltf::buffer::Data>,
-        images: Vec<gltf::image::Data>,
-    ) -> Self {
+impl SceneLoadingData {
+    fn new(buffers: Vec<gltf::buffer::Data>, images: Vec<gltf::image::Data>) -> Self {
         let images = images.into_iter().enumerate().collect();
 
         Self {
@@ -263,13 +227,12 @@ impl<'a> SceneLoadingData<'a> {
             gltf_images: images,
             meshes: HashMap::new(),
             materials: HashMap::new(),
-            missing_material: Arc::new(Material::default()),
+            missing_material: Arc::new(CpuMaterial::default()),
             samplers: HashMap::new(),
-            allocator: memory_allocator,
         }
     }
 
-    fn get_mesh(&mut self, primitive: &gltf::Primitive) -> Arc<Mesh> {
+    fn get_mesh(&mut self, primitive: &gltf::Primitive) -> Arc<CpuMesh> {
         assert_eq!(primitive.mode(), gltf::mesh::Mode::Triangles);
 
         let mesh_key = MeshKey {
@@ -314,12 +277,12 @@ impl<'a> SceneLoadingData<'a> {
                     gltf_bounding_box.max.into(),
                 );
 
-                Mesh::new(vertices, indices, bounding_box, self.allocator)
+                CpuMesh::new(vertices, indices, bounding_box)
             })
             .clone()
     }
 
-    fn get_material(&mut self, primitive: &gltf::Primitive, context: &Context) -> Arc<Material> {
+    fn get_material(&mut self, primitive: &gltf::Primitive) -> Arc<CpuMaterial> {
         let gltf_material = primitive.material();
 
         if let Some(material_index) = gltf_material.index() {
@@ -331,13 +294,13 @@ impl<'a> SceneLoadingData<'a> {
                 let emissive_factor = gltf_material
                     .emissive_factor()
                     .map(|v| v * emissive_strength);
-                let material = Arc::new(Material {
+                let material = Arc::new(CpuMaterial {
                     base_color: Vector3::from_row_slice(
                         &gltf_material_pbr.base_color_factor()[0..3],
                     ),
                     base_color_texture: gltf_material_pbr.base_color_texture().map(|info| {
-                        let sampler = self.get_sampler(&info.texture(), context);
-                        self.get_texture(&info.texture(), sampler, context)
+                        let sampler = self.get_sampler(&info.texture());
+                        self.get_texture(&info.texture(), sampler)
                     }),
                     roughness_factor: gltf_material_pbr.roughness_factor(),
                     metallic_factor: gltf_material_pbr.metallic_factor(),
@@ -352,11 +315,7 @@ impl<'a> SceneLoadingData<'a> {
         }
     }
 
-    fn get_sampler(
-        &mut self,
-        gltf_texture: &gltf::texture::Texture,
-        context: &Context,
-    ) -> Arc<Sampler> {
+    fn get_sampler(&mut self, gltf_texture: &gltf::texture::Texture) -> SamplerInfo {
         let sampler = gltf_texture.sampler();
 
         let min_filter =
@@ -364,10 +323,10 @@ impl<'a> SceneLoadingData<'a> {
         let mag_filter =
             gltf_max_filter_to_vulkano(sampler.mag_filter().unwrap_or(MagFilter::Linear));
 
-        let address_mode: [SamplerAddressMode; 3] = [
+        let address_mode: [AddressMode; 3] = [
             gltf_wrapping_mode_to_vulkano(sampler.wrap_s()),
             gltf_wrapping_mode_to_vulkano(sampler.wrap_s()),
-            SamplerAddressMode::ClampToEdge,
+            AddressMode::ClampToEdge,
         ];
 
         let sampler_key = SamplerKey {
@@ -377,17 +336,10 @@ impl<'a> SceneLoadingData<'a> {
 
         self.samplers
             .entry(sampler_key)
-            .or_insert_with(|| {
-                Sampler::new(
-                    context.device(),
-                    SamplerCreateInfo {
-                        mag_filter,
-                        min_filter,
-                        address_mode,
-                        ..SamplerCreateInfo::default()
-                    },
-                )
-                .unwrap()
+            .or_insert_with(|| SamplerInfo {
+                min_filter,
+                mag_filter,
+                address_mode,
             })
             .clone()
     }
@@ -395,24 +347,37 @@ impl<'a> SceneLoadingData<'a> {
     fn get_texture(
         &mut self,
         gltf_texture: &gltf::texture::Texture,
-        sampler: Arc<Sampler>,
-        context: &Context,
-    ) -> Arc<Texture> {
-        Texture::from_gltf_image(
+        sampler: SamplerInfo,
+    ) -> Arc<CpuTexture> {
+        gltf_texture_to_cpu_texture(
             self.gltf_images
                 .remove(&(gltf_texture.source().index() as usize))
                 .unwrap(),
             sampler,
-            context,
         )
     }
 }
 
-fn gltf_wrapping_mode_to_vulkano(wrapping_mode: WrappingMode) -> SamplerAddressMode {
+fn gltf_texture_to_cpu_texture(
+    image_data: gltf::image::Data,
+    sampler: SamplerInfo,
+) -> Arc<CpuTexture> {
+    // Widely supported formats https://vulkan.gpuinfo.org/listlineartilingformats.php
+
+    let width = image_data.width;
+    let height = image_data.height;
+    let (image, format) = gltf_image_format_to_vulkan_format(image_data.pixels, &image_data.format);
+    Arc::new(CpuTexture {
+        data: Box::new(BytesTextureData::new((width, height), format, image)),
+        sampler_info: sampler,
+    })
+}
+
+fn gltf_wrapping_mode_to_vulkano(wrapping_mode: WrappingMode) -> AddressMode {
     match wrapping_mode {
-        WrappingMode::ClampToEdge => SamplerAddressMode::ClampToEdge,
-        WrappingMode::MirroredRepeat => SamplerAddressMode::MirroredRepeat,
-        WrappingMode::Repeat => SamplerAddressMode::Repeat,
+        WrappingMode::ClampToEdge => AddressMode::ClampToEdge,
+        WrappingMode::MirroredRepeat => AddressMode::MirroredRepeat,
+        WrappingMode::Repeat => AddressMode::Repeat,
     }
 }
 
@@ -431,6 +396,40 @@ fn gltf_min_filter_to_vulkano(gltf_min_filter: MinFilter) -> Filter {
         MinFilter::LinearMipmapNearest => Filter::Linear,
         MinFilter::NearestMipmapLinear => Filter::Linear,
         MinFilter::LinearMipmapLinear => Filter::Linear,
+    }
+}
+
+fn gltf_image_format_to_vulkan_format(
+    image: Vec<u8>,
+    format: &gltf::image::Format,
+) -> (Vec<u8>, TextureFormat) {
+    match format {
+        gltf::image::Format::R8 => (image, TextureFormat::R8_UNORM),
+        gltf::image::Format::R8G8 => (image, TextureFormat::R8G8_UNORM),
+        gltf::image::Format::R8G8B8 => {
+            // rarely supported format
+            let mut image_with_alpha = Vec::new();
+            for i in 0..image.len() / 3 {
+                image_with_alpha.push(image[i * 3]);
+                image_with_alpha.push(image[i * 3 + 1]);
+                image_with_alpha.push(image[i * 3 + 2]);
+                image_with_alpha.push(255);
+            }
+            (image_with_alpha, TextureFormat::R8G8B8A8_UNORM)
+        }
+        gltf::image::Format::R8G8B8A8 => (image, TextureFormat::R8G8B8A8_UNORM),
+        gltf::image::Format::R16 => (image, TextureFormat::R16_UNORM),
+        gltf::image::Format::R16G16 => (image, TextureFormat::R16G16_UNORM),
+        gltf::image::Format::R16G16B16 => {
+            // rarely supported format
+            todo!()
+        }
+        gltf::image::Format::R16G16B16A16 => (image, TextureFormat::R16G16B16A16_UNORM),
+        gltf::image::Format::R32G32B32FLOAT => {
+            // rarely supported format
+            todo!()
+        }
+        gltf::image::Format::R32G32B32A32FLOAT => (image, TextureFormat::R32G32B32A32_SFLOAT),
     }
 }
 

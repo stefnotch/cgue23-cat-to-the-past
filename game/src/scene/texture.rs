@@ -1,4 +1,3 @@
-use super::loader::Asset;
 use crate::render::context::Context;
 use std::sync::Arc;
 use vulkano::buffer::BufferContents;
@@ -19,20 +18,6 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn from_gltf_image(
-        image_data: gltf::image::Data,
-        sampler: Arc<Sampler>,
-        context: &Context,
-    ) -> Arc<Texture> {
-        // Widely supported formats https://vulkan.gpuinfo.org/listlineartilingformats.php
-
-        let width = image_data.width;
-        let height = image_data.height;
-        let (image, format) =
-            gltf_image_format_to_vulkan_format(image_data.pixels, &image_data.format);
-        Self::new(image, width, height, format, sampler, context)
-    }
-
     pub fn new_one_by_one(sampler: Arc<Sampler>, context: &Context) -> Arc<Texture> {
         Self::new(
             vec![255u8, 255u8, 255u8, 255u8],
@@ -107,39 +92,3 @@ impl Texture {
         })
     }
 }
-
-fn gltf_image_format_to_vulkan_format(
-    image: Vec<u8>,
-    format: &gltf::image::Format,
-) -> (Vec<u8>, Format) {
-    match format {
-        gltf::image::Format::R8 => (image, Format::R8_UNORM),
-        gltf::image::Format::R8G8 => (image, Format::R8G8_UNORM),
-        gltf::image::Format::R8G8B8 => {
-            // rarely supported format
-            let mut image_with_alpha = Vec::new();
-            for i in 0..image.len() / 3 {
-                image_with_alpha.push(image[i * 3]);
-                image_with_alpha.push(image[i * 3 + 1]);
-                image_with_alpha.push(image[i * 3 + 2]);
-                image_with_alpha.push(255);
-            }
-            (image_with_alpha, Format::R8G8B8A8_UNORM)
-        }
-        gltf::image::Format::R8G8B8A8 => (image, Format::R8G8B8A8_UNORM),
-        gltf::image::Format::R16 => (image, Format::R16_UNORM),
-        gltf::image::Format::R16G16 => (image, Format::R16G16_UNORM),
-        gltf::image::Format::R16G16B16 => {
-            // rarely supported format
-            todo!()
-        }
-        gltf::image::Format::R16G16B16A16 => (image, Format::R16G16B16A16_UNORM),
-        gltf::image::Format::R32G32B32FLOAT => {
-            // rarely supported format
-            todo!()
-        }
-        gltf::image::Format::R32G32B32A32FLOAT => (image, Format::R32G32B32A32_SFLOAT),
-    }
-}
-
-impl Asset for Texture {}
