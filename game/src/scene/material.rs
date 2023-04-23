@@ -1,12 +1,11 @@
 use crate::scene::texture::Texture;
-use bevy_ecs::prelude::Component;
 use nalgebra::Vector3;
 use std::sync::Arc;
 
 use super::loader::Asset;
 
 /// references a shader and its inputs
-#[derive(Component, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Material {
     pub base_color: Vector3<f32>,
     pub base_color_texture: Option<Arc<Texture>>,

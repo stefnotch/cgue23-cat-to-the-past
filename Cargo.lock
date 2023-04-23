@@ -1554,6 +1554,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5996294f19bd3aae0453a862ad728f60e6600695733dd5df01da90c54363a3c"
 
 [[package]]
+name = "render"
+version = "0.1.0"
+
+[[package]]
 name = "robust"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1600,6 +1604,7 @@ name = "scene"
 version = "0.1.0"
 dependencies = [
  "bevy_ecs",
+ "math",
  "nalgebra",
 ]
 
