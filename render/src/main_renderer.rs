@@ -1,9 +1,17 @@
 use crate::bloom_renderer::BloomRenderer;
 use crate::context::Context;
+use crate::model_uploader::ModelUploaderAllocator;
 use crate::quad_renderer::QuadRenderer;
-use crate::scene::model::Model;
+use crate::scene::material::Material;
+use crate::scene::mesh::Mesh;
+use crate::scene::model::GpuModel;
+use crate::scene::texture::Texture;
 use crate::scene_renderer::SceneRenderer;
+use bevy_ecs::schedule::{IntoSystemConfig, Schedule};
 use bevy_ecs::system::{NonSendMut, Query, Res};
+use bevy_ecs::world::World;
+use game_core::application::AppStage;
+use game_core::asset::Assets;
 use game_core::camera::Camera;
 use scene::light::Light;
 use scene::transform::Transform;
@@ -108,13 +116,25 @@ impl Renderer {
     pub fn recreate_swapchain(&mut self) {
         self.recreate_swapchain = true;
     }
+
+    pub fn setup_systems(self, context: &Context, world: &mut World, schedule: &mut Schedule) {
+        world.insert_non_send_resource(self);
+        schedule.add_system(render.in_set(AppStage::Render));
+
+        let model_uploading_allocator = ModelUploaderAllocator::new(context.device());
+        world.insert_resource(model_uploading_allocator);
+
+        world.insert_resource(Assets::<Mesh>::default());
+        world.insert_resource(Assets::<Material>::default());
+        world.insert_resource(Assets::<Texture>::default());
+    }
 }
 
 pub fn render(
     mut renderer: NonSendMut<Renderer>,
     context: Res<Context>,
     camera: Res<Camera>,
-    query_models: Query<(&Transform, &Model)>,
+    query_models: Query<(&Transform, &GpuModel)>,
     query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
 ) {
     // On Windows, this can occur from minimizing the application.

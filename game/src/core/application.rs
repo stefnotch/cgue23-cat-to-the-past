@@ -148,9 +148,6 @@ impl Application {
         let config = &self.config;
         let window_builder = self.create_window(&config.window);
 
-        let context = Context::new(window_builder, &self.event_loop);
-        let renderer = Renderer::new(&context);
-
         let mut world = &mut self.world;
         let schedule = &mut self.schedule;
         let startup_schedule = &mut self.startup_schedule;
@@ -172,6 +169,11 @@ impl Application {
         schedule.add_system(update_camera_aspect_ratio.in_set(AppStage::EventUpdate));
         schedule.add_system(update_camera.in_set(AppStage::BeforeRender));
         world.insert_resource(camera);
+
+        let context = Context::new(window_builder, &self.event_loop);
+        let renderer = Renderer::new(&context);
+        renderer.setup_systems(&context, world, schedule);
+        world.insert_resource(context);
 
         let physics_context = PhysicsContext::new();
         physics_context.setup_systems(world, schedule);
@@ -214,10 +216,6 @@ impl Application {
         schedule.add_system(handle_mouse_input.in_set(AppStage::EventUpdate));
 
         schedule.add_system(read_input.in_set(AppStage::Update));
-
-        world.insert_resource(context);
-        world.insert_non_send_resource(renderer);
-        schedule.add_system(render.in_set(AppStage::Render));
 
         schedule.add_system(lock_mouse);
 

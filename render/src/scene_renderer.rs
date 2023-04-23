@@ -1,7 +1,7 @@
 use crate::context::Context;
 use crate::scene::material::Material;
 use crate::scene::mesh::MeshVertex;
-use crate::scene::model::Model;
+use crate::scene::model::GpuModel;
 use crate::scene::texture::Texture;
 use game_core::camera::Camera;
 use scene::light::{Light, PointLight};
@@ -219,7 +219,7 @@ impl SceneRenderer {
         &self,
         context: &Context,
         camera: &Camera,
-        models: Vec<(&Transform, &Model)>,
+        models: Vec<(&Transform, &GpuModel)>,
         lights: Vec<(&Transform, &Light)>,
         future: F,
         swapchain_frame_index: u32,

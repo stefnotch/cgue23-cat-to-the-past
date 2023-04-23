@@ -1,6 +1,6 @@
 use std::{f32::consts::PI, sync::Arc};
 
-use game_core::asset::Asset;
+use game_core::asset::{Asset, AssetId};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Vector2, Vector3};
 
@@ -11,12 +11,17 @@ pub struct MeshVertex {
 }
 
 pub struct CpuMesh {
+    pub id: AssetId,
     pub vertices: Vec<MeshVertex>,
     pub indices: Vec<u32>,
     pub bounding_box: BoundingBox<Vector3<f32>>,
 }
 
-impl Asset for CpuMesh {}
+impl Asset for CpuMesh {
+    fn id(&self) -> AssetId {
+        self.id
+    }
+}
 
 impl CpuMesh {
     pub fn new(
@@ -25,6 +30,7 @@ impl CpuMesh {
         bounding_box: BoundingBox<Vector3<f32>>,
     ) -> Arc<Self> {
         Arc::new(Self {
+            id: AssetId::new_v4(),
             vertices,
             indices,
             bounding_box,
@@ -130,6 +136,7 @@ impl CpuMesh {
             .collect();
 
         Arc::new(CpuMesh {
+            id: AssetId::new_v4(),
             vertices,
             indices,
 
@@ -192,6 +199,7 @@ impl CpuMesh {
         }
 
         Arc::new(CpuMesh {
+            id: AssetId::new_v4(),
             vertices,
             indices,
 

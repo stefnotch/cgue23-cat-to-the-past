@@ -7,7 +7,7 @@ use nalgebra::Vector3;
 use super::{material::Material, mesh::Mesh};
 
 #[derive(Component, Clone)]
-pub struct Model {
+pub struct GpuModel {
     pub primitives: Vec<Primitive>,
 }
 
@@ -18,7 +18,7 @@ pub struct Primitive {
     pub material: Arc<Material>,
 }
 
-impl Model {
+impl GpuModel {
     pub fn bounding_box(&self) -> BoundingBox<Vector3<f32>> {
         let bounding_box = self
             .primitives

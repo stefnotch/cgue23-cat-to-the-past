@@ -19,12 +19,8 @@ pub struct MeshVertex {
 }
 
 pub struct Mesh {
-    pub vertices: Vec<MeshVertex>,
-    pub indices: Vec<u32>,
-
     pub vertex_buffer: Subbuffer<[MeshVertex]>,
     pub index_buffer: Subbuffer<[u32]>,
-
     pub bounding_box: BoundingBox<Vector3<f32>>,
 }
 
@@ -38,8 +34,6 @@ impl Mesh {
         let (vertex_buffer, index_buffer) = Mesh::setup_buffers(&vertices, &indices, allocator);
 
         Arc::new(Self {
-            vertices,
-            indices,
             vertex_buffer,
             index_buffer,
             bounding_box,

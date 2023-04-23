@@ -1,6 +1,7 @@
-use game_core::asset::Asset;
+use game_core::asset::{Asset, AssetId};
 
 pub struct CpuTexture {
+    pub id: AssetId,
     pub data: Box<dyn TextureData>,
     pub sampler_info: SamplerInfo,
 }
@@ -11,7 +12,11 @@ pub trait TextureData: Sync + Send {
     fn bytes(&self) -> &[u8];
 }
 
-impl Asset for CpuTexture {}
+impl Asset for CpuTexture {
+    fn id(&self) -> AssetId {
+        self.id
+    }
+}
 
 #[allow(non_camel_case_types)]
 /// A list of the more common texture formats that we actually support.

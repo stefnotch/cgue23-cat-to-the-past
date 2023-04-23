@@ -3,6 +3,7 @@ use std::sync::Arc;
 use bevy_ecs::system::Commands;
 use game::core::application::{AppConfig, ApplicationBuilder};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
+use game_core::asset::AssetId;
 use nalgebra::{Point3, Vector3};
 use scene::light::{Light, PointLight};
 use scene::material::CpuMaterial;
@@ -43,6 +44,7 @@ fn spawn_pbr_demo(mut commands: Commands) {
                     primitives: vec![CpuPrimitive {
                         mesh: sphere.clone(),
                         material: Arc::new(CpuMaterial {
+                            id: AssetId::new_v4(),
                             base_color: Vector3::new(1.0, 0.0, 0.0),
                             base_color_texture: None,
                             roughness_factor: roughness,

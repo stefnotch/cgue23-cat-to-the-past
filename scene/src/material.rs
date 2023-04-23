@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use game_core::asset::Asset;
+use game_core::asset::{Asset, AssetId};
 use nalgebra::Vector3;
 
 use crate::texture::CpuTexture;
 
 pub struct CpuMaterial {
+    pub id: AssetId,
     pub base_color: Vector3<f32>,
     pub base_color_texture: Option<Arc<CpuTexture>>,
     pub roughness_factor: f32,
@@ -16,6 +17,7 @@ pub struct CpuMaterial {
 impl Default for CpuMaterial {
     fn default() -> Self {
         Self {
+            id: AssetId::new_v4(),
             base_color: Vector3::new(1.0, 0.0, 1.0),
             base_color_texture: None,
             roughness_factor: 1.0,
@@ -25,4 +27,8 @@ impl Default for CpuMaterial {
     }
 }
 
-impl Asset for CpuMaterial {}
+impl Asset for CpuMaterial {
+    fn id(&self) -> AssetId {
+        self.id
+    }
+}
