@@ -1,4 +1,5 @@
 use crate::context::Context;
+use game_core::asset::{Asset, AssetId};
 use std::sync::Arc;
 use vulkano::buffer::BufferContents;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -13,6 +14,7 @@ use vulkano::sync::GpuFuture;
 
 #[derive(Debug, PartialEq)]
 pub struct Texture {
+    pub id: AssetId,
     pub image_view: Arc<ImageView<ImmutableImage>>,
     pub sampler: Arc<Sampler>,
 }
@@ -20,6 +22,7 @@ pub struct Texture {
 impl Texture {
     pub fn new_one_by_one(sampler: Arc<Sampler>, context: &Context) -> Arc<Texture> {
         Self::new(
+            AssetId::new_v4(),
             vec![255u8, 255u8, 255u8, 255u8],
             1,
             1,
@@ -30,6 +33,7 @@ impl Texture {
     }
 
     pub fn new<I, Px>(
+        id: AssetId,
         data_iterator: I,
         width: u32,
         height: u32,
@@ -87,8 +91,15 @@ impl Texture {
         future.wait(None).unwrap();
 
         Arc::new(Texture {
+            id,
             image_view: texture,
             sampler,
         })
+    }
+}
+
+impl Asset for Texture {
+    fn id(&self) -> AssetId {
+        self.id
     }
 }

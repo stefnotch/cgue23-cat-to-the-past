@@ -1,6 +1,7 @@
 use crate::bloom_renderer::BloomRenderer;
 use crate::context::Context;
-use crate::model_uploader::ModelUploaderAllocator;
+use crate::create_gpu_models;
+use crate::model_uploader::{ModelUploaderAllocator, SamplerInfoMap};
 use crate::quad_renderer::QuadRenderer;
 use crate::scene::material::Material;
 use crate::scene::mesh::Mesh;
@@ -119,10 +120,14 @@ impl Renderer {
 
     pub fn setup_systems(self, context: &Context, world: &mut World, schedule: &mut Schedule) {
         world.insert_non_send_resource(self);
+        schedule.add_system(create_gpu_models.in_set(AppStage::Render).before(render));
         schedule.add_system(render.in_set(AppStage::Render));
 
         let model_uploading_allocator = ModelUploaderAllocator::new(context.device());
         world.insert_resource(model_uploading_allocator);
+
+        let sampler_info_map = SamplerInfoMap::new();
+        world.insert_resource(sampler_info_map);
 
         world.insert_resource(Assets::<Mesh>::default());
         world.insert_resource(Assets::<Material>::default());

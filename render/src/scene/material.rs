@@ -1,3 +1,4 @@
+use game_core::asset::{Asset, AssetId};
 use nalgebra::Vector3;
 use std::sync::Arc;
 
@@ -6,6 +7,7 @@ use super::texture::Texture;
 /// references a shader and its inputs
 #[derive(Debug, Clone, PartialEq)]
 pub struct Material {
+    pub id: AssetId,
     pub base_color: Vector3<f32>,
     pub base_color_texture: Option<Arc<Texture>>,
     pub roughness_factor: f32,
@@ -13,14 +15,8 @@ pub struct Material {
     pub emissivity: Vector3<f32>, // TODO: Add a shader/pipeline here (we only support one shader for now)
 }
 
-impl Default for Material {
-    fn default() -> Self {
-        Self {
-            base_color: Vector3::new(1.0, 0.0, 1.0),
-            base_color_texture: None,
-            roughness_factor: 1.0,
-            metallic_factor: 0.0,
-            emissivity: Vector3::new(0.0, 0.0, 0.0),
-        }
+impl Asset for Material {
+    fn id(&self) -> AssetId {
+        self.id
     }
 }
