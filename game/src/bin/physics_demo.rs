@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Res};
 use game::render::context::Context;
-use nalgebra::Point3;
-use rapier3d::dynamics::RigidBodyType;
-use rapier3d::na::Vector3;
+use nalgebra::{Point3, Vector3};
 
 use game::core::application::{AppConfig, ApplicationBuilder};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
@@ -12,9 +10,9 @@ use game::scene::material::Material;
 use game::scene::mesh::Mesh;
 use game::scene::model::{Model, Primitive};
 use math::bounding_box::BoundingBox;
-use physics::physics_context::{BoxCollider, RigidBody, Sensor};
+use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType, Sensor};
 use scene::light::{Light, PointLight};
-use scene::transform::{Transform, TransformBuilder};
+use scene::transform::TransformBuilder;
 
 fn spawn_world(mut commands: Commands, context: Res<Context>) {
     let memory_allocator = Arc::new(

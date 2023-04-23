@@ -1,16 +1,13 @@
-use std::cmp::max;
 use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Res};
-use game::render::context::Context;
-use nalgebra::Point3;
-use rapier3d::na::Vector3;
-
 use game::core::application::{AppConfig, ApplicationBuilder};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
+use game::render::context::Context;
 use game::scene::material::Material;
 use game::scene::mesh::Mesh;
 use game::scene::model::{Model, Primitive};
+use nalgebra::{Point3, Vector3};
 use scene::light::{Light, PointLight};
 use scene::transform::TransformBuilder;
 

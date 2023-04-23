@@ -24,6 +24,8 @@ use super::player_physics::{
     PlayerCharacterController,
 };
 
+pub use rapier3d::prelude::RigidBodyType;
+
 #[derive(Resource)]
 pub struct PhysicsContext {
     /// controls various aspects of the physics simulation
