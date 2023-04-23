@@ -1,14 +1,9 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+mod bloom_renderer;
+pub mod context;
+mod custom_storage_image;
+mod main_renderer;
+mod quad_renderer;
+mod scene;
+mod scene_renderer;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use crate::main_renderer::*;

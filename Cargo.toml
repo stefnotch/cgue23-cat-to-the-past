@@ -12,5 +12,8 @@ members = [
     "debug"
 ]
 
-[profile.dev.package.game]
+[profile.dev.package.render]
+opt-level = 1
+
+[profile.dev.package.physics]
 opt-level = 1

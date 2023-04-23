@@ -2,8 +2,6 @@ use game_core::time::{update_time, Time};
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
 use crate::input::input_map::{handle_keyboard_input, handle_mouse_input, InputMap};
-use crate::render::context::Context;
-use crate::render::{render, Renderer};
 use crate::scene::loader::AssetServer;
 use angle::Deg;
 use bevy_ecs::prelude::*;
@@ -13,6 +11,8 @@ use game_core::camera::{update_camera, Camera};
 use input::events::{KeyboardInput, MouseInput, MouseMovement};
 use nalgebra::{Point3, UnitQuaternion};
 use physics::physics_context::PhysicsContext;
+use render::context::Context;
+use render::{render, Renderer};
 use windowing::config::WindowConfig;
 use windowing::icon::get_icon;
 use winit::dpi::{LogicalSize, PhysicalSize};

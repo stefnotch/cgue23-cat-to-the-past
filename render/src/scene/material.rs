@@ -1,6 +1,7 @@
-use crate::scene::texture::Texture;
 use nalgebra::Vector3;
 use std::sync::Arc;
+
+use super::texture::Texture;
 
 /// references a shader and its inputs
 #[derive(Debug, Clone, PartialEq)]
