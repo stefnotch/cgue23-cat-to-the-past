@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use game_core::asset::Asset;
 use nalgebra::Vector3;
 
 use crate::texture::CpuTexture;
@@ -23,3 +24,5 @@ impl Default for CpuMaterial {
         }
     }
 }
+
+impl Asset for CpuMaterial {}

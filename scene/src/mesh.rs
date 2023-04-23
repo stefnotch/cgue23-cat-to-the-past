@@ -1,5 +1,6 @@
 use std::{f32::consts::PI, sync::Arc};
 
+use game_core::asset::Asset;
 use math::bounding_box::BoundingBox;
 use nalgebra::{Vector2, Vector3};
 
@@ -14,6 +15,8 @@ pub struct CpuMesh {
     pub indices: Vec<u32>,
     pub bounding_box: BoundingBox<Vector3<f32>>,
 }
+
+impl Asset for CpuMesh {}
 
 impl CpuMesh {
     pub fn new(

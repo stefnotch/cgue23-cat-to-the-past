@@ -1,26 +1,21 @@
 use std::f32::consts::PI;
 use std::sync::Arc;
 
-use bevy_ecs::system::{Commands, Res};
-use game::render::context::Context;
+use bevy_ecs::system::Commands;
 use nalgebra::{Point3, UnitQuaternion, Vector3};
 
 use game::core::application::{AppConfig, ApplicationBuilder};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
-use game::scene::material::Material;
-use game::scene::mesh::Mesh;
-use game::scene::model::{Model, Primitive};
 use scene::light::{Light, PointLight};
+use scene::material::CpuMaterial;
+use scene::mesh::CpuMesh;
+use scene::model::{CpuPrimitive, Model};
 use scene::transform::TransformBuilder;
 
-fn spawn_bloom_demo(mut commands: Commands, context: Res<Context>) {
-    let memory_allocator = Arc::new(
-        vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
-    );
+fn spawn_bloom_demo(mut commands: Commands) {
+    let cube = CpuMesh::cube(1.0, 1.0, 1.0);
 
-    let cube = Mesh::cube(1.0, 1.0, 1.0, &memory_allocator);
-
-    let material = Material {
+    let material = CpuMaterial {
         base_color: [1.0, 1.0, 1.0].into(),
         base_color_texture: None,
         roughness_factor: 0.9,
@@ -29,7 +24,7 @@ fn spawn_bloom_demo(mut commands: Commands, context: Res<Context>) {
     };
 
     let model = Model {
-        primitives: vec![Primitive {
+        primitives: vec![CpuPrimitive {
             mesh: cube.clone(),
             material: Arc::from(material),
         }],
@@ -70,9 +65,9 @@ fn spawn_bloom_demo(mut commands: Commands, context: Res<Context>) {
     let mut spawn_light = |position: Point3<f32>, color: Vector3<f32>, intensity: f32| {
         commands.spawn((
             Model {
-                primitives: vec![Primitive {
+                primitives: vec![CpuPrimitive {
                     mesh: cube.clone(),
-                    material: Arc::from(Material {
+                    material: Arc::from(CpuMaterial {
                         base_color: Vector3::new(1.0, 1.0, 1.0),
                         base_color_texture: None,
                         roughness_factor: 0.9,

@@ -1,3 +1,5 @@
+use game_core::asset::Asset;
+
 pub struct CpuTexture {
     pub data: Box<dyn TextureData>,
     pub sampler_info: SamplerInfo,
@@ -8,6 +10,8 @@ pub trait TextureData: Sync + Send {
     fn format(&self) -> &TextureFormat;
     fn bytes(&self) -> &[u8];
 }
+
+impl Asset for CpuTexture {}
 
 #[allow(non_camel_case_types)]
 /// A list of the more common texture formats that we actually support.
@@ -27,7 +31,7 @@ pub enum TextureFormat {
 pub struct SamplerInfo {
     pub min_filter: Filter,
     pub mag_filter: Filter,
-    pub address_mode: AddressMode,
+    pub address_mode: [AddressMode; 3],
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

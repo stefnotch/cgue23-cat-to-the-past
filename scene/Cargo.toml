@@ -10,3 +10,4 @@ bevy_ecs = { version = "0.10.1" }
 nalgebra = {version = "0.32.2" }
 
 math = { path = "../math" }
+game_core = { path = "../game_core" }

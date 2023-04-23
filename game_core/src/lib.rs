@@ -1,4 +1,5 @@
 pub mod application;
+pub mod asset;
 pub mod camera;
 pub mod events;
 pub mod time;

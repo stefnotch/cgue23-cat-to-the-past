@@ -1,32 +1,28 @@
 use std::sync::Arc;
 
 use bevy_ecs::system::{Commands, Res};
-use game::render::context::Context;
 use nalgebra::{Point3, Vector3};
 
 use game::core::application::{AppConfig, ApplicationBuilder};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
-use game::scene::material::Material;
-use game::scene::mesh::Mesh;
-use game::scene::model::{Model, Primitive};
+
 use math::bounding_box::BoundingBox;
 use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType, Sensor};
 use scene::light::{Light, PointLight};
+use scene::material::CpuMaterial;
+use scene::mesh::CpuMesh;
+use scene::model::{CpuPrimitive, Model};
 use scene::transform::TransformBuilder;
 
-fn spawn_world(mut commands: Commands, context: Res<Context>) {
-    let memory_allocator = Arc::new(
-        vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
-    );
-
-    let cube = Mesh::cube(1.0, 1.0, 1.0, &memory_allocator);
+fn spawn_world(mut commands: Commands) {
+    let cube = CpuMesh::cube(1.0, 1.0, 1.0);
 
     let bounding_box = BoundingBox {
         min: [-0.5, -0.5, -0.5].into(),
         max: [0.5, 0.5, 0.5].into(),
     };
 
-    let white_material = Arc::new(Material {
+    let white_material = Arc::new(CpuMaterial {
         base_color: [1.0; 3].into(),
         base_color_texture: None,
         roughness_factor: 1.0,
@@ -49,7 +45,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
 
     commands.spawn((
         Model {
-            primitives: vec![Primitive {
+            primitives: vec![CpuPrimitive {
                 mesh: cube.clone(),
                 material: white_material.clone(),
             }],
@@ -65,7 +61,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
 
     commands.spawn((
         Model {
-            primitives: vec![Primitive {
+            primitives: vec![CpuPrimitive {
                 mesh: cube.clone(),
                 material: white_material.clone(),
             }],
@@ -83,7 +79,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
     for i in 0..5 {
         commands.spawn((
             Model {
-                primitives: vec![Primitive {
+                primitives: vec![CpuPrimitive {
                     mesh: cube.clone(),
                     material: white_material.clone(),
                 }],
@@ -99,7 +95,7 @@ fn spawn_world(mut commands: Commands, context: Res<Context>) {
 
     commands.spawn((
         Model {
-            primitives: vec![Primitive {
+            primitives: vec![CpuPrimitive {
                 mesh: cube.clone(),
                 material: white_material.clone(),
             }],

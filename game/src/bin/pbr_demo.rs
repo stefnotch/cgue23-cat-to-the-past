@@ -1,22 +1,17 @@
 use std::sync::Arc;
 
-use bevy_ecs::system::{Commands, Res};
+use bevy_ecs::system::Commands;
 use game::core::application::{AppConfig, ApplicationBuilder};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
-use game::render::context::Context;
-use game::scene::material::Material;
-use game::scene::mesh::Mesh;
-use game::scene::model::{Model, Primitive};
 use nalgebra::{Point3, Vector3};
 use scene::light::{Light, PointLight};
+use scene::material::CpuMaterial;
+use scene::mesh::CpuMesh;
+use scene::model::{CpuPrimitive, Model};
 use scene::transform::TransformBuilder;
 
-fn spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
-    let memory_allocator = Arc::new(
-        vulkano::memory::allocator::StandardMemoryAllocator::new_default(context.device()),
-    );
-
-    let sphere = Mesh::sphere(64, 32, 1.0, &memory_allocator);
+fn spawn_pbr_demo(mut commands: Commands) {
+    let sphere = CpuMesh::sphere(64, 32, 1.0);
 
     let mut spawn_light = |position: Point3<f32>| {
         commands.spawn((
@@ -45,9 +40,9 @@ fn spawn_pbr_demo(mut commands: Commands, context: Res<Context>) {
 
             commands.spawn((
                 Model {
-                    primitives: vec![Primitive {
+                    primitives: vec![CpuPrimitive {
                         mesh: sphere.clone(),
-                        material: Arc::new(Material {
+                        material: Arc::new(CpuMaterial {
                             base_color: Vector3::new(1.0, 0.0, 0.0),
                             base_color_texture: None,
                             roughness_factor: roughness,
