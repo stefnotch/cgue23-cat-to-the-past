@@ -14,3 +14,5 @@ members = [
 
 [profile.dev.package.render]
 opt-level = 1
+[profile.dev.package.vulkano]
+opt-level = 1
