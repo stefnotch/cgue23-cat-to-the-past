@@ -10,7 +10,8 @@ members = [
     "input",
     "game",
     "debug",
-    "demos"
+    "demos",
+    "scene_loader"
 ]
 
 [profile.dev.package.render]
