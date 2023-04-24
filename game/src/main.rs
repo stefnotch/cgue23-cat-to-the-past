@@ -1,11 +1,11 @@
 use bevy_ecs::prelude::{Component, Query, With};
-use game::scene::loader::AssetServer;
 use game_core::time::Time;
 use game_core::time_manager::TimeManager;
 use scene::{
     mesh::CpuMesh,
     model::{CpuPrimitive, Model},
 };
+use scene_loader::loader::AssetServer;
 use std::f32::consts::PI;
 use std::sync::Arc;
 use std::time::Instant;

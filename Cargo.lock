@@ -701,13 +701,13 @@ dependencies = [
  "bevy_ecs",
  "debug",
  "game_core",
- "gltf",
  "input",
  "math",
  "nalgebra",
  "physics",
  "render",
  "scene",
+ "scene_loader",
  "uuid",
  "windowing",
  "winit",
@@ -1629,6 +1629,19 @@ dependencies = [
  "game_core",
  "math",
  "nalgebra",
+]
+
+[[package]]
+name = "scene_loader"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "game_core",
+ "gltf",
+ "math",
+ "nalgebra",
+ "physics",
+ "scene",
 ]
 
 [[package]]
