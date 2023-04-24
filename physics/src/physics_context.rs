@@ -1,8 +1,9 @@
+use bevy_ecs::event::EventWriter;
 use game_core::time::Time;
 
 use bevy_ecs::prelude::{
-    Added, Commands, Component, Entity, IntoSystemConfig, Query, Res, ResMut, Resource, Schedule,
-    With, World,
+    Added, Commands, Component, Entity, Events, IntoSystemConfig, Query, Res, ResMut, Resource,
+    Schedule, With, World,
 };
 use bevy_ecs::query::{Changed, Without};
 use game_core::application::AppStage;
@@ -24,6 +25,7 @@ use super::player_physics::{
     PlayerCharacterController,
 };
 
+use crate::physics_events::{handle_collision_event, CollisionEvent};
 pub use rapier3d::prelude::RigidBodyType;
 
 #[derive(Resource)]
@@ -88,7 +90,11 @@ impl PhysicsContext {
         }
     }
 
-    pub fn step_simulation(&mut self, time: &Time) {
+    pub fn step_simulation(
+        &mut self,
+        time: &Time,
+        mut collision_events: EventWriter<CollisionEvent>,
+    ) {
         self.integration_parameters.dt = (time.delta_seconds() as Real) / (self.substeps as Real);
 
         let (collision_send, collision_recv) = crossbeam::channel::unbounded();
@@ -112,8 +118,7 @@ impl PhysicsContext {
         );
 
         while let Ok(collision_event) = collision_recv.try_recv() {
-            // Handle the collision event.
-            println!("Received collision event: {:?}", collision_event);
+            handle_collision_event(&self.colliders, collision_event, &mut collision_events);
         }
 
         while let Ok(contact_force_event) = contact_force_recv.try_recv() {
@@ -168,13 +173,24 @@ impl PhysicsContext {
                 .in_set(AppStage::Update)
                 .run_if(is_rewinding),
         );
+
+        world.insert_resource(Events::<CollisionEvent>::default());
+        schedule.add_system(
+            Events::<CollisionEvent>::update_system
+                .in_set(AppStage::UpdatePhysics) // TODO: check if correct
+                .after(step_physics_simulation),
+        );
     }
 }
 
-fn step_physics_simulation(mut physics_context: ResMut<PhysicsContext>, time: Res<Time>) {
+fn step_physics_simulation(
+    mut physics_context: ResMut<PhysicsContext>,
+    time: Res<Time>,
+    collision_events: EventWriter<CollisionEvent>,
+) {
     let time = time.as_ref();
 
-    physics_context.step_simulation(time);
+    physics_context.step_simulation(time, collision_events);
 }
 
 #[derive(Component)]
@@ -204,7 +220,11 @@ pub struct BoxCollider {
     pub bounds: BoundingBox<Vector3<f32>>,
 }
 
-fn create_box_collider(box_collider: &BoxCollider, transform: &Transform) -> Collider {
+fn create_box_collider(
+    entity: &Entity,
+    box_collider: &BoxCollider,
+    transform: &Transform,
+) -> Collider {
     let scaled_bounds = box_collider.bounds.scale(&transform.scale);
     let half_size: Vector3<f32> = scaled_bounds.size() * 0.5;
     let collider_offset = scaled_bounds.min + half_size;
@@ -214,6 +234,7 @@ fn create_box_collider(box_collider: &BoxCollider, transform: &Transform) -> Col
             transform.to_isometry()
                 * Isometry::translation(collider_offset.x, collider_offset.y, collider_offset.z),
         )
+        .user_data(entity.to_bits() as u128)
         .build()
 }
 
@@ -226,7 +247,7 @@ pub fn apply_collider_changes(
     >,
 ) {
     for (entity, collider, transform) in &box_collider_query {
-        let physics_collider = create_box_collider(&collider, &transform);
+        let physics_collider = create_box_collider(&entity, &collider, &transform);
         let handle = physics_context.colliders.insert(physics_collider);
         commands
             .entity(entity)
@@ -251,7 +272,7 @@ pub fn apply_rigid_body_added(
 
         let scale_transform = TransformBuilder::new().scale(transform.scale).build();
 
-        let physics_collider = create_box_collider(&collider, &scale_transform);
+        let physics_collider = create_box_collider(&entity, &collider, &scale_transform);
 
         context
             .colliders

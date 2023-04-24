@@ -1,3 +1,4 @@
+use bevy_ecs::event::EventReader;
 use std::sync::Arc;
 
 use bevy_ecs::system::Commands;
@@ -7,8 +8,8 @@ use nalgebra::{Point3, Vector3};
 use game::core::application::{AppConfig, ApplicationBuilder};
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
 
-use math::bounding_box::BoundingBox;
 use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType, Sensor};
+use physics::physics_events::CollisionEvent;
 use scene::light::{Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::CpuMesh;
@@ -110,6 +111,12 @@ fn spawn_world(mut commands: Commands) {
     ));
 }
 
+fn display_collision_events(mut collision_events: EventReader<CollisionEvent>) {
+    for collision_event in collision_events.iter() {
+        println!("Received collision event: {collision_event:?}");
+    }
+}
+
 fn main() {
     let config = AppConfig::default();
 
@@ -123,6 +130,7 @@ fn main() {
 
     let application = ApplicationBuilder::new(config)
         .with_startup_system(spawn_world)
+        .with_system(display_collision_events)
         .with_player_controller(player_spawn_settings)
         .build();
 
