@@ -187,14 +187,15 @@ fn update_player(
 
     if character_controller.grounded {
         velocity = move_ground(&velocity, get_horizontal(&last_velocity), &settings, &time);
-        velocity.y = -settings.gravity.abs() * 0.5;
+        velocity.y = 0.0;
     } else {
         velocity = move_air(&velocity, get_horizontal(&last_velocity), &settings, &time);
         velocity.y = last_velocity.y;
     }
 
-    if velocity.norm() < 0.05 {
-        velocity = Vector3::zeros()
+    if get_horizontal(&velocity).norm() < 0.05 {
+        velocity.x = 0.0;
+        velocity.z = 0.0;
     }
 
     if character_controller.grounded && vertical_input > 0.0 {
@@ -207,6 +208,20 @@ fn update_player(
 
     player.velocity = velocity;
     character_controller.desired_movement = velocity;
+}
+
+// Dirty workaround for https://github.com/dimforge/rapier/issues/485
+fn update_player2(
+    mut query: Query<(
+        &mut Player,
+        &mut PlayerCharacterController,
+        &PlayerControllerSettings,
+    )>,
+    input: Res<InputMap>,
+    time: Res<Time>,
+) {
+    let (mut player, mut character_controller, settings) = query.single_mut();
+    character_controller.desired_movement = [0.0, -0.1, 0.0].into();
 }
 
 fn update_player_camera(
@@ -299,6 +314,12 @@ impl ApplicationBuilder {
                     .in_set(AppStage::Update)
                     .run_if(not(has_free_camera_activated))
                     .run_if(not(is_rewinding)),
+            )
+            .with_system(
+                update_player2
+                    .in_set(AppStage::Update)
+                    .run_if(not(has_free_camera_activated))
+                    .run_if(is_rewinding),
             )
             .with_system(
                 update_player_camera
