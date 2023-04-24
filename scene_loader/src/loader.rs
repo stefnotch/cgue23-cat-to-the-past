@@ -6,7 +6,7 @@ use gltf::texture::{MagFilter, MinFilter, WrappingMode};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
-use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType};
+use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType, Sensor};
 use scene::light::{Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::{CpuMesh, CpuMeshVertex};
@@ -20,9 +20,29 @@ use std::iter::repeat;
 use std::sync::Arc;
 use std::{collections::HashMap, path::Path};
 
+use serde::Deserialize;
+
 // scene.json -> assets
 
 // list of assets in code
+
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+struct Animation {
+    pub translation: [f32; 3],
+    pub duration: f32,
+}
+
+// Note: this can also be moved to game like bevy does it
+// (See: https://github.com/bevyengi ne/bevy/blob/dff071c2a86c4acce5223d26f1fefea3f9d20dbd/crates/bevy_gltf/src/lib.rs#L82)
+#[derive(Deserialize, Debug, Default)]
+#[serde(deny_unknown_fields)]
+struct GLTFExtras {
+    pub sensor: Option<bool>,
+    pub box_collider: Option<bool>,
+    pub animation: Option<Animation>,
+    pub rigid_body: Option<bool>,
+}
 
 #[derive(Resource)]
 pub struct AssetServer {}
@@ -84,21 +104,28 @@ impl AssetServer {
             ));
         }
 
-        for (transform, model, has_rigidbody) in scene_loading_result.models {
+        for (transform, model, extras) in scene_loading_result.models {
             let box_collider = BoxCollider {
                 bounds: model.bounding_box(),
             };
 
-            if has_rigidbody {
-                commands.spawn((
-                    model,
-                    transform,
-                    box_collider,
-                    RigidBody(RigidBodyType::Dynamic),
-                    TimeTracked::new(),
-                ));
+            let mut entity = commands.spawn(transform);
+
+            if let Some(true) = extras.sensor {
+                // and sensor component
+                entity.insert(Sensor);
             } else {
-                commands.spawn((model, transform, box_collider));
+                // add model component
+                entity.insert(model);
+            }
+
+            // add box collider component
+            if let Some(true) = extras.box_collider {
+                entity.insert(box_collider);
+            }
+
+            if let Some(true) = extras.rigid_body {
+                todo!("read type of rigid body and add components (rigidbody and timetracked)")
             }
         }
 
@@ -136,16 +163,23 @@ impl AssetServer {
         }
 
         let mut rigidbody = false;
-        // TODO: Read JSON using serde
-        if let Some(extras) = node.extras() {
-            rigidbody = extras.get().contains("Rigidbody");
-        }
+        let extras = node
+            .extras()
+            .as_ref()
+            .map(|extra| {
+                let str = extra.get();
+
+                let result: GLTFExtras = serde_json::from_str(str).unwrap();
+
+                result
+            })
+            .unwrap_or_default();
 
         if let Some(mesh) = node.mesh() {
             scene_loading_result.models.push((
                 global_transform.clone(),
                 Self::load_model(mesh, scene_loading_data),
-                rigidbody,
+                extras,
             ));
         }
     }
@@ -207,7 +241,7 @@ struct SceneLoadingData {
 
 struct SceneLoadingResult {
     lights: Vec<(Transform, Light)>,
-    models: Vec<(Transform, Model, bool)>,
+    models: Vec<(Transform, Model, GLTFExtras)>,
 }
 impl SceneLoadingResult {
     fn new() -> Self {

@@ -1642,6 +1642,8 @@ dependencies = [
  "nalgebra",
  "physics",
  "scene",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
