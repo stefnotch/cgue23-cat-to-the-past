@@ -27,6 +27,14 @@ winding order: counter-clockwise
 units: meter  
 importer: gltf, we flatten the tree, we generate one axis aligned collider per model
 
+## Demos
+
+```
+cargo run --bin bloom_demo
+```
+
+where bloom_demo can be replaced with the name of any demo project in the `demos/src/bin` folder
+
 ## More concrete ideas
 
 3D Platformer game:
