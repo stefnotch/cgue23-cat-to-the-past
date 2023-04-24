@@ -17,6 +17,7 @@ pub fn start_tracing() -> FlushGuard {
     };
     use std::panic;
     use tracing_log::LogTracer;
+    #[cfg(feature = "tracing-chrome")]
     use tracing_subscriber::fmt::{format::DefaultFields, FormattedFields};
     use tracing_subscriber::{prelude::*, registry::Registry, EnvFilter};
 
