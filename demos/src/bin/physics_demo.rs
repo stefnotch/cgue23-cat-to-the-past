@@ -18,10 +18,7 @@ use scene::transform::TransformBuilder;
 fn spawn_world(mut commands: Commands) {
     let cube = CpuMesh::cube(1.0, 1.0, 1.0);
 
-    let bounding_box = BoundingBox {
-        min: [-0.5, -0.5, -0.5].into(),
-        max: [0.5, 0.5, 0.5].into(),
-    };
+    let bounding_box = cube.bounding_box.clone();
 
     let white_material = Arc::new(CpuMaterial {
         id: AssetId::new_v4(),

@@ -563,6 +563,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "demos"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "game",
+ "game_core",
+ "math",
+ "nalgebra",
+ "physics",
+ "scene",
+]
+
+[[package]]
 name = "dispatch"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

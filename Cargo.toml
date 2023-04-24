@@ -9,7 +9,8 @@ members = [
     "render",
     "input",
     "game",
-    "debug"
+    "debug",
+    "demos"
 ]
 
 [profile.dev.package.render]
