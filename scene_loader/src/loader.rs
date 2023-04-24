@@ -33,8 +33,6 @@ struct Animation {
     pub duration: f32,
 }
 
-// Note: this can also be moved to game like bevy does it
-// (See: https://github.com/bevyengi ne/bevy/blob/dff071c2a86c4acce5223d26f1fefea3f9d20dbd/crates/bevy_gltf/src/lib.rs#L82)
 #[derive(Deserialize, Debug, Default)]
 #[serde(deny_unknown_fields)]
 struct GLTFExtras {
