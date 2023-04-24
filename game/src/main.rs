@@ -1,9 +1,8 @@
 use bevy_ecs::prelude::{Component, Query, With};
 use game::scene::loader::AssetServer;
+use game_core::time::Time;
 use game_core::time_manager::TimeManager;
-use game_core::{asset::AssetId, time::Time};
 use scene::{
-    material::CpuMaterial,
     mesh::CpuMesh,
     model::{CpuPrimitive, Model},
 };
@@ -12,7 +11,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use bevy_ecs::system::{Commands, Res};
-use nalgebra::{Point3, Translation3, Vector3};
+use nalgebra::{Point3, Translation3};
 
 use game::core::application::{AppConfig, ApplicationBuilder};
 
@@ -21,47 +20,6 @@ use debug::tracing::start_tracing;
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
 use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, RigidBodyType};
 use scene::transform::{Transform, TransformBuilder};
-
-fn _spawn_pbr_demo(mut commands: Commands) {
-    let sphere = CpuMesh::sphere(64, 32, 1.0);
-
-    // TODO: add missing lights
-
-    let spacing: f32 = 1.25;
-
-    let n = 7;
-
-    for row in 0..n {
-        let metallic: f32 = row as f32 / (n as f32 - 1.0);
-        for col in 0..n {
-            let roughness: f32 = col as f32 / (n as f32 - 1.0);
-
-            commands.spawn((
-                Model {
-                    primitives: vec![CpuPrimitive {
-                        mesh: sphere.clone(),
-                        material: Arc::new(CpuMaterial {
-                            id: AssetId::new_v4(),
-                            base_color: Vector3::new(1.0, 0.0, 0.0),
-                            base_color_texture: None,
-                            roughness_factor: roughness,
-                            metallic_factor: metallic,
-                            emissivity: Default::default(),
-                        }),
-                    }],
-                },
-                TransformBuilder::new()
-                    .scale(Vector3::new(0.5, 0.5, 0.5))
-                    .position(Point3::new(
-                        (col - n / 2) as f32 * spacing,
-                        (row - n / 2) as f32 * spacing,
-                        0.0,
-                    ))
-                    .build(),
-            ));
-        }
-    }
-}
 
 fn spawn_world(mut commands: Commands, asset_server: Res<AssetServer>) {
     let before = Instant::now();
