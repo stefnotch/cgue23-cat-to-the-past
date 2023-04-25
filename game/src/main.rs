@@ -1,3 +1,4 @@
+use animations::animation::Animation;
 use bevy_ecs::prelude::{Component, EventReader, Query, With};
 use game_core::time::Time;
 use game_core::time_manager::TimeManager;
@@ -5,7 +6,7 @@ use scene::{
     mesh::CpuMesh,
     model::{CpuPrimitive, Model},
 };
-use scene_loader::loader::{Animation, AssetServer, Door};
+use scene_loader::loader::{AssetServer, Door};
 use std::f32::consts::PI;
 use std::sync::Arc;
 use std::time::Instant;
