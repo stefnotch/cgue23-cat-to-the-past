@@ -5,14 +5,13 @@ use scene::{
     mesh::CpuMesh,
     model::{CpuPrimitive, Model},
 };
-use scene_loader::loader::{AssetServer, Door};
+use scene_loader::loader::{Animation, AssetServer, Door};
 use std::f32::consts::PI;
-use std::ops::Add;
 use std::sync::Arc;
 use std::time::Instant;
 
 use bevy_ecs::system::{Commands, Res};
-use nalgebra::{Point3, Translation3, Vector3};
+use nalgebra::{Point3, Translation3};
 
 use game::core::application::{AppConfig, ApplicationBuilder};
 
@@ -74,26 +73,23 @@ pub fn move_cubes(
     let origin = Point3::origin();
     for mut move_body_position in query.iter_mut() {
         let shift = Translation3::new(
-            0.0,
+            -4.0,
             1.0,
-            10.0 * (time.level_time_seconds() * PI / 2.0 * 0.5).sin(),
+            5.0 * (time.level_time_seconds() * PI / 2.0 * 0.5).sin(),
         );
         move_body_position.new_position = Some(shift.transform_point(&origin));
     }
 }
 
-fn display_collision_events(
+fn door_system(
     mut collision_events: EventReader<CollisionEvent>,
-    mut query: Query<(&mut MoveBodyPosition, &Transform), With<Door>>,
+    mut query: Query<(&Animation, &mut MoveBodyPosition), With<Door>>,
 ) {
     for collision_event in collision_events.iter() {
         if let CollisionEvent::Started(_e1, _e2, CollisionEventFlags::SENSOR) = collision_event {
-            let (mut door_new_position, door_transform) = query.single_mut();
-            door_new_position.new_position =
-                Some(door_transform.position.add(&Vector3::new(0.0, 4.0, 0.0)));
+            let (animation, mut door_new_position) = query.single_mut();
+            door_new_position.new_position = Some(animation.end_transform.position);
         }
-
-        println!("Received collision event: {collision_event:?}");
     }
 }
 
@@ -110,7 +106,7 @@ fn main() {
 
     let player_spawn_settings = PlayerSpawnSettings {
         initial_transform: TransformBuilder::new()
-            .position([0.0, 5.0, 0.0].into())
+            .position([0.0, 1.0, 3.0].into())
             .build(),
         controller_settings: player_controller_settings,
         free_cam_activated: false,
@@ -120,10 +116,8 @@ fn main() {
         .with_startup_system(spawn_world)
         .with_startup_system(spawn_moving_cube)
         .with_player_controller(player_spawn_settings)
-        .with_system(display_collision_events)
+        .with_system(door_system)
         .with_system(move_cubes)
-        // .with_system(print_fps)
-        // .with_system(rotate_entites)
         .build();
 
     application.run();

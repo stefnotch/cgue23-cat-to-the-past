@@ -22,7 +22,7 @@ use std::ops::Add;
 use std::sync::Arc;
 use std::{collections::HashMap, path::Path};
 
-use physics::physics_context::RigidBodyType::KinematicPositionBased;
+use physics::physics_context::RigidBodyType::{Dynamic, KinematicPositionBased};
 use serde::Deserialize;
 
 // scene.json -> assets
@@ -146,6 +146,8 @@ impl AssetServer {
                         RigidBody(KinematicPositionBased),
                         TimeTracked::new(),
                     ));
+                } else {
+                    entity.insert((RigidBody(Dynamic), TimeTracked::new()));
                 }
             }
 
