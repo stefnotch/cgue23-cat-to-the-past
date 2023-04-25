@@ -10,8 +10,8 @@ vulkano = { version = "0.33.0", features = []}
 vulkano-win = "0.33.0"
 winit = "0.28"
 vulkano-shaders = "0.33.0"
-nalgebra = {version = "0.32.2" }
-bevy_ecs = { version = "0.10.1" }
+nalgebra.workspace = true
+bevy_ecs.workspace = true
 
 math = { path = "../math" }
 game_core = { path = "../game_core" }

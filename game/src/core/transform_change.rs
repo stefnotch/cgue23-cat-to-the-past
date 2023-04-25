@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
 use bevy_ecs::{
-    query::{Changed, Without},
+    query::Changed,
     system::{Query, Res, ResMut},
 };
 
-use physics::physics_context::RigidBody;
 use scene::transform::Transform;
 
 use game_core::time_manager::{

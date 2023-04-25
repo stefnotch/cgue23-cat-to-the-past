@@ -1,3 +1,4 @@
+use animations::animation::Animation;
 use bevy_ecs::prelude::*;
 use game_core::asset::{AssetId, Assets};
 use game_core::level::{Level, LevelId};
@@ -20,6 +21,7 @@ use std::hash::Hash;
 use std::iter::repeat;
 use std::ops::Add;
 use std::sync::Arc;
+use std::time::Duration;
 use std::{collections::HashMap, path::Path};
 
 use physics::physics_context::RigidBodyType::KinematicPositionBased;
@@ -28,13 +30,6 @@ use serde::Deserialize;
 // scene.json -> assets
 
 // list of assets in code
-
-#[derive(Component)]
-pub struct Animation {
-    pub start_transform: Transform,
-    pub end_transform: Transform,
-    pub duration: f32,
-}
 
 #[derive(Component)]
 pub struct Door {
@@ -168,7 +163,7 @@ impl AssetServer {
                 let animation = Animation {
                     start_transform,
                     end_transform,
-                    duration: animation.duration,
+                    duration: Duration::from_secs_f32(animation.duration),
                 };
 
                 entity.insert(animation);

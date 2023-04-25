@@ -1,5 +1,5 @@
-[workspace]
 
+[workspace]
 members = [
     "scene",
     "game_core",
@@ -10,6 +10,7 @@ members = [
     "input",
     "game",
     "debug",
+    "animations",
     "demos",
     "scene_loader"
 ]
@@ -18,3 +19,7 @@ members = [
 opt-level = 1
 [profile.dev.package.vulkano]
 opt-level = 1
+
+[workspace.dependencies]
+bevy_ecs = { version = "0.10.1" }
+nalgebra = { version = "0.32.2" }

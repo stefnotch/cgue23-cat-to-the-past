@@ -82,7 +82,7 @@ pub fn move_cubes(
     }
 }
 
-fn display_collision_events(
+fn open_door(
     mut collision_events: EventReader<CollisionEvent>,
     mut query: Query<(&mut MoveBodyPosition, &Transform), With<Door>>,
 ) {
@@ -120,7 +120,7 @@ fn main() {
         .with_startup_system(spawn_world)
         .with_startup_system(spawn_moving_cube)
         .with_player_controller(player_spawn_settings)
-        .with_system(display_collision_events)
+        .with_system(open_door)
         .with_system(move_cubes)
         // .with_system(print_fps)
         // .with_system(rotate_entites)

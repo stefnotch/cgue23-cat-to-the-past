@@ -7,12 +7,13 @@ edition = "2021"
 
 [dependencies]
 gltf = { git = "https://github.com/stefnotch/gltf.git", branch = "feat/emissive_strength", features = ["extras", "names", "KHR_lights_punctual", "KHR_materials_emissive_strength"] }
-bevy_ecs = { version = "0.10.1" }
-nalgebra = { version = "0.32.2" }
+bevy_ecs.workspace = true
+nalgebra.workspace = true
 
 game_core = { path = "../game_core" }
 math = { path = "../math" }
 physics = { path = "../physics" }
 scene = { path = "../scene" }
+animations = { path = "../animations" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
