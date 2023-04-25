@@ -27,6 +27,20 @@ winding order: counter-clockwise
 units: meter  
 importer: gltf, we flatten the tree, we generate one axis aligned collider per model
 
+## Compiling and Running
+
+You'll need a [Rust toolchain installed](https://www.rust-lang.org/tools/install). After that, you can start the game with
+
+```
+cargo run
+```
+
+You can also [build](https://doc.rust-lang.org/book/ch01-03-hello-cargo.html) the project with
+
+```
+cargo build
+```
+
 ## Demos
 
 ```
