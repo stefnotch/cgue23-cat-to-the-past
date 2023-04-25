@@ -1,5 +1,6 @@
 use bevy_ecs::prelude::*;
 use game_core::asset::{AssetId, Assets};
+use game_core::level::{Level, LevelId};
 use game_core::time_manager::TimeTracked;
 use gltf::khr_lights_punctual::Kind;
 use gltf::texture::{MagFilter, MinFilter, WrappingMode};
@@ -37,11 +38,6 @@ pub struct Animation {
 
 #[derive(Component)]
 pub struct Door {
-    pub id: u32,
-}
-
-#[derive(Component)]
-pub struct Level {
     pub id: u32,
 }
 
@@ -158,7 +154,9 @@ impl AssetServer {
             }
 
             if let Some(id) = extras.level {
-                entity.insert(Level { id });
+                entity.insert(Level {
+                    id: LevelId::new(id),
+                });
             }
 
             if let Some(animation) = extras.animation {
