@@ -1,3 +1,4 @@
+use game_core::level::level_flags::LevelFlags;
 use game_core::time::{update_time, Time};
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
@@ -177,6 +178,8 @@ impl Application {
 
         let physics_context = PhysicsContext::new();
         physics_context.setup_systems(world, schedule);
+
+        world.insert_resource(LevelFlags::new());
 
         let time = Time::new();
         world.insert_resource(time);
