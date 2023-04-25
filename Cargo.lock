@@ -92,6 +92,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "animations"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "game_core",
+ "scene",
+]
+
+[[package]]
 name = "approx"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1635,6 +1644,7 @@ dependencies = [
 name = "scene_loader"
 version = "0.1.0"
 dependencies = [
+ "animations",
  "bevy_ecs",
  "game_core",
  "gltf",
