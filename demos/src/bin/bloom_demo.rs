@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 use std::f32::consts::PI;
 use std::sync::Arc;
 

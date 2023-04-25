@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 use bevy_ecs::prelude::{Component, EventReader, Query, With};
 use game_core::time::Time;
 use game_core::time_manager::TimeManager;
