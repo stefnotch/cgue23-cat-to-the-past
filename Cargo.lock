@@ -707,6 +707,7 @@ name = "game"
 version = "0.1.0"
 dependencies = [
  "angle",
+ "animations",
  "bevy_ecs",
  "debug",
  "game_core",
