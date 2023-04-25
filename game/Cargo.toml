@@ -25,5 +25,5 @@ render = { path = "../render" }
 scene_loader = { path = "../scene_loader"}
 
 [features]
-default = ["trace"]
+default = []
 trace = ["debug/trace"]
