@@ -1,7 +1,7 @@
 use bevy_ecs::event::EventReader;
 use std::sync::Arc;
 
-use bevy_ecs::system::Commands;
+use bevy_ecs::system::{Commands, Query};
 use game_core::asset::AssetId;
 use nalgebra::{Point3, Vector3};
 
