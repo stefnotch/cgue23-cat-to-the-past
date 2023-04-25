@@ -6,7 +6,7 @@ use gltf::texture::{MagFilter, MinFilter, WrappingMode};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
-use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType, Sensor};
+use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, RigidBodyType, Sensor};
 use scene::light::{Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::{CpuMesh, CpuMeshVertex};
@@ -17,18 +17,37 @@ use scene::texture::{
 use scene::transform::Transform;
 use std::hash::Hash;
 use std::iter::repeat;
+use std::ops::Add;
 use std::sync::Arc;
 use std::{collections::HashMap, path::Path};
 
+use physics::physics_context::RigidBodyType::KinematicPositionBased;
 use serde::Deserialize;
 
 // scene.json -> assets
 
 // list of assets in code
 
+#[derive(Component)]
+pub struct Animation {
+    pub start_transform: Transform,
+    pub end_transform: Transform,
+    pub duration: f32,
+}
+
+#[derive(Component)]
+pub struct Door {
+    pub id: u32,
+}
+
+#[derive(Component)]
+pub struct Level {
+    pub id: u32,
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
-struct Animation {
+struct AnimationProperty {
     pub translation: [f32; 3],
     pub duration: f32,
 }
@@ -36,10 +55,12 @@ struct Animation {
 #[derive(Deserialize, Debug, Default)]
 #[serde(deny_unknown_fields)]
 struct GLTFExtras {
-    pub sensor: Option<bool>,
+    pub sensor: Option<u32>,
     pub box_collider: Option<bool>,
-    pub animation: Option<Animation>,
-    pub rigid_body: Option<bool>,
+    pub rigid_body: Option<String>,
+    pub animation: Option<AnimationProperty>,
+    pub door: Option<u32>,
+    pub level: Option<u32>,
 }
 
 #[derive(Resource)]
@@ -107,9 +128,9 @@ impl AssetServer {
                 bounds: model.bounding_box(),
             };
 
-            let mut entity = commands.spawn(transform);
+            let mut entity = commands.spawn(transform.clone());
 
-            if let Some(true) = extras.sensor {
+            if let Some(_) = extras.sensor {
                 // and sensor component
                 entity.insert(Sensor);
             } else {
@@ -122,8 +143,37 @@ impl AssetServer {
                 entity.insert(box_collider);
             }
 
-            if let Some(true) = extras.rigid_body {
-                todo!("read type of rigid body and add components (rigidbody and timetracked)")
+            if let Some(str) = extras.rigid_body {
+                if str == "kinematic" {
+                    entity.insert((
+                        MoveBodyPosition { new_position: None },
+                        RigidBody(KinematicPositionBased),
+                        TimeTracked::new(),
+                    ));
+                }
+            }
+
+            if let Some(id) = extras.door {
+                entity.insert(Door { id });
+            }
+
+            if let Some(id) = extras.level {
+                entity.insert(Level { id });
+            }
+
+            if let Some(animation) = extras.animation {
+                let start_transform = transform.clone();
+                let mut end_transform = transform.clone();
+                let test: Vector3<f32> = animation.translation.into();
+                end_transform.position = end_transform.position.add(test);
+
+                let animation = Animation {
+                    start_transform,
+                    end_transform,
+                    duration: animation.duration,
+                };
+
+                entity.insert(animation);
             }
         }
 
@@ -160,14 +210,13 @@ impl AssetServer {
                 .push((global_transform.clone(), Self::load_light(light)));
         }
 
-        let mut rigidbody = false;
         let extras = node
             .extras()
             .as_ref()
             .map(|extra| {
                 let str = extra.get();
 
-                let result: GLTFExtras = serde_json::from_str(str).unwrap();
+                let result: GLTFExtras = serde_json::from_str(str).expect(str);
 
                 result
             })

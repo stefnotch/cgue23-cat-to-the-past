@@ -1,24 +1,27 @@
-use bevy_ecs::prelude::{Component, Query, With};
+use bevy_ecs::prelude::{Component, EventReader, Query, With};
 use game_core::time::Time;
 use game_core::time_manager::TimeManager;
 use scene::{
     mesh::CpuMesh,
     model::{CpuPrimitive, Model},
 };
-use scene_loader::loader::AssetServer;
+use scene_loader::loader::{AssetServer, Door};
 use std::f32::consts::PI;
+use std::ops::Add;
 use std::sync::Arc;
 use std::time::Instant;
 
 use bevy_ecs::system::{Commands, Res};
-use nalgebra::{Point3, Translation3};
+use nalgebra::{Point3, Translation3, Vector3};
 
 use game::core::application::{AppConfig, ApplicationBuilder};
 
 use debug::tracing::start_tracing;
 
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
+use game_core::camera::Camera;
 use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, RigidBodyType};
+use physics::physics_events::{CollisionEvent, CollisionEventFlags};
 use scene::transform::{Transform, TransformBuilder};
 
 fn spawn_world(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -73,9 +76,24 @@ pub fn move_cubes(
         let shift = Translation3::new(
             0.0,
             1.0,
-            4.0 * (time.level_time_seconds() * PI / 2.0 * 0.5).sin(),
+            10.0 * (time.level_time_seconds() * PI / 2.0 * 0.5).sin(),
         );
-        move_body_position.new_position = shift.transform_point(&origin);
+        move_body_position.new_position = Some(shift.transform_point(&origin));
+    }
+}
+
+fn display_collision_events(
+    mut collision_events: EventReader<CollisionEvent>,
+    mut query: Query<(&mut MoveBodyPosition, &Transform), With<Door>>,
+) {
+    for collision_event in collision_events.iter() {
+        if let CollisionEvent::Started(e1, e2, CollisionEventFlags::SENSOR) = collision_event {
+            let (mut door_new_position, door_transform) = query.single_mut();
+            door_new_position.new_position =
+                Some(door_transform.position.add(&Vector3::new(0.0, 4.0, 0.0)));
+        }
+
+        println!("Received collision event: {collision_event:?}");
     }
 }
 
@@ -102,6 +120,7 @@ fn main() {
         .with_startup_system(spawn_world)
         .with_startup_system(spawn_moving_cube)
         .with_player_controller(player_spawn_settings)
+        .with_system(display_collision_events)
         .with_system(move_cubes)
         // .with_system(print_fps)
         // .with_system(rotate_entites)

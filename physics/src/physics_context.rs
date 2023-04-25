@@ -198,7 +198,7 @@ pub struct Sensor;
 
 #[derive(Component)]
 pub struct MoveBodyPosition {
-    pub new_position: Point3<f32>,
+    pub new_position: Option<Point3<f32>>,
 }
 
 #[derive(Component)]
@@ -215,7 +215,7 @@ struct RapierColliderHandle {
 pub struct RigidBody(pub RigidBodyType);
 
 // for now colliders are created once and never changed or deleted
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct BoxCollider {
     pub bounds: BoundingBox<Vector3<f32>>,
 }
@@ -337,14 +337,18 @@ fn update_transform_system(
 
 fn update_move_body_position_system(
     mut physics_context: ResMut<PhysicsContext>,
-    query: Query<(&RapierRigidBodyHandle, &MoveBodyPosition), With<RigidBody>>,
+    mut query: Query<(&RapierRigidBodyHandle, &mut MoveBodyPosition), With<RigidBody>>,
 ) {
-    for (rigid_body_handle, MoveBodyPosition { new_position }) in query.iter() {
-        let rigid_body = physics_context
-            .rigid_bodies
-            .get_mut(rigid_body_handle.handle)
-            .unwrap();
-        rigid_body.set_next_kinematic_translation(new_position.coords);
+    for (rigid_body_handle, mut move_body_position) in query.iter_mut() {
+        if let Some(position) = move_body_position.new_position {
+            let rigid_body = physics_context
+                .rigid_bodies
+                .get_mut(rigid_body_handle.handle)
+                .unwrap();
+
+            rigid_body.set_next_kinematic_translation(position.coords);
+            move_body_position.new_position = None;
+        }
     }
 }
 
