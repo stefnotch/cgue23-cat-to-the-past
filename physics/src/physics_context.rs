@@ -2,8 +2,8 @@ use bevy_ecs::event::EventWriter;
 use game_core::time::Time;
 
 use bevy_ecs::prelude::{
-    Added, Commands, Component, Entity, Events, IntoSystemConfig, Query, Res, ResMut, Resource,
-    Schedule, With, World,
+    Added, Commands, Component, DetectChanges, Entity, Events, IntoSystemConfig, Query, Res,
+    ResMut, Resource, Schedule, With, World,
 };
 use bevy_ecs::query::{Changed, Without};
 use game_core::application::AppStage;
@@ -319,6 +319,9 @@ fn update_transform_system(
     mut query: Query<(&mut Transform, &RapierRigidBodyHandle), Without<PlayerCharacterController>>,
 ) {
     for (mut transform, body_handle) in query.iter_mut() {
+        if transform.is_changed() {
+            println!("Warning: Transform changed illegally");
+        }
         let body = physics_context
             .rigid_bodies
             .get(body_handle.handle)
