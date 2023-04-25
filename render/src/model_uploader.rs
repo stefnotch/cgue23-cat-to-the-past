@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use bevy_ecs::{
     prelude::Entity,
     query::Without,
-    system::{Commands, NonSendMut, Query, Res, ResMut, Resource},
+    system::{Commands, Query, Res, ResMut, Resource},
 };
 use game_core::asset::{Asset, Assets};
 use scene::{
@@ -26,7 +26,6 @@ use crate::{
         model::{GpuModel, Primitive},
         texture::Texture,
     },
-    Renderer,
 };
 
 #[derive(Resource)]

@@ -6,7 +6,7 @@ use gltf::texture::{MagFilter, MinFilter, WrappingMode};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
-use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, RigidBodyType, Sensor};
+use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, Sensor};
 use scene::light::{Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::{CpuMesh, CpuMeshVertex};

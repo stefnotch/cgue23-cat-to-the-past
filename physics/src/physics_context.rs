@@ -320,7 +320,7 @@ fn update_transform_system(
 ) {
     for (mut transform, body_handle) in query.iter_mut() {
         if transform.is_changed() {
-            println!("Warning: Transform changed illegally");
+            //println!("Warning: Transform changed illegally");
         }
         let body = physics_context
             .rigid_bodies
@@ -351,7 +351,8 @@ fn update_move_body_position_system(
         }
     }
 }
-
+// TODO: time_manager_rewind_transform and update_transform_system already do stuff like this, so we could remove this
+// *if* we remove the MoveBodyPosition
 fn time_rewinding_move_body_transform(
     mut physics_context: ResMut<PhysicsContext>,
     query: Query<(&RapierRigidBodyHandle, &Transform), (With<RigidBody>, With<TimeTracked>)>,
