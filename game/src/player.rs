@@ -211,16 +211,8 @@ fn update_player(
 }
 
 // Dirty workaround for https://github.com/dimforge/rapier/issues/485
-fn update_player2(
-    mut query: Query<(
-        &mut Player,
-        &mut PlayerCharacterController,
-        &PlayerControllerSettings,
-    )>,
-    input: Res<InputMap>,
-    time: Res<Time>,
-) {
-    let (mut player, mut character_controller, settings) = query.single_mut();
+fn update_player2(mut query: Query<&mut PlayerCharacterController>) {
+    let mut character_controller = query.single_mut();
     character_controller.desired_movement = [0.0, -0.1, 0.0].into();
 }
 

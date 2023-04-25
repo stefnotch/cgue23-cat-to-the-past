@@ -19,7 +19,7 @@ use game::core::application::{AppConfig, ApplicationBuilder};
 use debug::tracing::start_tracing;
 
 use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
-use game_core::camera::Camera;
+
 use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, RigidBodyType};
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
 use scene::transform::{Transform, TransformBuilder};
@@ -87,7 +87,7 @@ fn display_collision_events(
     mut query: Query<(&mut MoveBodyPosition, &Transform), With<Door>>,
 ) {
     for collision_event in collision_events.iter() {
-        if let CollisionEvent::Started(e1, e2, CollisionEventFlags::SENSOR) = collision_event {
+        if let CollisionEvent::Started(_e1, _e2, CollisionEventFlags::SENSOR) = collision_event {
             let (mut door_new_position, door_transform) = query.single_mut();
             door_new_position.new_position =
                 Some(door_transform.position.add(&Vector3::new(0.0, 4.0, 0.0)));
