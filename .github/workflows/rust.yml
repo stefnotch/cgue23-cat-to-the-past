@@ -1,0 +1,30 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: dtolnay/rust-toolchain@nightly
+    - uses: actions/checkout@v3
+    - name: Build
+      run: cargo build --timings
+    - name: Upload full rebuild timings
+      uses: actions/upload-artifact@v3
+      with:
+        name: cargo-timing
+        path: target/cargo-timings/cargo-timing.html
+    - name: Clean game_core
+      run: cargo clean -p game_core
+    - name: Incremental rebuild
+      run: cargo build --timings
+ 
