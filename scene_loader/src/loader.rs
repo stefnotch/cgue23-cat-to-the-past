@@ -36,6 +36,9 @@ pub struct Door {
     pub id: u32,
 }
 
+#[derive(Component)]
+pub struct Pickupable;
+
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 struct AnimationProperty {
@@ -52,6 +55,7 @@ struct GLTFExtras {
     pub animation: Option<AnimationProperty>,
     pub door: Option<u32>,
     pub level: Option<u32>,
+    pub pickupable: Option<bool>,
 }
 
 #[derive(Resource)]
@@ -141,8 +145,10 @@ impl AssetServer {
                         RigidBody(KinematicPositionBased),
                         TimeTracked::new(),
                     ));
-                } else {
+                } else if str == "dynamic" {
                     entity.insert((RigidBody(Dynamic), TimeTracked::new()));
+                } else {
+                    panic!("Unknown rigid_body type: {}", str);
                 }
             }
 
@@ -169,6 +175,10 @@ impl AssetServer {
                 };
 
                 entity.insert(animation);
+            }
+
+            if let Some(true) = extras.pickupable {
+                entity.insert(Pickupable);
             }
         }
 
