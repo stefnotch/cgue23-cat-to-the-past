@@ -4,7 +4,7 @@ use std::sync::Arc;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::system::Commands;
 use game::core::application::{AppConfig, Application};
-use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
+use game::player::{PlayerPlugin, PlayerSpawnSettings};
 use game_core::asset::AssetId;
 use nalgebra::{Point3, Vector3};
 use scene::light::{Light, PointLight};

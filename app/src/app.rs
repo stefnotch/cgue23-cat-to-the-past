@@ -1,5 +1,7 @@
 use bevy_ecs::{
-    schedule::{ExecutorKind, IntoSystemSetConfig, IntoSystemSetConfigs, Schedule},
+    schedule::{
+        ExecutorKind, IntoSystemConfig, IntoSystemSetConfig, IntoSystemSetConfigs, Schedule,
+    },
     world::World,
 };
 
@@ -39,6 +41,12 @@ impl App {
     {
         //  self.schedule.configure_set(T::system_set().after(CoreStage::StartFrame).before(CoreStage::EndFrame));
         plugin.build(&mut PluginAppAccess::new::<T>(self));
+        self
+    }
+
+    // TODO: Get rid of this
+    pub fn with_system<Params>(&mut self, system: impl IntoSystemConfig<Params>) -> &mut Self {
+        self.schedule.add_system(system);
         self
     }
 

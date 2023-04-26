@@ -58,6 +58,15 @@ impl<'app> PluginAppAccess<'app> {
         self
     }
 
+    pub fn with_plugin<T>(&mut self, plugin: T) -> &mut Self
+    where
+        T: Plugin,
+    {
+        //  self.schedule.configure_set(T::system_set().after(CoreStage::StartFrame).before(CoreStage::EndFrame));
+        self.app.with_plugin(plugin);
+        self
+    }
+
     /// call this with system.in_set(AppStartupStage::...)
     pub fn with_startup_system<Params>(
         &mut self,
