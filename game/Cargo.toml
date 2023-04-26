@@ -24,6 +24,7 @@ input = { path = "../input" }
 render = { path = "../render" }
 scene_loader = { path = "../scene_loader"}
 animations = { path = "../animations"}
+app = { path = "../app"}
 
 [features]
 default = []

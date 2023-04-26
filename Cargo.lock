@@ -101,6 +101,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "app"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+]
+
+[[package]]
 name = "approx"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -575,6 +582,7 @@ dependencies = [
 name = "demos"
 version = "0.1.0"
 dependencies = [
+ "app",
  "bevy_ecs",
  "game",
  "game_core",
@@ -708,6 +716,7 @@ version = "0.1.0"
 dependencies = [
  "angle",
  "animations",
+ "app",
  "bevy_ecs",
  "debug",
  "game_core",
@@ -728,6 +737,7 @@ name = "game_core"
 version = "0.1.0"
 dependencies = [
  "angle",
+ "app",
  "bevy_ecs",
  "nalgebra",
  "uuid",
@@ -1393,6 +1403,7 @@ dependencies = [
 name = "physics"
 version = "0.1.0"
 dependencies = [
+ "app",
  "bevy_ecs",
  "crossbeam",
  "game_core",

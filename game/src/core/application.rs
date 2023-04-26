@@ -1,16 +1,17 @@
+use app::plugin::Plugin;
+use app::App;
 use game_core::level::level_flags::LevelFlags;
-use game_core::time::{update_time, Time};
+use game_core::time::{update_time, Time, TimePluginSet};
+use physics::plugin::{PhysicsPlugin, PhysicsPluginSets};
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
 use crate::input::input_map::{handle_keyboard_input, handle_mouse_input, InputMap};
 use angle::Deg;
 use bevy_ecs::prelude::*;
-use bevy_ecs::schedule::ExecutorKind;
 use game_core::application::AppStage;
 use game_core::camera::{update_camera, Camera};
 use input::events::{KeyboardInput, MouseInput, MouseMovement};
 use nalgebra::{Point3, UnitQuaternion};
-use physics::physics_context::PhysicsContext;
 use render::context::Context;
 use render::Renderer;
 use scene_loader::loader::AssetServer;
@@ -29,7 +30,7 @@ use crate::core::transform_change::{
     time_manager_rewind_transform, time_manager_track_transform, TransformChange,
 };
 use game_core::time_manager::game_change::GameChangeHistory;
-use game_core::time_manager::TimeManager;
+use game_core::time_manager::{TimeManager, TimeManagerPlugin, TimeManagerPluginSet};
 
 pub struct AppConfig {
     pub window: WindowConfig,
@@ -50,20 +51,19 @@ impl Default for AppConfig {
         }
     }
 }
+pub struct Application {
+    event_loop: EventLoop<()>,
 
-pub struct ApplicationBuilder {
     config: AppConfig,
-    startup_schedule: Schedule,
-    schedule: Schedule,
-    world: World,
+    pub app: App,
 }
 
-impl ApplicationBuilder {
+impl Application {
     pub fn new(config: AppConfig) -> Self {
-        let mut startup_schedule = Schedule::default();
-        startup_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
-        let mut schedule = Schedule::default();
-        schedule.configure_sets(
+        let event_loop = EventLoop::new();
+
+        let mut app = App::new();
+        app.schedule.configure_sets(
             (
                 AppStage::StartFrame,
                 AppStage::EventUpdate,
@@ -76,70 +76,28 @@ impl ApplicationBuilder {
                 .chain(),
         );
 
-        schedule.set_executor_kind(ExecutorKind::SingleThreaded);
-        let world = World::new();
+        Self::add_default_plugins(&mut app);
 
-        ApplicationBuilder {
-            config,
-            startup_schedule,
-            schedule,
-            world,
-        }
-    }
-
-    /// call this with system.in_set(AppStage::...)
-    pub fn with_system<Params>(mut self, system: impl IntoSystemConfig<Params>) -> Self {
-        self.schedule.add_system(system);
-        self
-    }
-
-    /// call this with system.in_set(AppStartupStage::...)
-    pub fn with_startup_system<Params>(mut self, system: impl IntoSystemConfig<Params>) -> Self {
-        self.startup_schedule.add_system(system);
-        self
-    }
-
-    pub fn with_resource<R: Resource>(mut self, res: R) -> Self {
-        self.world.insert_resource(res);
-        self
-    }
-
-    pub fn build(self) -> Application {
-        Application::new(
-            self.config,
-            self.startup_schedule,
-            self.schedule,
-            self.world,
-        )
-    }
-}
-
-pub struct Application {
-    event_loop: EventLoop<()>,
-
-    config: AppConfig,
-    world: World,
-    schedule: Schedule,
-    startup_schedule: Schedule,
-}
-
-impl Application {
-    fn new(
-        config: AppConfig,
-        startup_schedule: Schedule,
-        schedule: Schedule,
-        world: World,
-    ) -> Application {
-        let event_loop = EventLoop::new();
-
-        Application {
+        Self {
             event_loop,
 
             config,
-            world,
-            schedule,
-            startup_schedule,
+            app,
         }
+    }
+
+    fn add_default_plugins(app: &mut App) {
+        app.with_plugin(TimePlugin)
+            .with_set(TimePluginSet::UpdateTime.in_set(AppStage::StartFrame))
+            .with_plugin(TimeManagerPlugin)
+            .with_set(
+                TimeManagerPluginSet::StartFrame
+                    .in_set(AppStage::StartFrame)
+                    .after(TimePluginSet::UpdateTime),
+            )
+            .with_set(TimeManagerPluginSet::EndFrame.in_set(AppStage::EndFrame))
+            .with_plugin(PhysicsPlugin)
+            .with_set(PhysicsPlugin::system_set().in_set(AppStage::UpdatePhysics));
     }
 
     pub fn run(mut self)
@@ -149,9 +107,8 @@ impl Application {
         let config = &self.config;
         let window_builder = self.create_window(&config.window);
 
-        let mut world = &mut self.world;
-        let schedule = &mut self.schedule;
-        let startup_schedule = &mut self.startup_schedule;
+        let mut world = &mut self.app.world;
+        let schedule = &mut self.app.schedule;
 
         let aspect_ratio = config.window.resolution.0 as f32 / config.window.resolution.1 as f32;
 
@@ -176,17 +133,11 @@ impl Application {
         renderer.setup_systems(&context, world, schedule);
         world.insert_resource(context);
 
-        let physics_context = PhysicsContext::new();
-        physics_context.setup_systems(world, schedule);
-
         world.insert_resource(LevelFlags::new());
 
         let time = Time::new();
         world.insert_resource(time);
         schedule.add_system(update_time.in_set(AppStage::StartFrame));
-
-        let time_manager = TimeManager::new();
-        time_manager.setup_systems(world, schedule);
 
         let transform_history = GameChangeHistory::<TransformChange>::new();
         transform_history.setup_systems(
@@ -222,7 +173,7 @@ impl Application {
 
         schedule.add_system(lock_mouse);
 
-        startup_schedule.run(&mut world);
+        self.app.run_startup();
 
         self.event_loop
             .run(move |event, _, control_flow| match event {
@@ -237,9 +188,10 @@ impl Application {
                     event: WindowEvent::Resized(PhysicalSize { width, height }),
                     ..
                 } => {
-                    self.world.send_event(WindowResize { width, height });
+                    self.app.world.send_event(WindowResize { width, height });
 
-                    self.world
+                    self.app
+                        .world
                         .get_non_send_resource_mut::<Renderer>()
                         .unwrap()
                         .recreate_swapchain();
@@ -259,13 +211,14 @@ impl Application {
                             *control_flow = ControlFlow::Exit;
                         }
 
-                        self.world.send_event(KeyboardInput { key_code, state });
+                        self.app.world.send_event(KeyboardInput { key_code, state });
                     }
                     WindowEvent::MouseInput { button, state, .. } => {
-                        self.world.send_event(MouseInput { button, state });
+                        self.app.world.send_event(MouseInput { button, state });
                     }
                     WindowEvent::Focused(focused) => {
-                        self.world
+                        self.app
+                            .world
                             .send_event(WindowFocusChanged { has_focus: focused });
                     }
                     _ => (),
@@ -273,13 +226,13 @@ impl Application {
 
                 Event::DeviceEvent { event, .. } => match event {
                     DeviceEvent::MouseMotion { delta: (dx, dy) } => {
-                        self.world.send_event(MouseMovement(dx, dy))
+                        self.app.world.send_event(MouseMovement(dx, dy))
                     }
                     _ => (),
                 },
 
                 Event::RedrawEventsCleared => {
-                    self.schedule.run(&mut self.world);
+                    self.app.schedule.run(&mut self.app.world);
                 }
 
                 _ => (),
