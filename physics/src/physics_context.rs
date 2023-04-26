@@ -12,6 +12,8 @@ use game_core::time_manager::{is_rewinding, TimeTracked};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, UnitQuaternion};
 use rapier3d::na::Vector3;
+pub use rapier3d::prelude::QueryFilter;
+pub use rapier3d::prelude::Ray;
 use rapier3d::prelude::*;
 use scene::transform::{Transform, TransformBuilder};
 
@@ -25,7 +27,10 @@ use super::player_physics::{
     PlayerCharacterController,
 };
 
-use crate::physics_events::{handle_collision_event, CollisionEvent};
+use crate::physics_events::{collider2entity, handle_collision_event, CollisionEvent};
+use crate::pickup_physics::{
+    start_pickup, stop_pickup, update_pickup_target_position, update_pickup_transform, PickedUp,
+};
 pub use rapier3d::prelude::RigidBodyType;
 
 #[derive(Resource)]
@@ -180,6 +185,39 @@ impl PhysicsContext {
                 .in_set(AppStage::UpdatePhysics) // TODO: check if correct
                 .after(step_physics_simulation),
         );
+
+        // Pick up logic
+
+        schedule.add_system(start_pickup.in_set(AppStage::Update));
+
+        schedule.add_system(stop_pickup.in_set(AppStage::Update));
+
+        schedule.add_system(update_pickup_target_position.in_set(AppStage::Update));
+
+        schedule.add_system(
+            update_pickup_transform
+                .in_set(AppStage::UpdatePhysics)
+                .after(step_physics_simulation),
+        );
+    }
+
+    pub fn cast_ray(
+        &self,
+        ray: &Ray,
+        max_toi: f32,
+        solid: bool,
+        filter: QueryFilter,
+    ) -> Option<(Entity, f32)> {
+        let (handle, toi) = self.query_pipeline.cast_ray(
+            &self.rigid_bodies,
+            &self.colliders,
+            ray,
+            max_toi,
+            solid,
+            filter,
+        )?;
+
+        Some((collider2entity(&self.colliders, handle), toi as f32))
     }
 }
 
@@ -235,6 +273,7 @@ fn create_box_collider(
                 * Isometry::translation(collider_offset.x, collider_offset.y, collider_offset.z),
         )
         .user_data(entity.to_bits() as u128)
+        // .active_collision_types(ActiveCollisionTypes::all())
         .build()
 }
 
@@ -316,11 +355,14 @@ fn apply_collider_sensor_change(
 
 fn update_transform_system(
     physics_context: Res<PhysicsContext>,
-    mut query: Query<(&mut Transform, &RapierRigidBodyHandle), Without<PlayerCharacterController>>,
+    mut query: Query<
+        (&mut Transform, &RapierRigidBodyHandle),
+        (Without<PlayerCharacterController>, Without<PickedUp>),
+    >,
 ) {
     for (mut transform, body_handle) in query.iter_mut() {
         if transform.is_changed() {
-            //println!("Warning: Transform changed illegally");
+            // println!("Warning: Transform changed illegally");
         }
         let body = physics_context
             .rigid_bodies
