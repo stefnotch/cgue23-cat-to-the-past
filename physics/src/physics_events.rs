@@ -35,7 +35,7 @@ pub fn handle_collision_event(
     collision_events.send(event);
 }
 
-fn collider2entity(colliders: &ColliderSet, handle: ColliderHandle) -> Entity {
+pub fn collider2entity(colliders: &ColliderSet, handle: ColliderHandle) -> Entity {
     colliders
         .get(handle)
         .map(|collider| Entity::from_bits(collider.user_data as u64))
