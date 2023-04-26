@@ -1,4 +1,7 @@
 #![windows_subsystem = "windows"]
+
+mod pickup_system;
+
 use animations::animation::Animation;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::{Component, EventReader, Query, With};
@@ -23,6 +26,7 @@ use debug::tracing::start_tracing;
 
 use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 
+use crate::pickup_system::ray_cast;
 use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, RigidBodyType};
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
 use scene::transform::{Transform, TransformBuilder};
@@ -129,6 +133,15 @@ fn main() {
         free_cam_activated: false,
     };
 
+    let application = ApplicationBuilder::new(config)
+        .with_startup_system(spawn_world)
+        .with_startup_system(setup_levels)
+        .with_startup_system(spawn_moving_cube)
+        .with_player_controller(player_spawn_settings)
+        .with_system(ray_cast)
+        .with_system(door_system)
+        .with_system(move_cubes)
+        .build();
     let mut application = Application::new(config);
     application
         .app
