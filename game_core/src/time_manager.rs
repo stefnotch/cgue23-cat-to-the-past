@@ -44,7 +44,7 @@ pub enum TimeState {
 
 #[derive(Resource)]
 pub struct TimeManager {
-    current_frame_timestamp: Option<LevelTime>,
+    current_frame_timestamp: LevelTime,
     pub will_rewind_next_frame: bool,
     time_state: TimeState,
     level_time: LevelTime,
@@ -57,7 +57,7 @@ pub fn is_rewinding(time_manager: Res<TimeManager>) -> bool {
 impl TimeManager {
     fn new() -> Self {
         Self {
-            current_frame_timestamp: Some(LevelTime::zero()),
+            current_frame_timestamp: LevelTime::zero(),
             will_rewind_next_frame: false,
             time_state: TimeState::Normal,
             level_time: LevelTime::zero(),
@@ -96,11 +96,7 @@ impl TimeManager {
             }
         }
 
-        self.current_frame_timestamp = Some(self.level_time.clone());
-    }
-
-    pub fn end_frame(&mut self) {
-        self.current_frame_timestamp = None;
+        self.current_frame_timestamp = self.level_time.clone();
     }
 
     pub fn add_command<T>(&mut self, command: T, history: &mut GameChangeHistory<T>)
@@ -108,10 +104,7 @@ impl TimeManager {
         T: GameChange,
     {
         assert!(!self.is_rewinding(), "Cannot add commands while rewinding");
-        let timestamp = self
-            .current_frame_timestamp
-            .expect("Cannot add commands outside of a frame");
-        history.add_command(timestamp, command);
+        history.add_command(self.current_frame_timestamp, command);
     }
 
     pub fn add_rewinder_command<T>(&mut self, command: T, history: &mut GameChangeHistory<T>)
@@ -122,9 +115,7 @@ impl TimeManager {
             self.is_rewinding(),
             "Can only add rewinder commands while rewinding"
         );
-        let timestamp = self
-            .current_frame_timestamp
-            .expect("Cannot add commands outside of a frame");
+        let timestamp = self.current_frame_timestamp;
         // + 1 ns, to make sure the command will actually be executed by the rewinder
         history.add_command(timestamp + Duration::from_nanos(1), command);
     }
@@ -164,10 +155,6 @@ fn start_frame(time: Res<Time>, mut time_manager: ResMut<TimeManager>) {
     time_manager.start_frame(time.delta());
 }
 
-fn end_frame(mut time_manager: ResMut<TimeManager>) {
-    time_manager.end_frame();
-}
-
 fn next_level(mut time_manager: ResMut<TimeManager>, mut next_level: EventReader<NextLevel>) {
     if next_level.iter().next().is_some() {
         time_manager.next_level();
@@ -177,7 +164,6 @@ fn next_level(mut time_manager: ResMut<TimeManager>, mut next_level: EventReader
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TimeManagerPluginSet {
     StartFrame,
-    EndFrame,
 }
 
 pub struct TimeManagerPlugin;
@@ -190,7 +176,6 @@ impl Plugin for TimeManagerPlugin {
                     .in_set(TimeManagerPluginSet::StartFrame)
                     .after(TimePluginSet::UpdateTime),
             )
-            .with_system(end_frame.in_set(TimeManagerPluginSet::EndFrame))
             .with_resource(Events::<NextLevel>::default())
             .with_system(next_level.in_set(TimeManagerPluginSet::StartFrame));
     }

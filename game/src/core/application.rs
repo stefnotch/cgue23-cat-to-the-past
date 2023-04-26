@@ -1,8 +1,8 @@
 use app::plugin::Plugin;
 use app::App;
 use game_core::level::level_flags::LevelFlags;
-use game_core::time::{update_time, Time, TimePluginSet};
-use physics::plugin::{PhysicsPlugin, PhysicsPluginSets};
+use game_core::time::{TimePlugin, TimePluginSet};
+use physics::plugin::PhysicsPlugin;
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
 use crate::input::input_map::{handle_keyboard_input, handle_mouse_input, InputMap};
@@ -29,8 +29,8 @@ use winit::window::{CursorGrabMode, WindowBuilder};
 use crate::core::transform_change::{
     time_manager_rewind_transform, time_manager_track_transform, TransformChange,
 };
-use game_core::time_manager::game_change::GameChangeHistory;
-use game_core::time_manager::{TimeManager, TimeManagerPlugin, TimeManagerPluginSet};
+use game_core::time_manager::game_change::{GameChangeHistoryPlugin};
+use game_core::time_manager::{is_rewinding, TimeManager, TimeManagerPlugin, TimeManagerPluginSet};
 
 pub struct AppConfig {
     pub window: WindowConfig,
@@ -95,9 +95,22 @@ impl Application {
                     .in_set(AppStage::StartFrame)
                     .after(TimePluginSet::UpdateTime),
             )
-            .with_set(TimeManagerPluginSet::EndFrame.in_set(AppStage::EndFrame))
             .with_plugin(PhysicsPlugin)
-            .with_set(PhysicsPlugin::system_set().in_set(AppStage::UpdatePhysics));
+            .with_set(PhysicsPlugin::system_set().in_set(AppStage::UpdatePhysics))
+            // Transform tracking
+            .with_plugin(GameChangeHistoryPlugin::<TransformChange>::new())
+            .with_system(
+                time_manager_track_transform
+                    .after(AppStage::Update)
+                    .before(AppStage::UpdatePhysics)
+                    .run_if(not(is_rewinding)),
+            )
+            .with_system(
+                time_manager_rewind_transform
+                    .after(AppStage::Update)
+                    .before(AppStage::UpdatePhysics)
+                    .run_if(is_rewinding),
+            );
     }
 
     pub fn run(mut self)
@@ -134,18 +147,6 @@ impl Application {
         world.insert_resource(context);
 
         world.insert_resource(LevelFlags::new());
-
-        let time = Time::new();
-        world.insert_resource(time);
-        schedule.add_system(update_time.in_set(AppStage::StartFrame));
-
-        let transform_history = GameChangeHistory::<TransformChange>::new();
-        transform_history.setup_systems(
-            world,
-            schedule,
-            time_manager_track_transform,
-            time_manager_rewind_transform,
-        );
 
         // TODO: Move that code to the input.rs file?
         let input_map = InputMap::new();

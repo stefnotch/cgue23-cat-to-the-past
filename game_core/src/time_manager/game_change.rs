@@ -3,15 +3,14 @@ use std::collections::VecDeque;
 use crate::events::NextLevel;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::{
-    prelude::{not, EventReader},
-    schedule::{IntoSystemConfig, Schedule},
-    system::{ResMut, Resource},
-    world::World,
+    prelude::{EventReader},
+    schedule::{IntoSystemConfig, IntoSystemSetConfig, SystemSet},
+    system::{Res, ResMut, Resource},
 };
 
-use crate::application::AppStage;
 
-use super::{is_rewinding, level_time::LevelTime, TimeManager};
+
+use super::{level_time::LevelTime, TimeManager, TimeManagerPluginSet};
 
 pub trait GameChange
 where
@@ -54,6 +53,8 @@ pub struct GameChangeHistory<T>
 where
     T: GameChange,
 {
+    current_frame_timestamp: LevelTime,
+    is_rewinding: bool,
     history: VecDeque<GameChanges<T>>,
 }
 
@@ -63,6 +64,8 @@ where
 {
     pub fn new() -> Self {
         Self {
+            current_frame_timestamp: LevelTime::zero(),
+            is_rewinding: false,
             history: VecDeque::new(),
         }
     }
@@ -151,6 +154,14 @@ where
     }
 }
 
+fn read_timestamp<T>(time_manager: Res<TimeManager>, mut history: ResMut<GameChangeHistory<T>>)
+where
+    T: GameChange + 'static,
+{
+    history.is_rewinding = time_manager.is_rewinding();
+    history.current_frame_timestamp = time_manager.level_time;
+}
+
 fn clear_on_next_level<T>(
     mut history: ResMut<GameChangeHistory<T>>,
     mut next_level: EventReader<NextLevel>,
@@ -162,6 +173,57 @@ fn clear_on_next_level<T>(
     }
 }
 
+#[derive(SystemSet)]
+pub enum GameChangeHistoryPluginSet<T> {
+    Update,
+    // Well that's not very elegant
+    _Impossible(std::convert::Infallible, std::marker::PhantomData<T>),
+}
+
+impl<T> std::fmt::Debug for GameChangeHistoryPluginSet<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GameChangeHistoryPluginSet::Update => write!(f, "GameChangeHistoryPluginSet::Update"),
+            GameChangeHistoryPluginSet::_Impossible(_, _) => {
+                write!(f, "GameChangeHistoryPluginSet::_Impossible")
+            }
+        }
+    }
+}
+impl<T> Clone for GameChangeHistoryPluginSet<T> {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Update => Self::Update,
+            Self::_Impossible(_arg0, _arg1) => panic!(),
+        }
+    }
+}
+impl<T> PartialEq for GameChangeHistoryPluginSet<T> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Update, Self::Update) => true,
+            (Self::_Impossible(_arg0, _arg1), Self::_Impossible(_arg0_other, _arg1_other)) => {
+                panic!()
+            }
+            _ => false,
+        }
+    }
+}
+
+impl<T> Eq for GameChangeHistoryPluginSet<T> {}
+
+impl<T> std::hash::Hash for GameChangeHistoryPluginSet<T>
+where
+    T: 'static,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Update => std::any::TypeId::of::<T>().hash(state),
+            Self::_Impossible(_arg0, _arg1) => panic!(),
+        }
+    }
+}
+
 pub struct GameChangeHistoryPlugin<T>
 where
     T: GameChange + 'static,
@@ -169,34 +231,36 @@ where
     _marker: std::marker::PhantomData<T>,
 }
 
-impl<T> Plugin for GameChangeHistoryPlugin<T>
+impl<T> GameChangeHistoryPlugin<T>
 where
     T: GameChange + 'static,
 {
-    fn build(&mut self, app: &mut PluginAppAccess) {
-        app.with_resource(GameChangeHistory::<T>::new())
-            .with_system(clear_on_next_level::<T>);
+    pub fn new() -> Self {
+        Self {
+            _marker: std::marker::PhantomData,
+        }
     }
 }
 
-pub fn setup_systems<TrackerParams, RewinderParams>(
-    self,
-    world: &mut World,
-    schedule: &mut Schedule,
-    tracker_system: impl IntoSystemConfig<TrackerParams>,
-    rewinder_system: impl IntoSystemConfig<RewinderParams>,
-) where
-    T: GameChange,
+impl<T> Plugin for GameChangeHistoryPlugin<T>
+where
+    T: GameChange + 'static,
+    GameChangeHistoryPluginSet<T>: SystemSet, // Wait, it accepts this?
 {
-    schedule.add_system(
-        tracker_system
-            .in_set(AppStage::Render)
-            .run_if(not(is_rewinding)),
-    );
-    schedule.add_system(
-        rewinder_system
-            .in_set(AppStage::EventUpdate)
-            .run_if(is_rewinding),
-    );
-    schedule.add_system(clear_on_next_level::<T>.in_set(AppStage::StartFrame));
+    fn build(&mut self, app: &mut PluginAppAccess) {
+        app.with_resource(GameChangeHistory::<T>::new())
+            .with_system(
+                read_timestamp::<T>
+                    .before(GameChangeHistoryPluginSet::<T>::Update)
+                    .after(TimeManagerPluginSet::StartFrame),
+            )
+            .with_system(
+                clear_on_next_level::<T>
+                    .before(GameChangeHistoryPluginSet::<T>::Update)
+                    .after(TimeManagerPluginSet::StartFrame),
+            )
+            .with_set(
+                TimeManagerPluginSet::StartFrame.before(GameChangeHistoryPluginSet::<T>::Update),
+            );
+    }
 }

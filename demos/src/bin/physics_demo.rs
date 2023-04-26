@@ -8,7 +8,7 @@ use game_core::asset::AssetId;
 use nalgebra::{Point3, Vector3};
 
 use game::core::application::{AppConfig, Application};
-use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
+use game::player::{PlayerPlugin, PlayerSpawnSettings};
 
 use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType, Sensor};
 use physics::physics_events::CollisionEvent;
