@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 mod pickup_system;
 
 use animations::animation::Animation;
