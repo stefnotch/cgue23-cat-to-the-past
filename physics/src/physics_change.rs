@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
+use bevy_ecs::prelude::Without;
 use bevy_ecs::{
     query::Changed,
     system::{Query, Res, ResMut},
     world::Mut,
 };
+use game_core::pickup::Pickupable;
 use nalgebra::Vector3;
 use rapier3d::prelude::RigidBodyType;
 
@@ -110,7 +112,7 @@ impl GameChange for RigidBodyTypeChange {}
 pub(super) fn time_manager_track_rigid_body_type(
     mut time_manager: ResMut<TimeManager>,
     mut history: ResMut<GameChangeHistory<RigidBodyTypeChange>>,
-    query: Query<(&TimeTracked, &RigidBody), Changed<RigidBody>>,
+    query: Query<(&TimeTracked, &RigidBody), (Changed<RigidBody>, Without<Pickupable>)>,
 ) {
     for (time_tracked, rigidbody) in &query {
         time_manager.add_command(
