@@ -41,14 +41,18 @@ pub(super) fn update_pickup_transform(
     mut physics_context: ResMut<PhysicsContext>,
 ) {
     let mut controller = KinematicCharacterController::default();
-    controller.slide = false;
+    controller.slide = true;
     controller.snap_to_ground = None;
     controller.autostep = None;
 
     let context = physics_context.as_mut();
 
     for (mut transform, picked_up, rigid_body_handle) in query.iter_mut() {
-        let character_rigid_body = context.rigid_bodies.get(rigid_body_handle.handle).unwrap();
+        let character_rigid_body = context
+            .rigid_bodies
+            .get_mut(rigid_body_handle.handle)
+            .unwrap();
+        character_rigid_body.enable_ccd(true);
 
         let character_collider = context
             .colliders
@@ -91,6 +95,8 @@ pub(super) fn update_pickup_transform(
             .rigid_bodies
             .get_mut(rigid_body_handle.handle)
             .unwrap();
+
+        character_rigid_body.enable_ccd(false);
 
         let position = character_rigid_body.position();
         let new_position = position.translation.vector + effective_movement.translation;
