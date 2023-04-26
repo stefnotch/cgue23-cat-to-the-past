@@ -11,7 +11,7 @@ use vulkano::instance::debug::{
 use vulkano::instance::{Instance, InstanceCreateInfo, InstanceExtensions};
 use vulkano::swapchain::Surface;
 use vulkano::{Version, VulkanLibrary};
-use vulkano_win::VkSurfaceBuild;
+use vulkano_win::{create_surface_from_winit, VkSurfaceBuild};
 use winit::event_loop::EventLoop;
 use winit::window::{Window, WindowBuilder};
 
@@ -30,12 +30,12 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new(window_builder: WindowBuilder, event_loop: &EventLoop<()>) -> Context {
+    pub fn new(window: Arc<Window>) -> Context {
         let (instance, debug_callback) = create_instance();
 
-        let surface = window_builder
-            .build_vk_surface(&event_loop, instance.clone())
-            .expect("could not create window");
+        // Consume the WindowBuilder, build it, and get the surface
+        let surface =
+            create_surface_from_winit(window, instance.clone()).expect("could not create window");
 
         let device_extensions = DeviceExtensions {
             khr_swapchain: true,

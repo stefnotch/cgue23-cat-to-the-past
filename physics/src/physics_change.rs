@@ -35,7 +35,6 @@ impl GameChange for VelocityChange {}
 
 pub(super) fn time_manager_track_rigid_body_velocity(
     physics_context: Res<PhysicsContext>,
-    mut time_manager: ResMut<TimeManager>,
     mut history: ResMut<GameChangeHistory<VelocityChange>>,
     query: Query<(&TimeTracked, &RapierRigidBodyHandle)>,
 ) {
@@ -50,14 +49,11 @@ pub(super) fn time_manager_track_rigid_body_velocity(
             continue;
         }
 
-        time_manager.add_command(
-            VelocityChange::new(
-                time_tracked,
-                rigidbody.linvel().clone(),
-                rigidbody.angvel().clone(),
-            ),
-            &mut history,
-        );
+        history.add_command(VelocityChange::new(
+            time_tracked,
+            rigidbody.linvel().clone(),
+            rigidbody.angvel().clone(),
+        ));
     }
 }
 
@@ -108,21 +104,17 @@ impl RigidBodyTypeChange {
 impl GameChange for RigidBodyTypeChange {}
 
 pub(super) fn time_manager_track_rigid_body_type(
-    mut time_manager: ResMut<TimeManager>,
     mut history: ResMut<GameChangeHistory<RigidBodyTypeChange>>,
     query: Query<(&TimeTracked, &RigidBody), Changed<RigidBody>>,
 ) {
     for (time_tracked, rigidbody) in &query {
-        time_manager.add_command(
-            RigidBodyTypeChange::new(time_tracked, rigidbody.0),
-            &mut history,
-        );
+        history.add_command(RigidBodyTypeChange::new(time_tracked, rigidbody.0));
     }
 }
 
 // TODO: I'm not sure if this is the most elegant way to do this.
 pub(super) fn time_manager_rewind_rigid_body_type(
-    mut time_manager: ResMut<TimeManager>,
+    time_manager: Res<TimeManager>,
     mut history: ResMut<GameChangeHistory<RigidBodyTypeChange>>,
     mut query: Query<(&TimeTracked, &mut RigidBody)>,
 ) {
@@ -132,10 +124,7 @@ pub(super) fn time_manager_rewind_rigid_body_type(
             // We note down the type of the rigid body
             // and then make it kinematic
             for (time_tracked, mut rigidbody) in query.iter_mut() {
-                time_manager.add_rewinder_command(
-                    RigidBodyTypeChange::new(time_tracked, rigidbody.0),
-                    &mut history,
-                );
+                history.add_rewinder_command(RigidBodyTypeChange::new(time_tracked, rigidbody.0));
 
                 rigidbody.0 = RigidBodyType::KinematicPositionBased;
             }

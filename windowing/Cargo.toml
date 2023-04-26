@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 winit = "0.28"
 image = { version = "0.24.6", default-features = false, features = ["png"] }
+bevy_ecs.workspace = true
+app = { path = "../app" }

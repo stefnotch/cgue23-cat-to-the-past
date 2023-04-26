@@ -14,7 +14,10 @@ pub trait Plugin: 'static {
     /// Called once when the plugin is added to an App.
     fn build(&mut self, app: &mut PluginAppAccess);
 
-    fn system_set() -> PluginSet {
+    fn system_set() -> PluginSet
+    where
+        Self: Sized,
+    {
         PluginSet(TypeId::of::<Self>())
     }
 }
@@ -26,15 +29,12 @@ pub struct PluginSet(TypeId);
 
 pub struct PluginAppAccess<'app> {
     app: &'app mut App,
-    label: PluginSet,
+    system_set: PluginSet,
 }
 
 impl<'app> PluginAppAccess<'app> {
-    pub fn new<T: Plugin>(app: &'app mut App) -> Self {
-        Self {
-            app,
-            label: T::system_set(),
-        }
+    pub(super) fn new(app: &'app mut App, system_set: PluginSet) -> Self {
+        Self { app, system_set }
     }
 
     pub fn with_resource<T>(&mut self, resource: T) -> &mut Self
@@ -45,11 +45,19 @@ impl<'app> PluginAppAccess<'app> {
         self
     }
 
+    pub fn with_non_send_resource<T>(&mut self, resource: T) -> &mut Self
+    where
+        T: 'static,
+    {
+        self.app.world.insert_non_send_resource(resource);
+        self
+    }
+
     /// call this with system.in_set(AppStage::...)
     pub fn with_system<Params>(&mut self, system: impl IntoSystemConfig<Params>) -> &mut Self {
         self.app
             .schedule
-            .add_system(system.in_set(self.label.clone()));
+            .add_system(system.in_set(self.system_set.clone()));
         self
     }
 
@@ -78,5 +86,10 @@ impl<'app> PluginAppAccess<'app> {
             .unwrap()
             .add_system(system);
         self
+    }
+
+    /// TODO: This is a hack to get access to the world. We should probably have a better way to do this.
+    pub fn world_hack_mut(&mut self) -> &mut bevy_ecs::world::World {
+        &mut self.app.world
     }
 }

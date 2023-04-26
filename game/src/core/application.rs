@@ -3,6 +3,7 @@ use app::App;
 use game_core::level::level_flags::LevelFlags;
 use game_core::time::{TimePlugin, TimePluginSet};
 use physics::plugin::PhysicsPlugin;
+use windowing::window::{EventLoopContainer, WindowPlugin};
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
 use crate::input::input_map::{handle_keyboard_input, handle_mouse_input, InputMap};
@@ -13,7 +14,7 @@ use game_core::camera::{update_camera, Camera};
 use input::events::{KeyboardInput, MouseInput, MouseMovement};
 use nalgebra::{Point3, UnitQuaternion};
 use render::context::Context;
-use render::Renderer;
+use render::{Renderer, RendererPlugin, RendererPluginSets};
 use scene_loader::loader::AssetServer;
 use windowing::config::WindowConfig;
 use windowing::icon::get_icon;
@@ -29,7 +30,7 @@ use winit::window::{CursorGrabMode, WindowBuilder};
 use crate::core::transform_change::{
     time_manager_rewind_transform, time_manager_track_transform, TransformChange,
 };
-use game_core::time_manager::game_change::{GameChangeHistoryPlugin};
+use game_core::time_manager::game_change::GameChangeHistoryPlugin;
 use game_core::time_manager::{is_rewinding, TimeManager, TimeManagerPlugin, TimeManagerPluginSet};
 
 pub struct AppConfig {
@@ -52,16 +53,12 @@ impl Default for AppConfig {
     }
 }
 pub struct Application {
-    event_loop: EventLoop<()>,
-
     config: AppConfig,
     pub app: App,
 }
 
 impl Application {
     pub fn new(config: AppConfig) -> Self {
-        let event_loop = EventLoop::new();
-
         let mut app = App::new();
         app.schedule.configure_sets(
             (
@@ -76,17 +73,12 @@ impl Application {
                 .chain(),
         );
 
-        Self::add_default_plugins(&mut app);
+        Self::add_default_plugins(&mut app, &config);
 
-        Self {
-            event_loop,
-
-            config,
-            app,
-        }
+        Self { config, app }
     }
 
-    fn add_default_plugins(app: &mut App) {
+    fn add_default_plugins(app: &mut App, config: &AppConfig) {
         app.with_plugin(TimePlugin)
             .with_set(TimePluginSet::UpdateTime.in_set(AppStage::StartFrame))
             .with_plugin(TimeManagerPlugin)
@@ -110,16 +102,19 @@ impl Application {
                     .after(AppStage::Update)
                     .before(AppStage::UpdatePhysics)
                     .run_if(is_rewinding),
-            );
+            )
+            .with_plugin(WindowPlugin::new(config.window.clone()))
+            .with_plugin(RendererPlugin::new())
+            .with_set(RendererPluginSets::Render.in_set(AppStage::Render));
     }
 
     pub fn run(mut self)
     where
         Self: 'static,
     {
-        let config = &self.config;
-        let window_builder = self.create_window(&config.window);
+        self.app.build_plugins();
 
+        let config: &AppConfig = &self.config;
         let mut world = &mut self.app.world;
         let schedule = &mut self.app.schedule;
 
@@ -140,11 +135,6 @@ impl Application {
         schedule.add_system(update_camera_aspect_ratio.in_set(AppStage::EventUpdate));
         schedule.add_system(update_camera.in_set(AppStage::BeforeRender));
         world.insert_resource(camera);
-
-        let context = Context::new(window_builder, &self.event_loop);
-        let renderer = Renderer::new(&context);
-        renderer.setup_systems(&context, world, schedule);
-        world.insert_resource(context);
 
         world.insert_resource(LevelFlags::new());
 
@@ -176,7 +166,11 @@ impl Application {
 
         self.app.run_startup();
 
-        self.event_loop
+        self.app
+            .world
+            .remove_non_send_resource::<EventLoopContainer>()
+            .unwrap()
+            .event_loop
             .run(move |event, _, control_flow| match event {
                 Event::WindowEvent {
                     event: WindowEvent::CloseRequested,
@@ -238,42 +232,6 @@ impl Application {
 
                 _ => (),
             });
-    }
-
-    fn create_window(&self, config: &WindowConfig) -> WindowBuilder {
-        let monitor = self
-            .event_loop
-            .available_monitors()
-            .next()
-            .expect("no monitor found!");
-
-        let mut window_builder = WindowBuilder::new()
-            .with_inner_size(LogicalSize {
-                width: config.resolution.0,
-                height: config.resolution.1,
-            })
-            .with_title("Cat to the past");
-
-        if let Ok(icon) = get_icon() {
-            //.with_taskbar_icon(taskbar_icon)
-            window_builder = window_builder.with_window_icon(Some(icon));
-        }
-
-        if config.fullscreen {
-            if let Some(video_mode) = monitor
-                .video_modes()
-                .filter(|v| {
-                    let PhysicalSize { width, height } = v.size();
-
-                    v.refresh_rate_millihertz() == config.refresh_rate * 1000
-                        && (width, height) == config.resolution
-                })
-                .next()
-            {
-                window_builder = window_builder.with_fullscreen(Some(Exclusive(video_mode)))
-            }
-        }
-        window_builder
     }
 }
 

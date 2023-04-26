@@ -3,12 +3,10 @@ use std::collections::VecDeque;
 use crate::events::NextLevel;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::{
-    prelude::{EventReader},
+    prelude::EventReader,
     schedule::{IntoSystemConfig, IntoSystemSetConfig, SystemSet},
     system::{Res, ResMut, Resource},
 };
-
-
 
 use super::{level_time::LevelTime, TimeManager, TimeManagerPluginSet};
 
@@ -43,6 +41,8 @@ where
     pub commands: Vec<T>,
 }
 
+/// Systems change object values.
+/// Time rewinding restores the state of an object before a system acts on it.
 /// To limit the size of this, we could either
 /// - have a countdown for every level
 /// - only save actual changes, so when the user is AFK, we don't save anything
@@ -53,9 +53,9 @@ pub struct GameChangeHistory<T>
 where
     T: GameChange,
 {
-    current_frame_timestamp: LevelTime,
     is_rewinding: bool,
     history: VecDeque<GameChanges<T>>,
+    rewinder_commands: Vec<T>,
 }
 
 impl<T> GameChangeHistory<T>
@@ -64,23 +64,29 @@ where
 {
     pub fn new() -> Self {
         Self {
-            current_frame_timestamp: LevelTime::zero(),
             is_rewinding: false,
             history: VecDeque::new(),
+            rewinder_commands: Vec::new(),
         }
     }
 
-    pub fn add_command(&mut self, timestamp: LevelTime, command: T) {
+    pub fn add_command(&mut self, command: T) {
+        assert!(!self.is_rewinding, "Cannot add commands while rewinding");
+
         if let Some(last) = self.history.back_mut() {
-            if last.timestamp == timestamp {
-                last.commands.push(command);
-                return;
-            }
+            last.commands.push(command);
+        } else {
+            panic!("No last command, has read_timestamp been called?");
         }
-        self.history.push_back(GameChanges {
-            timestamp,
-            commands: vec![command],
-        });
+    }
+
+    // TODO: A bit of a hack IMO
+    pub fn add_rewinder_command(&mut self, command: T) {
+        assert!(
+            self.is_rewinding,
+            "Can only add rewinder commands while rewinding"
+        );
+        self.rewinder_commands.push(command);
     }
 
     pub fn clear(&mut self) {
@@ -139,6 +145,15 @@ where
             None
         };
 
+        if self.rewinder_commands.len() > 0 {
+            commands.insert(
+                0,
+                GameChanges {
+                    timestamp: time_manager.level_time,
+                    commands: std::mem::replace(&mut self.rewinder_commands, Vec::new()),
+                },
+            );
+        }
         (commands, interpolation)
     }
 
@@ -159,7 +174,10 @@ where
     T: GameChange + 'static,
 {
     history.is_rewinding = time_manager.is_rewinding();
-    history.current_frame_timestamp = time_manager.level_time;
+    history.history.push_back(GameChanges {
+        timestamp: time_manager.level_time,
+        commands: vec![],
+    });
 }
 
 fn clear_on_next_level<T>(
@@ -194,7 +212,7 @@ impl<T> Clone for GameChangeHistoryPluginSet<T> {
     fn clone(&self) -> Self {
         match self {
             Self::Update => Self::Update,
-            Self::_Impossible(_arg0, _arg1) => panic!(),
+            Self::_Impossible(_arg0, _arg1) => panic!("d"),
         }
     }
 }
@@ -203,7 +221,7 @@ impl<T> PartialEq for GameChangeHistoryPluginSet<T> {
         match (self, other) {
             (Self::Update, Self::Update) => true,
             (Self::_Impossible(_arg0, _arg1), Self::_Impossible(_arg0_other, _arg1_other)) => {
-                panic!()
+                panic!("e")
             }
             _ => false,
         }
@@ -219,7 +237,7 @@ where
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
             Self::Update => std::any::TypeId::of::<T>().hash(state),
-            Self::_Impossible(_arg0, _arg1) => panic!(),
+            Self::_Impossible(_arg0, _arg1) => panic!("a"),
         }
     }
 }

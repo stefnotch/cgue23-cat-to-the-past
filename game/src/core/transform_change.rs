@@ -15,15 +15,11 @@ use game_core::time_manager::{
 // TODO: Am not sure if this is the best place for this code.
 
 pub fn time_manager_track_transform(
-    mut time_manager: ResMut<TimeManager>,
     mut history: ResMut<GameChangeHistory<TransformChange>>,
     query: Query<(&TimeTracked, &Transform), Changed<Transform>>,
 ) {
     for (time_tracked, transform) in &query {
-        time_manager.add_command(
-            TransformChange::new(time_tracked, transform.clone()),
-            &mut history,
-        );
+        history.add_command(TransformChange::new(time_tracked, transform.clone()));
     }
 }
 

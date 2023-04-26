@@ -99,32 +99,11 @@ impl TimeManager {
         self.current_frame_timestamp = self.level_time.clone();
     }
 
-    pub fn add_command<T>(&mut self, command: T, history: &mut GameChangeHistory<T>)
-    where
-        T: GameChange,
-    {
-        assert!(!self.is_rewinding(), "Cannot add commands while rewinding");
-        history.add_command(self.current_frame_timestamp, command);
-    }
-
-    pub fn add_rewinder_command<T>(&mut self, command: T, history: &mut GameChangeHistory<T>)
-    where
-        T: GameChange,
-    {
-        assert!(
-            self.is_rewinding(),
-            "Can only add rewinder commands while rewinding"
-        );
-        let timestamp = self.current_frame_timestamp;
-        // + 1 ns, to make sure the command will actually be executed by the rewinder
-        history.add_command(timestamp + Duration::from_nanos(1), command);
-    }
-
     pub fn level_time_seconds(&self) -> f32 {
         self.level_time.as_secs_f32()
     }
 
-    pub fn next_level(&mut self) {
+    fn next_level(&mut self) {
         self.level_time = LevelTime::zero();
     }
 
