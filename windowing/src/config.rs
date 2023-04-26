@@ -1,3 +1,4 @@
+#[derive(Debug, Clone)]
 pub struct WindowConfig {
     pub resolution: (u32, u32),
     pub fullscreen: bool,

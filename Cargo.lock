@@ -1589,6 +1589,7 @@ checksum = "a5996294f19bd3aae0453a862ad728f60e6600695733dd5df01da90c54363a3c"
 name = "render"
 version = "0.1.0"
 dependencies = [
+ "app",
  "bevy_ecs",
  "game_core",
  "math",
@@ -1597,6 +1598,7 @@ dependencies = [
  "vulkano",
  "vulkano-shaders",
  "vulkano-win",
+ "windowing",
  "winit",
 ]
 
@@ -2370,6 +2372,8 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 name = "windowing"
 version = "0.1.0"
 dependencies = [
+ "app",
+ "bevy_ecs",
  "image",
  "winit",
 ]
