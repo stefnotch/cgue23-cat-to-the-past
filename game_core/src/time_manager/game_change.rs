@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::events::NextLevel;
+use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::{
     prelude::{not, EventReader},
     schedule::{IntoSystemConfig, Schedule},
@@ -150,35 +151,6 @@ where
     }
 }
 
-impl<T> GameChangeHistory<T>
-where
-    T: GameChange + 'static,
-{
-    pub fn setup_systems<TrackerParams, RewinderParams>(
-        self,
-        world: &mut World,
-        schedule: &mut Schedule,
-        tracker_system: impl IntoSystemConfig<TrackerParams>,
-        rewinder_system: impl IntoSystemConfig<RewinderParams>,
-    ) where
-        T: GameChange,
-    {
-        world.insert_resource(self);
-
-        schedule.add_system(
-            tracker_system
-                .in_set(AppStage::Render)
-                .run_if(not(is_rewinding)),
-        );
-        schedule.add_system(
-            rewinder_system
-                .in_set(AppStage::EventUpdate)
-                .run_if(is_rewinding),
-        );
-        schedule.add_system(clear_on_next_level::<T>.in_set(AppStage::StartFrame));
-    }
-}
-
 fn clear_on_next_level<T>(
     mut history: ResMut<GameChangeHistory<T>>,
     mut next_level: EventReader<NextLevel>,
@@ -188,4 +160,43 @@ fn clear_on_next_level<T>(
     if next_level.iter().next().is_some() {
         history.clear();
     }
+}
+
+pub struct GameChangeHistoryPlugin<T>
+where
+    T: GameChange + 'static,
+{
+    _marker: std::marker::PhantomData<T>,
+}
+
+impl<T> Plugin for GameChangeHistoryPlugin<T>
+where
+    T: GameChange + 'static,
+{
+    fn build(&mut self, app: &mut PluginAppAccess) {
+        app.with_resource(GameChangeHistory::<T>::new())
+            .with_system(clear_on_next_level::<T>);
+    }
+}
+
+pub fn setup_systems<TrackerParams, RewinderParams>(
+    self,
+    world: &mut World,
+    schedule: &mut Schedule,
+    tracker_system: impl IntoSystemConfig<TrackerParams>,
+    rewinder_system: impl IntoSystemConfig<RewinderParams>,
+) where
+    T: GameChange,
+{
+    schedule.add_system(
+        tracker_system
+            .in_set(AppStage::Render)
+            .run_if(not(is_rewinding)),
+    );
+    schedule.add_system(
+        rewinder_system
+            .in_set(AppStage::EventUpdate)
+            .run_if(is_rewinding),
+    );
+    schedule.add_system(clear_on_next_level::<T>.in_set(AppStage::StartFrame));
 }

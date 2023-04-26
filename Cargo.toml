@@ -1,6 +1,7 @@
 
 [workspace]
 members = [
+    "app",
     "scene",
     "game_core",
     "physics",

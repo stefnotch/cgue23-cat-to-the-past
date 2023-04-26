@@ -1,22 +1,20 @@
 pub mod game_change;
 pub mod level_time;
 
-use crate::time::{update_time, Time};
+use crate::time::{Time, TimePluginSet};
 use std::time::Duration;
 
 use crate::events::NextLevel;
+use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::{
     prelude::{Component, EventReader, Events},
-    schedule::{IntoSystemConfig, Schedule},
+    schedule::{IntoSystemConfig, SystemSet},
     system::{Res, ResMut, Resource},
-    world::World,
 };
 
 use crate::time_manager::game_change::GameChangeHistory;
 
 use self::{game_change::GameChange, level_time::LevelTime};
-
-use crate::application::AppStage;
 
 #[derive(Component)]
 pub struct TimeTracked {
@@ -57,7 +55,7 @@ pub fn is_rewinding(time_manager: Res<TimeManager>) -> bool {
 }
 
 impl TimeManager {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             current_frame_timestamp: Some(LevelTime::zero()),
             will_rewind_next_frame: false,
@@ -160,15 +158,6 @@ impl TimeManager {
             TimeState::StopRewinding => false,
         }
     }
-
-    pub fn setup_systems(self, world: &mut World, schedule: &mut Schedule) {
-        world.insert_resource(self);
-        schedule.add_system(start_frame.in_set(AppStage::StartFrame).after(update_time));
-        schedule.add_system(end_frame.in_set(AppStage::EndFrame));
-
-        world.insert_resource(Events::<NextLevel>::default());
-        schedule.add_system(next_level.in_set(AppStage::StartFrame));
-    }
 }
 
 fn start_frame(time: Res<Time>, mut time_manager: ResMut<TimeManager>) {
@@ -182,5 +171,27 @@ fn end_frame(mut time_manager: ResMut<TimeManager>) {
 fn next_level(mut time_manager: ResMut<TimeManager>, mut next_level: EventReader<NextLevel>) {
     if next_level.iter().next().is_some() {
         time_manager.next_level();
+    }
+}
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum TimeManagerPluginSet {
+    StartFrame,
+    EndFrame,
+}
+
+pub struct TimeManagerPlugin;
+
+impl Plugin for TimeManagerPlugin {
+    fn build(&mut self, app: &mut PluginAppAccess) {
+        app.with_resource(TimeManager::new())
+            .with_system(
+                start_frame
+                    .in_set(TimeManagerPluginSet::StartFrame)
+                    .after(TimePluginSet::UpdateTime),
+            )
+            .with_system(end_frame.in_set(TimeManagerPluginSet::EndFrame))
+            .with_resource(Events::<NextLevel>::default())
+            .with_system(next_level.in_set(TimeManagerPluginSet::StartFrame));
     }
 }

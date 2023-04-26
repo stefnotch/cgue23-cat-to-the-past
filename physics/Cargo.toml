@@ -14,3 +14,4 @@ crossbeam = "0.8.2"
 game_core = { path = "../game_core" }
 math = { path = "../math" }
 scene = { path = "../scene" }
+app = { path = "../app" }

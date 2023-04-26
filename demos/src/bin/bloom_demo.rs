@@ -2,12 +2,13 @@
 use std::f32::consts::PI;
 use std::sync::Arc;
 
+use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::system::Commands;
 use game_core::asset::AssetId;
 use nalgebra::{Point3, UnitQuaternion, Vector3};
 
-use game::core::application::{AppConfig, ApplicationBuilder};
-use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
+use game::core::application::{AppConfig, Application};
+use game::player::{PlayerPlugin, PlayerSpawnSettings};
 use scene::light::{Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::CpuMesh;
@@ -104,21 +105,27 @@ fn spawn_bloom_demo(mut commands: Commands) {
     }
 }
 
+struct BloomDemoPlugin;
+impl Plugin for BloomDemoPlugin {
+    fn build(&mut self, app: &mut PluginAppAccess) {
+        app.with_startup_system(spawn_bloom_demo);
+    }
+}
+
 fn main() {
     let config = AppConfig::default();
 
-    let player_controller_settings = PlayerControllerSettings::new(5.0, 1.0, 9.81);
-
     let player_spawn_settings = PlayerSpawnSettings {
         initial_transform: Default::default(),
-        controller_settings: player_controller_settings,
+        controller_settings: Default::default(),
         free_cam_activated: true,
     };
 
-    let application = ApplicationBuilder::new(config)
-        .with_startup_system(spawn_bloom_demo)
-        .with_player_controller(player_spawn_settings)
-        .build();
+    let mut application = Application::new(config);
+    application
+        .app
+        .with_plugin(BloomDemoPlugin)
+        .with_plugin(PlayerPlugin::new(player_spawn_settings));
 
     application.run();
 }
