@@ -4,8 +4,9 @@ mod pickup_system;
 
 use animations::animation::Animation;
 use bevy_ecs::prelude::{Component, EventReader, Query, With};
-use game_core::time::Time;
+use game_core::level::LevelId;
 use game_core::time_manager::TimeManager;
+use game_core::{level::level_flags::LevelFlags, time::Time};
 use scene::{
     mesh::CpuMesh,
     model::{CpuPrimitive, Model},
@@ -15,7 +16,7 @@ use std::f32::consts::PI;
 use std::sync::Arc;
 use std::time::Instant;
 
-use bevy_ecs::system::{Commands, Res};
+use bevy_ecs::system::{Commands, Res, ResMut};
 use nalgebra::{Point3, Translation3};
 
 use game::core::application::{AppConfig, ApplicationBuilder};
@@ -41,6 +42,10 @@ fn spawn_world(mut commands: Commands, asset_server: Res<AssetServer>) {
         "Loading the scene took {}sec",
         before.elapsed().as_secs_f64()
     );
+}
+
+fn setup_levels(mut level_flags: ResMut<LevelFlags>) {
+    level_flags.set_count(LevelId::new(0), 1);
 }
 
 fn _print_fps(time: Res<Time>) {
@@ -120,6 +125,7 @@ fn main() {
 
     let application = ApplicationBuilder::new(config)
         .with_startup_system(spawn_world)
+        .with_startup_system(setup_levels)
         .with_startup_system(spawn_moving_cube)
         .with_player_controller(player_spawn_settings)
         .with_system(ray_cast)
