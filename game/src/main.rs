@@ -6,6 +6,7 @@ use animations::animation::Animation;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::{Component, EventReader, Query, With};
 use debug::log::enable_logging;
+use debug::setup_debugging;
 use game_core::level::LevelId;
 use game_core::time_manager::TimeManager;
 use game_core::{level::level_flags::LevelFlags, time::Time};
@@ -22,8 +23,6 @@ use bevy_ecs::system::{Commands, Res, ResMut};
 use nalgebra::{Point3, Translation3};
 
 use game::core::application::{AppConfig, Application};
-
-use debug::tracing::start_tracing;
 
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
 
@@ -119,10 +118,7 @@ impl Plugin for GamePlugin {
 }
 
 fn main() {
-    #[cfg(debug_assertions)]
-    std::env::set_var("RUST_BACKTRACE", "1");
-    let _guard = start_tracing();
-    enable_logging();
+    let _guard = setup_debugging();
 
     // TODO: read from file
     let config = AppConfig::default();
