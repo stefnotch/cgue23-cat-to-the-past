@@ -56,11 +56,13 @@ impl App {
     pub fn new() -> Self {
         let mut schedule = Schedule::default();
         schedule.set_executor_kind(ExecutorKind::SingleThreaded);
+        schedule.set_apply_final_buffers(true);
 
         let world = World::new();
 
         let mut startup_schedule = Schedule::default();
         startup_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
+        schedule.set_apply_final_buffers(true);
 
         Self {
             world,

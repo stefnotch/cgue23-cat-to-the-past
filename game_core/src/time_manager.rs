@@ -33,6 +33,7 @@ impl TimeTracked {
 }
 
 /// The 4 time states to cycle through
+#[derive(Debug)]
 pub enum TimeState {
     Normal,
     StartRewinding,

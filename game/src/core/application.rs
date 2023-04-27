@@ -30,8 +30,8 @@ use windowing::window::CursorGrabMode;
 use crate::core::transform_change::{
     time_manager_rewind_transform, time_manager_track_transform, TransformChange,
 };
-use game_core::time_manager::game_change::GameChangeHistoryPlugin;
-use game_core::time_manager::{is_rewinding, TimeManager, TimeManagerPlugin, TimeManagerPluginSet};
+use game_core::time_manager::game_change::{GameChangeHistoryPlugin, GameChangeHistoryPluginSet};
+use game_core::time_manager::{TimeManager, TimeManagerPlugin, TimeManagerPluginSet};
 
 pub struct AppConfig {
     pub window: WindowConfig,
@@ -92,18 +92,15 @@ impl Application {
             .with_plugin(PhysicsPlugin)
             .with_set(PhysicsPlugin::system_set().in_set(AppStage::UpdatePhysics))
             // Transform tracking
-            .with_plugin(GameChangeHistoryPlugin::<TransformChange>::new())
-            .with_system(
-                time_manager_track_transform
-                    .after(AppStage::Update)
-                    .before(AppStage::UpdatePhysics)
-                    .run_if(not(is_rewinding)),
+            .with_plugin(
+                GameChangeHistoryPlugin::<TransformChange>::new()
+                    .with_tracker(time_manager_track_transform)
+                    .with_rewinder(time_manager_rewind_transform),
             )
-            .with_system(
-                time_manager_rewind_transform
+            .with_set(
+                GameChangeHistoryPluginSet::<TransformChange>::Update
                     .after(AppStage::Update)
-                    .before(AppStage::UpdatePhysics)
-                    .run_if(is_rewinding),
+                    .before(AppStage::UpdatePhysics),
             )
             .with_plugin(WindowPlugin::new(config.window.clone()))
             .with_plugin(RendererPlugin::new())

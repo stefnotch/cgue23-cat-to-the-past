@@ -66,35 +66,23 @@ impl Plugin for PhysicsPlugin {
             )
             .with_set(PhysicsPluginSets::BeforePhysics.before(PhysicsPluginSets::Physics))
             // Time rewinding
-            .with_plugin(GameChangeHistoryPlugin::<VelocityChange>::new())
-            .with_system(
-                time_manager_track_rigid_body_velocity
-                    .in_set(PhysicsPluginSets::BeforePhysics)
-                    .run_if(not(is_rewinding)),
-            )
-            .with_system(
-                time_manager_rewind_rigid_body_velocity
-                    .in_set(PhysicsPluginSets::BeforePhysics)
-                    .run_if(is_rewinding),
+            .with_plugin(
+                GameChangeHistoryPlugin::<VelocityChange>::new()
+                    .with_tracker(time_manager_track_rigid_body_velocity)
+                    .with_rewinder(time_manager_rewind_rigid_body_velocity),
             )
             .with_set(
                 GameChangeHistoryPluginSet::<VelocityChange>::Update
-                    .before(PhysicsPluginSets::Physics),
+                    .in_set(PhysicsPluginSets::BeforePhysics),
             )
-            .with_plugin(GameChangeHistoryPlugin::<RigidBodyTypeChange>::new())
-            .with_system(
-                time_manager_track_rigid_body_type
-                    .in_set(PhysicsPluginSets::BeforePhysics)
-                    .run_if(not(is_rewinding)),
-            )
-            .with_system(
-                time_manager_rewind_rigid_body_type
-                    .in_set(PhysicsPluginSets::BeforePhysics)
-                    .run_if(is_rewinding),
+            .with_plugin(
+                GameChangeHistoryPlugin::<RigidBodyTypeChange>::new()
+                    .with_tracker(time_manager_track_rigid_body_type)
+                    .with_rewinder(time_manager_rewind_rigid_body_type),
             )
             .with_set(
                 GameChangeHistoryPluginSet::<RigidBodyTypeChange>::Update
-                    .before(PhysicsPluginSets::Physics),
+                    .in_set(PhysicsPluginSets::BeforePhysics),
             )
             // Special logic for time rewinding with a Transform component
             .with_system(
