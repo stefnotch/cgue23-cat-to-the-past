@@ -8,12 +8,13 @@ edition = "2021"
 
 [dependencies]
 vulkano = { version = "0.33.0", features = []}
-vulkano-win = "0.33.0"
-winit = "0.28"
+raw-window-handle = "0.5.2"
+vulkano-win = { version = "0.33.0", default-features = false, features = ["raw-window-handle"] }
 vulkano-shaders = "0.33.0"
 nalgebra.workspace = true
 bevy_ecs.workspace = true
 
 math = { path = "../math" }
-game_core = { path = "../game_core" }
 scene = { path = "../scene" }
+app = { path = "../app" }
+windowing = { path = "../windowing" }

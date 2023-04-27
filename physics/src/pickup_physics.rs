@@ -1,10 +1,10 @@
 use crate::physics_context::{PhysicsContext, RapierRigidBodyHandle, RigidBody};
 use bevy_ecs::prelude::{Added, Component, Query, RemovedComponents, Res, ResMut};
-use game_core::camera::Camera;
 use nalgebra::Point3;
 use rapier3d::control::KinematicCharacterController;
 use rapier3d::dynamics::RigidBodyType;
 use rapier3d::prelude::QueryFilter;
+use scene::camera::Camera;
 use scene::transform::Transform;
 
 #[derive(Component)]
@@ -40,10 +40,12 @@ pub(super) fn update_pickup_transform(
     mut query: Query<(&mut Transform, &PickedUp, &RapierRigidBodyHandle)>,
     mut physics_context: ResMut<PhysicsContext>,
 ) {
-    let mut controller = KinematicCharacterController::default();
-    controller.slide = true;
-    controller.snap_to_ground = None;
-    controller.autostep = None;
+    let controller = KinematicCharacterController {
+        slide: true,
+        snap_to_ground: None,
+        autostep: None,
+        ..Default::default()
+    };
 
     let context = physics_context.as_mut();
 

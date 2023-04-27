@@ -21,7 +21,7 @@ impl Default for Transform {
 
 impl Transform {
     pub fn to_matrix(&self) -> Matrix4<f32> {
-        let translation = Matrix4::new_translation(&self.position.coords.into());
+        let translation = Matrix4::new_translation(&self.position.coords);
         let rotation = Matrix4::from(self.rotation);
         let scaling = Matrix4::new_nonuniform_scaling(&self.scale);
 

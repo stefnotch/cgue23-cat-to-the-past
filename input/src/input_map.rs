@@ -1,7 +1,6 @@
+use crate::events::{ElementState, KeyboardInput, MouseButton, MouseInput, VirtualKeyCode};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::{ResMut, Resource};
-use input::events::{KeyboardInput, MouseInput};
-use winit::event::{ElementState, MouseButton, VirtualKeyCode};
 
 const NUM_KEYS: usize = VirtualKeyCode::Cut as usize + 1;
 const NUM_MOUSE_BUTTONS: usize = 2;
@@ -57,7 +56,7 @@ impl InputMap {
     }
 }
 
-pub fn handle_keyboard_input(
+pub(crate) fn handle_keyboard_input(
     mut input: ResMut<InputMap>,
     mut event_reader: EventReader<KeyboardInput>,
 ) {
@@ -73,7 +72,10 @@ pub fn handle_keyboard_input(
     }
 }
 
-pub fn handle_mouse_input(mut input: ResMut<InputMap>, mut event_reader: EventReader<MouseInput>) {
+pub(crate) fn handle_mouse_input(
+    mut input: ResMut<InputMap>,
+    mut event_reader: EventReader<MouseInput>,
+) {
     for event in event_reader.iter() {
         match event.state {
             ElementState::Pressed => {

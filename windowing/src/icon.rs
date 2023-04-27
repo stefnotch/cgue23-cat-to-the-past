@@ -3,7 +3,7 @@ use std::io::Cursor;
 use image::{codecs::png::PngDecoder, ImageDecoder};
 use winit::window::Icon;
 
-pub fn get_icon() -> Result<Icon, Box<dyn std::error::Error>> {
+pub(crate) fn get_icon() -> Result<Icon, Box<dyn std::error::Error>> {
     let decoder = PngDecoder::new(Cursor::new(include_bytes!("icon.png")))?;
 
     let (width, height) = decoder.dimensions();

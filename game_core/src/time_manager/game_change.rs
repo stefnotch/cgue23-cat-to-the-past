@@ -1,16 +1,14 @@
 use std::collections::VecDeque;
 
 use crate::events::NextLevel;
+use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::{
     prelude::{not, EventReader},
-    schedule::{IntoSystemConfig, Schedule},
-    system::{ResMut, Resource},
-    world::World,
+    schedule::{IntoSystemConfig, IntoSystemSetConfig, SystemConfig, SystemSet},
+    system::{Res, ResMut, Resource},
 };
 
-use crate::application::AppStage;
-
-use super::{is_rewinding, level_time::LevelTime, TimeManager};
+use super::{is_rewinding, level_time::LevelTime, TimeManager, TimeManagerPluginSet};
 
 pub trait GameChange
 where
@@ -43,6 +41,8 @@ where
     pub commands: Vec<T>,
 }
 
+/// Systems change object values.
+/// Time rewinding restores the state of an object before a system acts on it.
 /// To limit the size of this, we could either
 /// - have a countdown for every level
 /// - only save actual changes, so when the user is AFK, we don't save anything
@@ -53,7 +53,10 @@ pub struct GameChangeHistory<T>
 where
     T: GameChange,
 {
+    is_rewinding: bool,
+    level_time: LevelTime,
     history: VecDeque<GameChanges<T>>,
+    rewinder_commands: Vec<T>,
 }
 
 impl<T> GameChangeHistory<T>
@@ -62,25 +65,53 @@ where
 {
     pub fn new() -> Self {
         Self {
+            is_rewinding: false,
+            level_time: LevelTime::zero(),
             history: VecDeque::new(),
+            rewinder_commands: Vec::new(),
         }
     }
 
-    pub fn add_command(&mut self, timestamp: LevelTime, command: T) {
+    fn update_with_time(&mut self, time_manager: &TimeManager) {
+        self.is_rewinding = time_manager.is_rewinding();
+        self.level_time = time_manager.level_time;
+        if !self.is_rewinding {
+            self.rewinder_commands.clear();
+        }
+    }
+
+    pub fn add_command(&mut self, command: T) {
+        assert!(!self.is_rewinding, "Cannot add commands while rewinding");
+
         if let Some(last) = self.history.back_mut() {
-            if last.timestamp == timestamp {
+            if last.timestamp == self.level_time {
                 last.commands.push(command);
                 return;
             }
         }
+
+        // This logic avoids adding commands to the history that are not needed
         self.history.push_back(GameChanges {
-            timestamp,
+            timestamp: self.level_time,
             commands: vec![command],
         });
     }
 
-    pub fn clear(&mut self) {
+    // TODO: A bit of a hack IMO
+    pub fn add_rewinder_command(&mut self, command: T) {
+        assert!(
+            self.is_rewinding,
+            "Can only add rewinder commands while rewinding"
+        );
+        self.rewinder_commands.push(command);
+    }
+
+    fn clear(&mut self) {
         self.history.clear();
+        self.history.push_back(GameChanges {
+            timestamp: LevelTime::zero(),
+            commands: Vec::new(),
+        });
     }
 
     /// Returns the commands that need to be applied to the game state
@@ -135,6 +166,15 @@ where
             None
         };
 
+        if self.rewinder_commands.len() > 0 {
+            commands.insert(
+                0,
+                GameChanges {
+                    timestamp: time_manager.level_time,
+                    commands: std::mem::replace(&mut self.rewinder_commands, Vec::new()),
+                },
+            );
+        }
         (commands, interpolation)
     }
 
@@ -142,7 +182,7 @@ where
         if !time_manager.is_interpolating() {
             return false;
         }
-        if self.history.len() < 1 {
+        if self.history.is_empty() {
             return false;
         }
 
@@ -150,33 +190,11 @@ where
     }
 }
 
-impl<T> GameChangeHistory<T>
+fn read_timestamp<T>(time_manager: Res<TimeManager>, mut history: ResMut<GameChangeHistory<T>>)
 where
     T: GameChange + 'static,
 {
-    pub fn setup_systems<TrackerParams, RewinderParams>(
-        self,
-        world: &mut World,
-        schedule: &mut Schedule,
-        tracker_system: impl IntoSystemConfig<TrackerParams>,
-        rewinder_system: impl IntoSystemConfig<RewinderParams>,
-    ) where
-        T: GameChange,
-    {
-        world.insert_resource(self);
-
-        schedule.add_system(
-            tracker_system
-                .in_set(AppStage::Render)
-                .run_if(not(is_rewinding)),
-        );
-        schedule.add_system(
-            rewinder_system
-                .in_set(AppStage::EventUpdate)
-                .run_if(is_rewinding),
-        );
-        schedule.add_system(clear_on_next_level::<T>.in_set(AppStage::StartFrame));
-    }
+    history.update_with_time(&time_manager);
 }
 
 fn clear_on_next_level<T>(
@@ -187,5 +205,132 @@ fn clear_on_next_level<T>(
 {
     if next_level.iter().next().is_some() {
         history.clear();
+    }
+}
+
+#[derive(SystemSet)]
+pub enum GameChangeHistoryPluginSet<T> {
+    Update,
+    // Well that's not very elegant
+    _Impossible(std::convert::Infallible, std::marker::PhantomData<T>),
+}
+
+impl<T> std::fmt::Debug for GameChangeHistoryPluginSet<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GameChangeHistoryPluginSet::Update => write!(f, "GameChangeHistoryPluginSet::Update"),
+            GameChangeHistoryPluginSet::_Impossible(_, _) => {
+                write!(f, "GameChangeHistoryPluginSet::_Impossible")
+            }
+        }
+    }
+}
+impl<T> Clone for GameChangeHistoryPluginSet<T> {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Update => Self::Update,
+            Self::_Impossible(_arg0, _arg1) => panic!("d"),
+        }
+    }
+}
+impl<T> PartialEq for GameChangeHistoryPluginSet<T> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Update, Self::Update) => true,
+            (Self::_Impossible(_arg0, _arg1), Self::_Impossible(_arg0_other, _arg1_other)) => {
+                panic!("e")
+            }
+            _ => false,
+        }
+    }
+}
+
+impl<T> Eq for GameChangeHistoryPluginSet<T> {}
+
+impl<T> std::hash::Hash for GameChangeHistoryPluginSet<T>
+where
+    T: 'static,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Update => std::any::TypeId::of::<T>().hash(state),
+            Self::_Impossible(_arg0, _arg1) => panic!("a"),
+        }
+    }
+}
+
+pub struct GameChangeHistoryPlugin<T>
+where
+    T: GameChange + 'static,
+{
+    systems: Vec<SystemConfig>,
+    _marker: std::marker::PhantomData<T>,
+}
+
+impl<T> GameChangeHistoryPlugin<T>
+where
+    T: GameChange + 'static,
+{
+    pub fn new() -> Self {
+        Self {
+            systems: Vec::new(),
+            _marker: std::marker::PhantomData,
+        }
+    }
+
+    pub fn with_tracker<Params>(self, system: impl IntoSystemConfig<Params>) -> Self {
+        let system_config = system
+            .run_if(not(is_rewinding))
+            .in_set(GameChangeHistoryPluginSet::<T>::Update);
+
+        let mut systems = self.systems;
+        systems.push(system_config);
+
+        Self {
+            systems,
+            _marker: self._marker,
+        }
+    }
+
+    pub fn with_rewinder<Params>(self, system: impl IntoSystemConfig<Params>) -> Self {
+        let system_config = system
+            .run_if(is_rewinding)
+            .in_set(GameChangeHistoryPluginSet::<T>::Update);
+
+        let mut systems = self.systems;
+        systems.push(system_config);
+
+        Self {
+            systems,
+            _marker: self._marker,
+        }
+    }
+}
+
+impl<T> Plugin for GameChangeHistoryPlugin<T>
+where
+    T: GameChange + 'static,
+    GameChangeHistoryPluginSet<T>: SystemSet, // Wait, it accepts this?
+{
+    fn build(&mut self, app: &mut PluginAppAccess) {
+        let systems = std::mem::take(&mut self.systems);
+        for system in systems {
+            app.with_system(system);
+        }
+
+        app.with_resource(GameChangeHistory::<T>::new())
+            .with_system(
+                read_timestamp::<T>
+                    .before(GameChangeHistoryPluginSet::<T>::Update)
+                    .after(TimeManagerPluginSet::StartFrame),
+            )
+            .with_system(
+                clear_on_next_level::<T>
+                    .before(GameChangeHistoryPluginSet::<T>::Update)
+                    .after(TimeManagerPluginSet::StartFrame),
+            )
+            .with_set(
+                TimeManagerPluginSet::StartFrame.before(GameChangeHistoryPluginSet::<T>::Update),
+            );
     }
 }

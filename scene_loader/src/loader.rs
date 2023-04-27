@@ -1,6 +1,5 @@
 use animations::animation::Animation;
 use bevy_ecs::prelude::*;
-use game_core::asset::{AssetId, Assets};
 use game_core::level::{Level, LevelId};
 use game_core::time_manager::TimeTracked;
 use gltf::khr_lights_punctual::Kind;
@@ -9,6 +8,8 @@ use gltf::{import, khr_lights_punctual, Node, Semantic};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
 use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, Sensor};
+use scene::asset::{AssetId, Assets};
+use scene::debug_name::DebugName;
 use scene::light::{Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::{CpuMesh, CpuMeshVertex};
@@ -103,8 +104,9 @@ impl AssetServer {
 
         let sphere = CpuMesh::sphere(10, 16, 0.1);
 
-        for (transform, light) in scene_loading_result.lights {
+        for (transform, light, name) in scene_loading_result.lights {
             commands.spawn((
+                name,
                 light,
                 Model {
                     primitives: vec![CpuPrimitive {
@@ -116,12 +118,12 @@ impl AssetServer {
             ));
         }
 
-        for (transform, model, extras) in scene_loading_result.models {
+        for (transform, model, extras, name) in scene_loading_result.models {
             let box_collider = BoxCollider {
                 bounds: model.bounding_box(),
             };
 
-            let mut entity = commands.spawn(transform.clone());
+            let mut entity = commands.spawn((name, transform.clone()));
 
             if let Some(_) = extras.sensor {
                 // and sensor component
@@ -208,9 +210,11 @@ impl AssetServer {
         // skip loading camera (hardcoded)
 
         if let Some(light) = node.light() {
-            scene_loading_result
-                .lights
-                .push((global_transform.clone(), Self::load_light(light)));
+            scene_loading_result.lights.push((
+                global_transform.clone(),
+                Self::load_light(light),
+                DebugName(node.name().unwrap_or_default().to_string()),
+            ));
         }
 
         let extras = node
@@ -230,6 +234,7 @@ impl AssetServer {
                 global_transform.clone(),
                 Self::load_model(mesh, scene_loading_data),
                 extras,
+                DebugName(node.name().unwrap_or_default().to_string()),
             ));
         }
     }
@@ -241,7 +246,8 @@ impl AssetServer {
             }
             Kind::Point => Light::Point(PointLight {
                 color: light.color().into(),
-                range: light.range().unwrap_or_else(|| 20.0f32),
+                // TODO: What if a point light doesn't have a range?
+                range: light.range().unwrap_or(20.0f32),
                 intensity: light.intensity(),
             }),
             Kind::Spot { .. } => {
@@ -290,8 +296,8 @@ struct SceneLoadingData {
 }
 
 struct SceneLoadingResult {
-    lights: Vec<(Transform, Light)>,
-    models: Vec<(Transform, Model, GLTFExtras)>,
+    lights: Vec<(Transform, Light, DebugName)>,
+    models: Vec<(Transform, Model, GLTFExtras, DebugName)>,
 }
 impl SceneLoadingResult {
     fn new() -> Self {
@@ -424,7 +430,7 @@ impl SceneLoadingData {
     ) -> Arc<CpuTexture> {
         gltf_texture_to_cpu_texture(
             self.gltf_images
-                .remove(&(gltf_texture.source().index() as usize))
+                .remove(&(gltf_texture.source().index()))
                 .unwrap(),
             sampler,
         )

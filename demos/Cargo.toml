@@ -10,6 +10,7 @@ bevy_ecs.workspace = true
 nalgebra.workspace = true
 
 game = { path = "../game" }
+app = { path = "../app" }
 game_core = { path = "../game_core" }
 physics = { path = "../physics" }
 scene = { path = "../scene" }

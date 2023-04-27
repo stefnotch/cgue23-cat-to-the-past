@@ -1,6 +1,6 @@
-use game_core::asset::{Asset, AssetId};
 use math::bounding_box::BoundingBox;
 use nalgebra::Vector3;
+use scene::asset::{Asset, AssetId};
 use scene::mesh::CpuMeshVertex;
 use std::sync::Arc;
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
@@ -23,9 +23,9 @@ pub struct MeshVertex {
 impl From<&CpuMeshVertex> for MeshVertex {
     fn from(vertex: &CpuMeshVertex) -> Self {
         Self {
-            position: vertex.position.into(),
-            normal: vertex.normal.into(),
-            uv: vertex.uv.into(),
+            position: vertex.position,
+            normal: vertex.normal,
+            uv: vertex.uv,
         }
     }
 }

@@ -3,7 +3,7 @@ use crate::scene::material::Material;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::GpuModel;
 use crate::scene::texture::Texture;
-use game_core::camera::Camera;
+use scene::camera::Camera;
 use scene::light::{Light, PointLight};
 use scene::transform::Transform;
 use std::sync::Arc;
@@ -304,7 +304,7 @@ impl SceneRenderer {
             let uniform_data = vs::Camera {
                 view: camera.view().clone().into(),
                 proj: camera.proj().clone().into(),
-                position: camera.position.clone().into(),
+                position: camera.position.into(),
             };
 
             let subbuffer = self.buffer_allocator.allocate_sized().unwrap();

@@ -1,9 +1,11 @@
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 
 mod pickup_system;
 
 use animations::animation::Animation;
+use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::{Component, EventReader, Query, With};
+use debug::log::enable_logging;
 use game_core::level::LevelId;
 use game_core::time_manager::TimeManager;
 use game_core::{level::level_flags::LevelFlags, time::Time};
@@ -19,11 +21,11 @@ use std::time::Instant;
 use bevy_ecs::system::{Commands, Res, ResMut};
 use nalgebra::{Point3, Translation3};
 
-use game::core::application::{AppConfig, ApplicationBuilder};
+use game::core::application::{AppConfig, Application};
 
 use debug::tracing::start_tracing;
 
-use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
+use game::player::{PlayerPlugin, PlayerSpawnSettings};
 
 use crate::pickup_system::ray_cast;
 use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, RigidBodyType};
@@ -104,34 +106,40 @@ fn door_system(
     }
 }
 
-fn main() {
-    let _guard = start_tracing();
+struct GamePlugin;
+impl Plugin for GamePlugin {
+    fn build(&mut self, app: &mut PluginAppAccess) {
+        app.with_startup_system(spawn_world)
+            .with_startup_system(setup_levels)
+            .with_startup_system(spawn_moving_cube)
+            .with_system(ray_cast)
+            .with_system(door_system)
+            .with_system(move_cubes);
+    }
+}
 
-    // TODO: remove this
+fn main() {
+    #[cfg(debug_assertions)]
     std::env::set_var("RUST_BACKTRACE", "1");
+    let _guard = start_tracing();
+    enable_logging();
 
     // TODO: read from file
     let config = AppConfig::default();
-
-    let player_controller_settings = PlayerControllerSettings::new(5.0, 1.0, 9.81);
 
     let player_spawn_settings = PlayerSpawnSettings {
         initial_transform: TransformBuilder::new()
             .position([0.0, 1.0, 3.0].into())
             .build(),
-        controller_settings: player_controller_settings,
+        controller_settings: Default::default(),
         free_cam_activated: false,
     };
 
-    let application = ApplicationBuilder::new(config)
-        .with_startup_system(spawn_world)
-        .with_startup_system(setup_levels)
-        .with_startup_system(spawn_moving_cube)
-        .with_player_controller(player_spawn_settings)
-        .with_system(ray_cast)
-        .with_system(door_system)
-        .with_system(move_cubes)
-        .build();
+    let mut application = Application::new(config);
+    application
+        .app
+        .with_plugin(GamePlugin)
+        .with_plugin(PlayerPlugin::new(player_spawn_settings));
 
     application.run();
 }

@@ -8,12 +8,11 @@ use crate::scene::mesh::Mesh;
 use crate::scene::model::GpuModel;
 use crate::scene::texture::Texture;
 use crate::scene_renderer::SceneRenderer;
-use bevy_ecs::schedule::{IntoSystemConfig, Schedule};
+use app::plugin::{Plugin, PluginAppAccess};
+use bevy_ecs::schedule::{IntoSystemConfig, SystemSet};
 use bevy_ecs::system::{NonSendMut, Query, Res};
-use bevy_ecs::world::World;
-use game_core::application::AppStage;
-use game_core::asset::Assets;
-use game_core::camera::Camera;
+use scene::asset::Assets;
+use scene::camera::Camera;
 use scene::light::Light;
 use scene::transform::Transform;
 use std::sync::Arc;
@@ -31,7 +30,9 @@ use vulkano::swapchain::{
 };
 use vulkano::sync;
 use vulkano::sync::{FlushError, GpuFuture};
-use winit::window::Window;
+use windowing::window::WindowManager;
+
+use windowing::window::Window;
 
 /// Responsible for keeping the swapchain up-to-date and calling the sub-rendersystems
 pub struct Renderer {
@@ -117,21 +118,47 @@ impl Renderer {
     pub fn recreate_swapchain(&mut self) {
         self.recreate_swapchain = true;
     }
+}
 
-    pub fn setup_systems(self, context: &Context, world: &mut World, schedule: &mut Schedule) {
-        world.insert_non_send_resource(self);
-        schedule.add_system(create_gpu_models.in_set(AppStage::Render).before(render));
-        schedule.add_system(render.in_set(AppStage::Render));
+#[derive(SystemSet, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum RendererPluginSets {
+    Render,
+}
 
+pub struct RendererPlugin;
+
+impl RendererPlugin {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Plugin for RendererPlugin {
+    fn build(&mut self, app: &mut PluginAppAccess) {
+        let context = Context::new(
+            app.world_hack_mut()
+                .get_resource::<WindowManager>()
+                .unwrap()
+                .window
+                .clone(),
+        );
+        let renderer = Renderer::new(&context);
         let model_uploading_allocator = ModelUploaderAllocator::new(context.device());
-        world.insert_resource(model_uploading_allocator);
-
         let sampler_info_map = SamplerInfoMap::new();
-        world.insert_resource(sampler_info_map);
 
-        world.insert_resource(Assets::<Mesh>::default());
-        world.insert_resource(Assets::<Material>::default());
-        world.insert_resource(Assets::<Texture>::default());
+        app.with_resource(context)
+            .with_non_send_resource(renderer)
+            .with_system(
+                create_gpu_models
+                    .in_set(RendererPluginSets::Render)
+                    .before(render),
+            )
+            .with_system(render.in_set(RendererPluginSets::Render))
+            .with_resource(model_uploading_allocator)
+            .with_resource(sampler_info_map)
+            .with_resource(Assets::<Mesh>::default())
+            .with_resource(Assets::<Material>::default())
+            .with_resource(Assets::<Texture>::default());
     }
 }
 
@@ -333,7 +360,7 @@ impl SwapchainContainer {
 
     fn recreate(&mut self, dimensions: [u32; 2]) -> Result<(), SwapchainCreationError> {
         match self.swapchain.recreate(SwapchainCreateInfo {
-            image_extent: dimensions.into(),
+            image_extent: dimensions,
             ..self.swapchain.create_info()
         }) {
             Ok((new_swapchain, new_images)) => {
