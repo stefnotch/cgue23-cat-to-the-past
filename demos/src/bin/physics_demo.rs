@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::event::EventReader;
 use std::sync::Arc;
