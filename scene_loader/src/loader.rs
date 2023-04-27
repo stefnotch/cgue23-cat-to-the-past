@@ -25,6 +25,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{collections::HashMap, path::Path};
 
+use game_core::pickup::Pickupable;
 use physics::physics_context::RigidBodyType::{Dynamic, KinematicPositionBased};
 use serde::Deserialize;
 
@@ -36,9 +37,6 @@ use serde::Deserialize;
 pub struct Door {
     pub id: u32,
 }
-
-#[derive(Component)]
-pub struct Pickupable;
 
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
