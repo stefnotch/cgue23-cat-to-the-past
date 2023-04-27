@@ -12,9 +12,7 @@ use bevy_ecs::{
     system::{Res, ResMut, Resource},
 };
 
-use crate::time_manager::game_change::GameChangeHistory;
-
-use self::{game_change::GameChange, level_time::LevelTime};
+use self::level_time::LevelTime;
 
 #[derive(Component)]
 pub struct TimeTracked {

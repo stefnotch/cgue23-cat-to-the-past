@@ -11,9 +11,9 @@ use vulkano::instance::debug::{
 use vulkano::instance::{Instance, InstanceCreateInfo, InstanceExtensions};
 use vulkano::swapchain::Surface;
 use vulkano::{Version, VulkanLibrary};
-use vulkano_win::{create_surface_from_winit, VkSurfaceBuild};
-use winit::event_loop::EventLoop;
-use winit::window::{Window, WindowBuilder};
+use vulkano_win::create_surface_from_handle;
+
+use windowing::window::Window;
 
 ///
 /// see also https://gpuopen.com/learn/understanding-vulkan-objects/
@@ -35,7 +35,7 @@ impl Context {
 
         // Consume the WindowBuilder, build it, and get the surface
         let surface =
-            create_surface_from_winit(window, instance.clone()).expect("could not create window");
+            create_surface_from_handle(window, instance.clone()).expect("could not create window");
 
         let device_extensions = DeviceExtensions {
             khr_swapchain: true,
@@ -108,7 +108,7 @@ fn create_instance() -> (Arc<Instance>, Option<DebugUtilsMessenger>) {
 
     let instance_extensions = InstanceExtensions {
         ext_debug_utils: debug_enabled,
-        ..vulkano_win::required_extensions(&library)
+        ..required_extensions(&library)
     };
 
     let mut layers = vec![];
@@ -255,4 +255,24 @@ fn create_logical_device(
     let graphics_queue = queues.next().expect("could not fetch queue");
 
     (device, graphics_queue)
+}
+
+/// Source https://github.com/vulkano-rs/vulkano/blob/bb7990fd491bed13746c8b85408097b5f0799c50/vulkano-win/src/winit.rs#L17
+/// TODO: Ask if that should always be exposed
+pub fn required_extensions(library: &VulkanLibrary) -> InstanceExtensions {
+    let ideal = InstanceExtensions {
+        khr_surface: true,
+        khr_xlib_surface: true,
+        khr_xcb_surface: true,
+        khr_wayland_surface: true,
+        khr_android_surface: true,
+        khr_win32_surface: true,
+        mvk_ios_surface: true,
+        mvk_macos_surface: true,
+        khr_get_physical_device_properties2: true,
+        khr_get_surface_capabilities2: true,
+        ..InstanceExtensions::empty()
+    };
+
+    library.supported_extensions().intersection(&ideal)
 }

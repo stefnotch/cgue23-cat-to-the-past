@@ -89,8 +89,12 @@ where
         self.rewinder_commands.push(command);
     }
 
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         self.history.clear();
+        self.history.push_back(GameChanges {
+            timestamp: LevelTime::zero(),
+            commands: Vec::new(),
+        });
     }
 
     /// Returns the commands that need to be applied to the game state

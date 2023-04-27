@@ -729,7 +729,6 @@ dependencies = [
  "scene_loader",
  "uuid",
  "windowing",
- "winit",
 ]
 
 [[package]]
@@ -865,7 +864,9 @@ checksum = "a257582fdcde896fd96463bf2d40eefea0580021c0712a0e2b028b60b47a837a"
 name = "input"
 version = "0.1.0"
 dependencies = [
- "winit",
+ "app",
+ "bevy_ecs",
+ "windowing",
 ]
 
 [[package]]
@@ -1594,12 +1595,12 @@ dependencies = [
  "game_core",
  "math",
  "nalgebra",
+ "raw-window-handle",
  "scene",
  "vulkano",
  "vulkano-shaders",
  "vulkano-win",
  "windowing",
- "winit",
 ]
 
 [[package]]
@@ -2168,11 +2169,8 @@ version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "666c77efe5ea82837781961a6bcd957ee2e926777e8de0005f580335d6eaefe7"
 dependencies = [
- "core-graphics-types",
- "objc",
  "raw-window-handle",
  "vulkano",
- "winit",
 ]
 
 [[package]]

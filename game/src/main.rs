@@ -134,7 +134,6 @@ fn main() {
         free_cam_activated: false,
     };
 
-
     let mut application = Application::new(config);
     application
         .app

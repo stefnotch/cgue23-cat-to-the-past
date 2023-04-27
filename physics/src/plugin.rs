@@ -114,13 +114,3 @@ impl Plugin for PhysicsPlugin {
         //e
     }
 }
-
-fn gadse(app: &mut PluginAppAccess) {
-    app.with_resource(game_core::time_manager::game_change::GameChangeHistory::<
-        VelocityChange,
-    >::new())
-        .with_system(
-            update_pickup_target_position
-                .before(GameChangeHistoryPluginSet::<VelocityChange>::Update),
-        );
-}
