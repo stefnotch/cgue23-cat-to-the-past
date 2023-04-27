@@ -1,6 +1,5 @@
 use animations::animation::Animation;
 use bevy_ecs::prelude::*;
-use game_core::asset::{AssetId, Assets};
 use game_core::level::{Level, LevelId};
 use game_core::time_manager::TimeTracked;
 use gltf::khr_lights_punctual::Kind;
@@ -9,6 +8,7 @@ use gltf::{import, khr_lights_punctual, Node, Semantic};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
 use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, Sensor};
+use scene::asset::{AssetId, Assets};
 use scene::light::{Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::{CpuMesh, CpuMeshVertex};

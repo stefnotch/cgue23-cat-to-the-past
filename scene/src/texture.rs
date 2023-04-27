@@ -1,4 +1,4 @@
-use game_core::asset::{Asset, AssetId};
+use crate::asset::{Asset, AssetId};
 
 pub struct CpuTexture {
     pub id: AssetId,

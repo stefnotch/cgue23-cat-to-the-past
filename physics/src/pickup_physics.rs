@@ -1,10 +1,10 @@
 use crate::physics_context::{PhysicsContext, RapierRigidBodyHandle, RigidBody};
 use bevy_ecs::prelude::{Added, Component, Query, RemovedComponents, Res, ResMut};
-use game_core::camera::Camera;
 use nalgebra::Point3;
 use rapier3d::control::KinematicCharacterController;
 use rapier3d::dynamics::RigidBodyType;
 use rapier3d::prelude::QueryFilter;
+use scene::camera::Camera;
 use scene::transform::Transform;
 
 #[derive(Component)]

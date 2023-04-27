@@ -1,6 +1,6 @@
-use game_core::asset::{Asset, AssetId};
 use math::bounding_box::BoundingBox;
 use nalgebra::Vector3;
+use scene::asset::{Asset, AssetId};
 use scene::mesh::CpuMeshVertex;
 use std::sync::Arc;
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};

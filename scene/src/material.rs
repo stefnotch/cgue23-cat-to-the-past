@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use game_core::asset::{Asset, AssetId};
+use crate::asset::{Asset, AssetId};
 use nalgebra::Vector3;
 
 use crate::texture::CpuTexture;

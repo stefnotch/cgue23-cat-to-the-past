@@ -1,5 +1,5 @@
-use game_core::asset::{Asset, AssetId};
 use nalgebra::Vector3;
+use scene::asset::{Asset, AssetId};
 use std::sync::Arc;
 
 use super::texture::Texture;

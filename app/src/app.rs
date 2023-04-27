@@ -1,16 +1,11 @@
 use std::collections::VecDeque;
 
 use bevy_ecs::{
-    schedule::{
-        ExecutorKind, IntoSystemConfig, IntoSystemSetConfig, IntoSystemSetConfigs, Schedule,
-    },
+    schedule::{ExecutorKind, IntoSystemConfig, IntoSystemSetConfig, Schedule},
     world::World,
 };
 
-use crate::{
-    core_stage::CoreStage,
-    plugin::{Plugin, PluginAppAccess, PluginSet},
-};
+use crate::plugin::{Plugin, PluginAppAccess, PluginSet};
 
 struct PluginContainer<T>
 where
@@ -60,7 +55,6 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         let mut schedule = Schedule::default();
-        schedule.configure_sets((CoreStage::StartFrame, CoreStage::EndFrame).chain());
         schedule.set_executor_kind(ExecutorKind::SingleThreaded);
 
         let world = World::new();
