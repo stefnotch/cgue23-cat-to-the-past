@@ -2,13 +2,11 @@ use bevy_ecs::event::EventWriter;
 use game_core::time::Time;
 
 use bevy_ecs::prelude::{
-    Added, Commands, Component, DetectChanges, Entity, Query, Res,
-    ResMut, Resource, With,
+    Added, Commands, Component, DetectChanges, Entity, Query, Res, ResMut, Resource, With,
 };
 use bevy_ecs::query::{Changed, Without};
 
-
-use game_core::time_manager::{TimeTracked};
+use game_core::time_manager::TimeTracked;
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, UnitQuaternion};
 use rapier3d::na::Vector3;
@@ -17,15 +15,10 @@ pub use rapier3d::prelude::Ray;
 use rapier3d::prelude::*;
 use scene::transform::{Transform, TransformBuilder};
 
-
-use super::player_physics::{
-    PlayerCharacterController,
-};
+use super::player_physics::PlayerCharacterController;
 
 use crate::physics_events::{collider2entity, handle_collision_event, CollisionEvent};
-use crate::pickup_physics::{
-    PickedUp,
-};
+use crate::pickup_physics::PickedUp;
 pub use rapier3d::prelude::RigidBodyType;
 
 #[derive(Resource)]

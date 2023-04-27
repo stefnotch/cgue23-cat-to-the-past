@@ -1,14 +1,14 @@
-use std::collections::VecDeque;
+use std::{any::Any, collections::VecDeque};
 
 use crate::events::NextLevel;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::{
-    prelude::EventReader,
-    schedule::{IntoSystemConfig, IntoSystemSetConfig, SystemSet},
+    prelude::{not, EventReader},
+    schedule::{IntoSystemConfig, IntoSystemSetConfig, SystemConfig, SystemSet},
     system::{Res, ResMut, Resource},
 };
 
-use super::{level_time::LevelTime, TimeManager, TimeManagerPluginSet};
+use super::{is_rewinding, level_time::LevelTime, TimeManager, TimeManagerPluginSet};
 
 pub trait GameChange
 where
@@ -250,6 +250,7 @@ pub struct GameChangeHistoryPlugin<T>
 where
     T: GameChange + 'static,
 {
+    systems: Vec<SystemConfig>,
     _marker: std::marker::PhantomData<T>,
 }
 
@@ -259,7 +260,36 @@ where
 {
     pub fn new() -> Self {
         Self {
+            systems: Vec::new(),
             _marker: std::marker::PhantomData,
+        }
+    }
+
+    pub fn with_tracker<Params>(self, system: impl IntoSystemConfig<Params>) -> Self {
+        let system_config = system
+            .run_if(not(is_rewinding))
+            .in_set(GameChangeHistoryPluginSet::<T>::Update);
+
+        let mut systems = self.systems;
+        systems.push(system_config);
+
+        Self {
+            systems,
+            _marker: self._marker,
+        }
+    }
+
+    pub fn with_rewinder<Params>(self, system: impl IntoSystemConfig<Params>) -> Self {
+        let system_config = system
+            .run_if(is_rewinding)
+            .in_set(GameChangeHistoryPluginSet::<T>::Update);
+
+        let mut systems = self.systems;
+        systems.push(system_config);
+
+        Self {
+            systems,
+            _marker: self._marker,
         }
     }
 }
@@ -270,6 +300,11 @@ where
     GameChangeHistoryPluginSet<T>: SystemSet, // Wait, it accepts this?
 {
     fn build(&mut self, app: &mut PluginAppAccess) {
+        let systems = std::mem::take(&mut self.systems);
+        for system in systems {
+            app.with_system(system);
+        }
+
         app.with_resource(GameChangeHistory::<T>::new())
             .with_system(
                 read_timestamp::<T>
