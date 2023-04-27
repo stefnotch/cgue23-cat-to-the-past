@@ -5,6 +5,7 @@ mod pickup_system;
 use animations::animation::Animation;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::{Component, EventReader, Query, With};
+use debug::log::enable_logging;
 use game_core::level::LevelId;
 use game_core::time_manager::TimeManager;
 use game_core::{level::level_flags::LevelFlags, time::Time};
@@ -118,10 +119,10 @@ impl Plugin for GamePlugin {
 }
 
 fn main() {
-    let _guard = start_tracing();
-
-    // TODO: remove this
+    #[cfg(debug_assertions)]
     std::env::set_var("RUST_BACKTRACE", "1");
+    let _guard = start_tracing();
+    enable_logging();
 
     // TODO: read from file
     let config = AppConfig::default();
