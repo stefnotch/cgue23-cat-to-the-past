@@ -23,9 +23,9 @@ pub struct MeshVertex {
 impl From<&CpuMeshVertex> for MeshVertex {
     fn from(vertex: &CpuMeshVertex) -> Self {
         Self {
-            position: vertex.position.into(),
-            normal: vertex.normal.into(),
-            uv: vertex.uv.into(),
+            position: vertex.position,
+            normal: vertex.normal,
+            uv: vertex.uv,
         }
     }
 }

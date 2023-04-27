@@ -248,7 +248,8 @@ impl AssetServer {
             }
             Kind::Point => Light::Point(PointLight {
                 color: light.color().into(),
-                range: light.range().unwrap_or_else(|| 20.0f32),
+                // TODO: What if a point light doesn't have a range?
+                range: light.range().unwrap_or(20.0f32),
                 intensity: light.intensity(),
             }),
             Kind::Spot { .. } => {
@@ -431,7 +432,7 @@ impl SceneLoadingData {
     ) -> Arc<CpuTexture> {
         gltf_texture_to_cpu_texture(
             self.gltf_images
-                .remove(&(gltf_texture.source().index() as usize))
+                .remove(&(gltf_texture.source().index()))
                 .unwrap(),
             sampler,
         )

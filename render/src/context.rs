@@ -138,7 +138,7 @@ fn create_instance() -> (Arc<Instance>, Option<DebugUtilsMessenger>) {
 }
 
 fn create_debug_callback(instance: Arc<Instance>) -> Option<DebugUtilsMessenger> {
-    let debug_callback = unsafe {
+    unsafe {
         DebugUtilsMessenger::new(
             instance.clone(),
             DebugUtilsMessengerCreateInfo {
@@ -188,9 +188,7 @@ fn create_debug_callback(instance: Arc<Instance>) -> Option<DebugUtilsMessenger>
             },
         )
         .ok()
-    };
-
-    debug_callback
+    }
 }
 
 fn find_physical_device(
@@ -203,7 +201,7 @@ fn find_physical_device(
         .expect("could not enumerate physical devices")
         .filter(|p| {
             // check if device extensions are supported
-            p.supported_extensions().contains(&device_extensions)
+            p.supported_extensions().contains(device_extensions)
         })
         .filter_map(|p| {
             p.queue_family_properties()

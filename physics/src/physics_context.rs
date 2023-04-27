@@ -136,7 +136,7 @@ impl PhysicsContext {
             filter,
         )?;
 
-        Some((collider2entity(&self.colliders, handle), toi as f32))
+        Some((collider2entity(&self.colliders, handle), toi))
     }
 }
 
@@ -205,7 +205,7 @@ pub(crate) fn apply_collider_changes(
     >,
 ) {
     for (entity, collider, transform) in &box_collider_query {
-        let physics_collider = create_box_collider(&entity, &collider, &transform);
+        let physics_collider = create_box_collider(&entity, collider, transform);
         let handle = physics_context.colliders.insert(physics_collider);
         commands
             .entity(entity)
@@ -230,7 +230,7 @@ pub(crate) fn apply_rigid_body_added(
 
         let scale_transform = TransformBuilder::new().scale(transform.scale).build();
 
-        let physics_collider = create_box_collider(&entity, &collider, &scale_transform);
+        let physics_collider = create_box_collider(&entity, collider, &scale_transform);
 
         context
             .colliders

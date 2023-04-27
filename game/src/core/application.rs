@@ -121,7 +121,7 @@ impl Application {
 
         let asset_server = AssetServer::new();
         world.insert_resource(asset_server);
-        AssetServer::insert_asset_types(&mut world);
+        AssetServer::insert_asset_types(world);
 
         let camera = Camera::new(
             Point3::origin(), // Note: The player updates this
