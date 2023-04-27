@@ -1,4 +1,4 @@
-pub use winit::event::{ElementState, MouseButton, VirtualKeyCode};
+pub use windowing::event::{ElementState, MouseButton, VirtualKeyCode};
 
 pub struct MouseMovement(pub f64, pub f64);
 pub struct KeyboardInput {

@@ -60,3 +60,14 @@ Balancing:
 - falling down kills you
 - getting shot kills you
 - player can't move while rewinding but still gets affected by the environment (bullet traveling backwards kills you)
+
+## Used sources
+
+- https://github.com/vulkano-rs/vulkano/blob/master/vulkano-win/src/winit.rs#L17
+- https://github.com/vulkano-rs/vulkano/tree/master/examples/src/bin/interactive_fractal and co
+- https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom
+- https://github.com/Shot511/RapidGL/blob/65d1202a5926acad9816483b141fb24480e81668/src/demos/26_bloom/bloom.cpp
+- https://learnopengl.com/PBR/Lighting
+- https://www.youtube.com/watch?v=RRE-F57fbXw
+- https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/#perspective-projection-into-clip-space
+- https://github.com/FlaxEngine/FlaxSamples/blob/master/FirstPersonShooterTemplate/Source/FirstPersonShooter/PlayerScript.cs

@@ -10,7 +10,7 @@ use crate::scene::texture::Texture;
 use crate::scene_renderer::SceneRenderer;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::schedule::{IntoSystemConfig, SystemSet};
-use bevy_ecs::system::{NonSendMut, Query, Res, Resource};
+use bevy_ecs::system::{NonSendMut, Query, Res};
 use game_core::asset::Assets;
 use game_core::camera::Camera;
 use scene::light::Light;
@@ -30,9 +30,9 @@ use vulkano::swapchain::{
 };
 use vulkano::sync;
 use vulkano::sync::{FlushError, GpuFuture};
-use windowing::window::{WindowManager, WindowPlugin};
-use winit::event_loop::EventLoop;
-use winit::window::{Window, WindowBuilder};
+use windowing::window::WindowManager;
+
+use windowing::window::Window;
 
 /// Responsible for keeping the swapchain up-to-date and calling the sub-rendersystems
 pub struct Renderer {

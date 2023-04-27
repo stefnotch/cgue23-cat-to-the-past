@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
 use app::plugin::Plugin;
-use bevy_ecs::system::Resource;
+use bevy_ecs::{schedule::SystemSet, system::Resource};
+pub use winit::window::CursorGrabMode;
+pub use winit::window::Window;
 use winit::{
     dpi::{LogicalSize, PhysicalSize},
     event_loop::EventLoop,
-    window::{Fullscreen, Window, WindowBuilder},
+    window::{Fullscreen, WindowBuilder},
 };
 
 use crate::{config::WindowConfig, icon::get_icon};
@@ -28,6 +30,9 @@ impl WindowPlugin {
         Self { config }
     }
 }
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum WindowPluginSet {}
 
 impl Plugin for WindowPlugin {
     fn build(&mut self, app: &mut app::plugin::PluginAppAccess) {

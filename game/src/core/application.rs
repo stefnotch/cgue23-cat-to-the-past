@@ -2,30 +2,30 @@ use app::plugin::Plugin;
 use app::App;
 use game_core::level::level_flags::LevelFlags;
 use game_core::time::{TimePlugin, TimePluginSet};
+use input::plugin::{InputPlugin, InputPluginSet};
 use physics::plugin::PhysicsPlugin;
 use windowing::window::{EventLoopContainer, WindowPlugin};
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
-use crate::input::input_map::{handle_keyboard_input, handle_mouse_input, InputMap};
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use game_core::application::AppStage;
 use game_core::camera::{update_camera, Camera};
 use input::events::{KeyboardInput, MouseInput, MouseMovement};
+use input::input_map::InputMap;
 use nalgebra::{Point3, UnitQuaternion};
 use render::context::Context;
 use render::{Renderer, RendererPlugin, RendererPluginSets};
 use scene_loader::loader::AssetServer;
 use windowing::config::WindowConfig;
-use windowing::icon::get_icon;
-use winit::dpi::{LogicalSize, PhysicalSize};
-use winit::event::{
+use windowing::dpi::PhysicalSize;
+use windowing::event::{
     DeviceEvent, Event, KeyboardInput as KeyboardInputWinit, MouseButton, VirtualKeyCode,
     WindowEvent,
 };
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::Fullscreen::Exclusive;
-use winit::window::{CursorGrabMode, WindowBuilder};
+use windowing::event_loop::ControlFlow;
+
+use windowing::window::CursorGrabMode;
 
 use crate::core::transform_change::{
     time_manager_rewind_transform, time_manager_track_transform, TransformChange,
@@ -87,6 +87,8 @@ impl Application {
                     .in_set(AppStage::StartFrame)
                     .after(TimePluginSet::UpdateTime),
             )
+            .with_plugin(InputPlugin)
+            .with_set(InputPluginSet::UpdateInput.in_set(AppStage::EventUpdate))
             .with_plugin(PhysicsPlugin)
             .with_set(PhysicsPlugin::system_set().in_set(AppStage::UpdatePhysics))
             // Transform tracking
@@ -138,27 +140,12 @@ impl Application {
 
         world.insert_resource(LevelFlags::new());
 
-        // TODO: Move that code to the input.rs file?
-        let input_map = InputMap::new();
-        world.insert_resource(input_map);
-        world.insert_resource(Events::<MouseMovement>::default());
-        schedule.add_system(Events::<MouseMovement>::update_system.in_set(AppStage::EventUpdate));
-
-        world.insert_resource(Events::<MouseInput>::default());
-        schedule.add_system(Events::<MouseInput>::update_system.in_set(AppStage::EventUpdate));
-
-        world.insert_resource(Events::<KeyboardInput>::default());
-        schedule.add_system(Events::<KeyboardInput>::update_system.in_set(AppStage::EventUpdate));
-
         world.insert_resource(Events::<WindowResize>::default());
         schedule.add_system(Events::<WindowResize>::update_system.in_set(AppStage::EventUpdate));
 
         world.insert_resource(Events::<WindowFocusChanged>::default());
         schedule
             .add_system(Events::<WindowFocusChanged>::update_system.in_set(AppStage::EventUpdate));
-
-        schedule.add_system(handle_keyboard_input.in_set(AppStage::EventUpdate));
-        schedule.add_system(handle_mouse_input.in_set(AppStage::EventUpdate));
 
         schedule.add_system(read_input.in_set(AppStage::Update));
 

@@ -12,12 +12,49 @@ use crate::{
     plugin::{Plugin, PluginAppAccess, PluginSet},
 };
 
+struct PluginContainer<T>
+where
+    T: Plugin,
+{
+    plugin: Option<T>,
+    plugin_set: PluginSet,
+}
+
+impl<T> PluginContainer<T>
+where
+    T: Plugin,
+{
+    fn new(plugin: T) -> Self {
+        Self {
+            plugin: Some(plugin),
+            plugin_set: T::system_set(),
+        }
+    }
+}
+
+/// See https://stackoverflow.com/questions/48027839/how-to-box-a-trait-that-has-associated-types
+/// Effectively throwing away the type info
+trait PluginContainerDyn {
+    fn build(&mut self, app: &mut App);
+}
+
+impl<T> PluginContainerDyn for PluginContainer<T>
+where
+    T: Plugin,
+{
+    fn build(&mut self, app: &mut App) {
+        let mut plugin = self.plugin.take().unwrap();
+        let mut plugin_app_access = PluginAppAccess::new(app, self.plugin_set.clone());
+        plugin.build(&mut plugin_app_access);
+    }
+}
+
 /// See https://docs.rs/bevy/latest/bevy/app/struct.App.html
 pub struct App {
     pub world: World,
     pub schedule: Schedule,
-    pub(crate) plugins: VecDeque<(Box<dyn Plugin>, PluginSet)>,
     pub(crate) startup_schedule: Option<Schedule>,
+    plugins: VecDeque<Box<dyn PluginContainerDyn>>,
 }
 
 impl App {
@@ -43,7 +80,8 @@ impl App {
     where
         T: Plugin,
     {
-        self.plugins.push_back((Box::new(plugin), T::system_set()));
+        self.plugins
+            .push_back(Box::new(PluginContainer::new(plugin)));
         self
     }
 
@@ -61,12 +99,11 @@ impl App {
     pub fn build_plugins(&mut self) {
         // Plugins might add more plugins during building
         loop {
-            let (mut plugin, plugin_set) = match self.plugins.pop_front() {
-                Some(plugin) => plugin,
+            let mut plugin_container = match self.plugins.pop_front() {
+                Some(v) => v,
                 None => break,
             };
-            let mut plugin_app_access = PluginAppAccess::new(self, plugin_set);
-            plugin.build(&mut plugin_app_access);
+            plugin_container.build(self);
         }
     }
 

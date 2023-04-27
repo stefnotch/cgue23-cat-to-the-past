@@ -1,18 +1,18 @@
 use app::plugin::{Plugin, PluginAppAccess};
 use game_core::time::Time;
 
-use crate::input::input_map::InputMap;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
 use game_core::camera::Camera;
 use game_core::time_manager::is_rewinding;
 use input::events::{KeyboardInput, MouseMovement};
+use input::input_map::InputMap;
 use nalgebra::{UnitQuaternion, Vector3};
 use physics::player_physics::PlayerCharacterController;
 use scene::transform::Transform;
-use winit::event::ElementState::Released;
-use winit::event::VirtualKeyCode;
+use windowing::event::ElementState;
+use windowing::event::VirtualKeyCode;
 
 #[derive(Component)]
 pub struct CameraMode {
@@ -294,7 +294,7 @@ pub fn free_cam_toggle_system(
     mut reader: EventReader<KeyboardInput>,
 ) {
     for event in reader.iter() {
-        if event.key_code == VirtualKeyCode::T && event.state == Released {
+        if event.key_code == VirtualKeyCode::T && event.state == ElementState::Released {
             let mut camera_mode = query.single_mut();
             camera_mode.free_cam_activated = !camera_mode.free_cam_activated;
         }

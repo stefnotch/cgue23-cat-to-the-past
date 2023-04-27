@@ -10,7 +10,7 @@ pub struct Time {
 }
 
 impl Time {
-     fn new() -> Time {
+    fn new() -> Time {
         Time {
             delta: Duration::from_secs(0),
             delta_seconds: 0.0,
