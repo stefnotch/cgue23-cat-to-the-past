@@ -360,7 +360,7 @@ impl SwapchainContainer {
 
     fn recreate(&mut self, dimensions: [u32; 2]) -> Result<(), SwapchainCreationError> {
         match self.swapchain.recreate(SwapchainCreateInfo {
-            image_extent: dimensions.into(),
+            image_extent: dimensions,
             ..self.swapchain.create_info()
         }) {
             Ok((new_swapchain, new_images)) => {

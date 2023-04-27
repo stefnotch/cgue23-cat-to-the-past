@@ -3,7 +3,6 @@ use std::f32::consts::PI;
 use std::sync::Arc;
 
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::schedule::IntoSystemConfig;
 use bevy_ecs::system::Commands;
 use nalgebra::{Point3, UnitQuaternion, Vector3};
 use scene::asset::AssetId;

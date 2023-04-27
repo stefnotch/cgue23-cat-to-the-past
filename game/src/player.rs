@@ -86,8 +86,8 @@ pub fn handle_mouse_movement(
         // Note: positive rotations are counter-clockwise. Adding to yaw rotates the camera to the
         // left. Moving the mouse to the left gives us negative dx values, so we flipped those.
         // Same logic applies to the y coordinate
-        yaw += Deg(-dx as f32 * settings.sensitivity).into();
-        pitch += Deg(-dy as f32 * settings.sensitivity).into();
+        yaw += Deg(-dx as f32 * settings.sensitivity);
+        pitch += Deg(-dy as f32 * settings.sensitivity);
     }
 
     let max_pitch: Deg<f32> = Deg(88.0);
@@ -191,10 +191,10 @@ fn update_player(
     let mut velocity = camera_horizontal_orientation * horizontal_input;
 
     if character_controller.grounded {
-        velocity = move_ground(&velocity, get_horizontal(&last_velocity), &settings, &time);
+        velocity = move_ground(&velocity, get_horizontal(&last_velocity), settings, &time);
         velocity.y = 0.0;
     } else {
-        velocity = move_air(&velocity, get_horizontal(&last_velocity), &settings, &time);
+        velocity = move_air(&velocity, get_horizontal(&last_velocity), settings, &time);
         velocity.y = last_velocity.y;
     }
 

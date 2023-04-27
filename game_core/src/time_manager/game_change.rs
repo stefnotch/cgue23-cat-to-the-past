@@ -1,4 +1,4 @@
-use std::{any::Any, collections::VecDeque};
+use std::collections::VecDeque;
 
 use crate::events::NextLevel;
 use app::plugin::{Plugin, PluginAppAccess};
@@ -182,7 +182,7 @@ where
         if !time_manager.is_interpolating() {
             return false;
         }
-        if self.history.len() < 1 {
+        if self.history.is_empty() {
             return false;
         }
 

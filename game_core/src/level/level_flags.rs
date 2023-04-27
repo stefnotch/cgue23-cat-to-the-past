@@ -27,7 +27,7 @@ impl LevelFlags {
         let flags = self
             .flags
             .get_mut(&level_id)
-            .expect(&format!("Level {:?} does not exist", level_id));
+            .unwrap_or_else(|| panic!("Level {:?} does not exist", level_id));
 
         flags[flag_id] = value;
     }
@@ -36,9 +36,11 @@ impl LevelFlags {
         self.flags
             .get(&level_id)
             .map(|flags| flags[flag_id])
-            .expect(&format!(
-                "Flag with given {:?} - {:?} does not exist",
-                level_id, flag_id
-            ))
+            .unwrap_or_else(|| {
+                panic!(
+                    "Flag with given {:?} - {:?} does not exist",
+                    level_id, flag_id
+                )
+            })
     }
 }

@@ -95,7 +95,7 @@ impl TimeManager {
             }
         }
 
-        self.current_frame_timestamp = self.level_time.clone();
+        self.current_frame_timestamp = self.level_time;
     }
 
     pub fn level_time_seconds(&self) -> f32 {

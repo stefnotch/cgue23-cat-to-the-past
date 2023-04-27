@@ -64,16 +64,12 @@ fn create_window_builder(config: WindowConfig, event_loop: &EventLoop<()>) -> Wi
     }
 
     if config.fullscreen {
-        if let Some(video_mode) = monitor
-            .video_modes()
-            .filter(|v| {
-                let PhysicalSize { width, height } = v.size();
+        if let Some(video_mode) = monitor.video_modes().find(|v| {
+            let PhysicalSize { width, height } = v.size();
 
-                v.refresh_rate_millihertz() == config.refresh_rate * 1000
-                    && (width, height) == config.resolution
-            })
-            .next()
-        {
+            v.refresh_rate_millihertz() == config.refresh_rate * 1000
+                && (width, height) == config.resolution
+        }) {
             window_builder = window_builder.with_fullscreen(Some(Fullscreen::Exclusive(video_mode)))
         }
     }

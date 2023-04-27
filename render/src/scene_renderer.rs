@@ -304,7 +304,7 @@ impl SceneRenderer {
             let uniform_data = vs::Camera {
                 view: camera.view().clone().into(),
                 proj: camera.proj().clone().into(),
-                position: camera.position.clone().into(),
+                position: camera.position.into(),
             };
 
             let subbuffer = self.buffer_allocator.allocate_sized().unwrap();

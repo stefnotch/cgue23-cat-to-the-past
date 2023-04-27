@@ -168,7 +168,7 @@ impl BloomRenderer {
             .unwrap();
 
             let downsample_pass = cs::downsample::Pass {
-                inputTexelSize: input_size.width_height().map(|v| 1.0 / (v as f32)).into(),
+                inputTexelSize: input_size.width_height().map(|v| 1.0 / (v as f32)),
 
                 isFirstPass: (input_miplevel == 0) as u32,
                 threshold: 1.0, // TODO: make this configurable
@@ -236,7 +236,7 @@ impl BloomRenderer {
             .unwrap();
 
             let upsample_pass = cs::upsample::Pass {
-                inputTexelSize: input_size.width_height().map(|v| 1.0 / (v as f32)).into(),
+                inputTexelSize: input_size.width_height().map(|v| 1.0 / (v as f32)),
 
                 intensity: 1.0, // TODO: make this configurable
             };
