@@ -9,6 +9,7 @@ use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
 use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, Sensor};
 use scene::asset::{AssetId, Assets};
+use scene::debug_name::DebugName;
 use scene::light::{Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::{CpuMesh, CpuMeshVertex};
@@ -105,8 +106,9 @@ impl AssetServer {
 
         let sphere = CpuMesh::sphere(10, 16, 0.1);
 
-        for (transform, light) in scene_loading_result.lights {
+        for (transform, light, name) in scene_loading_result.lights {
             commands.spawn((
+                name,
                 light,
                 Model {
                     primitives: vec![CpuPrimitive {
@@ -118,12 +120,12 @@ impl AssetServer {
             ));
         }
 
-        for (transform, model, extras) in scene_loading_result.models {
+        for (transform, model, extras, name) in scene_loading_result.models {
             let box_collider = BoxCollider {
                 bounds: model.bounding_box(),
             };
 
-            let mut entity = commands.spawn(transform.clone());
+            let mut entity = commands.spawn((name, transform.clone()));
 
             if let Some(_) = extras.sensor {
                 // and sensor component
@@ -210,9 +212,11 @@ impl AssetServer {
         // skip loading camera (hardcoded)
 
         if let Some(light) = node.light() {
-            scene_loading_result
-                .lights
-                .push((global_transform.clone(), Self::load_light(light)));
+            scene_loading_result.lights.push((
+                global_transform.clone(),
+                Self::load_light(light),
+                DebugName(node.name().unwrap_or_default().to_string()),
+            ));
         }
 
         let extras = node
@@ -232,6 +236,7 @@ impl AssetServer {
                 global_transform.clone(),
                 Self::load_model(mesh, scene_loading_data),
                 extras,
+                DebugName(node.name().unwrap_or_default().to_string()),
             ));
         }
     }
@@ -292,8 +297,8 @@ struct SceneLoadingData {
 }
 
 struct SceneLoadingResult {
-    lights: Vec<(Transform, Light)>,
-    models: Vec<(Transform, Model, GLTFExtras)>,
+    lights: Vec<(Transform, Light, DebugName)>,
+    models: Vec<(Transform, Model, GLTFExtras, DebugName)>,
 }
 impl SceneLoadingResult {
     fn new() -> Self {
