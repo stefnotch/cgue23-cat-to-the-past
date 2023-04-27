@@ -5,7 +5,7 @@ use bevy_ecs::{
     query::Without,
     system::{Commands, Query, Res, ResMut, Resource},
 };
-use game_core::asset::{Asset, Assets};
+use scene::asset::{Asset, Assets};
 use scene::{
     material::CpuMaterial,
     mesh::CpuMesh,

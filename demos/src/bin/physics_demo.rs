@@ -4,8 +4,8 @@ use bevy_ecs::event::EventReader;
 use std::sync::Arc;
 
 use bevy_ecs::system::Commands;
-use game_core::asset::AssetId;
 use nalgebra::{Point3, Vector3};
+use scene::asset::AssetId;
 
 use game::core::application::{AppConfig, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};

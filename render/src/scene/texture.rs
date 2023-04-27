@@ -1,5 +1,5 @@
 use crate::context::Context;
-use game_core::asset::{Asset, AssetId};
+use scene::asset::{Asset, AssetId};
 use std::sync::Arc;
 use vulkano::buffer::BufferContents;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;

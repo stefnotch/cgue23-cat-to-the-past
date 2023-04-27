@@ -1592,7 +1592,6 @@ version = "0.1.0"
 dependencies = [
  "app",
  "bevy_ecs",
- "game_core",
  "math",
  "nalgebra",
  "raw-window-handle",
@@ -1649,10 +1648,11 @@ dependencies = [
 name = "scene"
 version = "0.1.0"
 dependencies = [
+ "angle",
  "bevy_ecs",
- "game_core",
  "math",
  "nalgebra",
+ "uuid",
 ]
 
 [[package]]

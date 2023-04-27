@@ -53,7 +53,6 @@ impl<'app> PluginAppAccess<'app> {
         self
     }
 
-    /// call this with system.in_set(AppStage::...)
     pub fn with_system<Params>(&mut self, system: impl IntoSystemConfig<Params>) -> &mut Self {
         self.app
             .schedule

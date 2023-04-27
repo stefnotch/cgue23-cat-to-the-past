@@ -1,6 +1,6 @@
 use std::{f32::consts::PI, sync::Arc};
 
-use game_core::asset::{Asset, AssetId};
+use crate::asset::{Asset, AssetId};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Vector2, Vector3};
 
