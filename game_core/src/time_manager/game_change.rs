@@ -54,6 +54,7 @@ where
     T: GameChange,
 {
     is_rewinding: bool,
+    level_time: LevelTime,
     history: VecDeque<GameChanges<T>>,
     rewinder_commands: Vec<T>,
 }
@@ -65,8 +66,17 @@ where
     pub fn new() -> Self {
         Self {
             is_rewinding: false,
+            level_time: LevelTime::zero(),
             history: VecDeque::new(),
             rewinder_commands: Vec::new(),
+        }
+    }
+
+    fn update_with_time(&mut self, time_manager: &TimeManager) {
+        self.is_rewinding = time_manager.is_rewinding();
+        self.level_time = time_manager.level_time;
+        if !self.is_rewinding {
+            self.rewinder_commands.clear();
         }
     }
 
@@ -74,10 +84,17 @@ where
         assert!(!self.is_rewinding, "Cannot add commands while rewinding");
 
         if let Some(last) = self.history.back_mut() {
-            last.commands.push(command);
-        } else {
-            panic!("No last command, has read_timestamp been called?");
+            if last.timestamp == self.level_time {
+                last.commands.push(command);
+                return;
+            }
         }
+
+        // This logic avoids adding commands to the history that are not needed
+        self.history.push_back(GameChanges {
+            timestamp: self.level_time,
+            commands: vec![command],
+        });
     }
 
     // TODO: A bit of a hack IMO
@@ -177,11 +194,7 @@ fn read_timestamp<T>(time_manager: Res<TimeManager>, mut history: ResMut<GameCha
 where
     T: GameChange + 'static,
 {
-    history.is_rewinding = time_manager.is_rewinding();
-    history.history.push_back(GameChanges {
-        timestamp: time_manager.level_time,
-        commands: vec![],
-    });
+    history.update_with_time(&time_manager);
 }
 
 fn clear_on_next_level<T>(

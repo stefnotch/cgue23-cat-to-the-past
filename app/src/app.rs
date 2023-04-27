@@ -1,7 +1,10 @@
 use std::collections::VecDeque;
 
 use bevy_ecs::{
-    schedule::{ExecutorKind, IntoSystemConfig, IntoSystemSetConfig, Schedule},
+    schedule::{
+        ExecutorKind, IntoSystemConfig, IntoSystemSetConfig, LogLevel, Schedule,
+        ScheduleBuildSettings,
+    },
     world::World,
 };
 
@@ -57,12 +60,20 @@ impl App {
         let mut schedule = Schedule::default();
         schedule.set_executor_kind(ExecutorKind::SingleThreaded);
         schedule.set_apply_final_buffers(true);
+        schedule.set_build_settings(ScheduleBuildSettings {
+            ambiguity_detection: LogLevel::Warn,
+            ..Default::default()
+        });
 
         let world = World::new();
 
         let mut startup_schedule = Schedule::default();
         startup_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
         schedule.set_apply_final_buffers(true);
+        schedule.set_build_settings(ScheduleBuildSettings {
+            ambiguity_detection: LogLevel::Warn,
+            ..Default::default()
+        });
 
         Self {
             world,

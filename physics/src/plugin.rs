@@ -74,6 +74,7 @@ impl Plugin for PhysicsPlugin {
             .with_set(
                 GameChangeHistoryPluginSet::<VelocityChange>::Update
                     .in_set(PhysicsPluginSets::BeforePhysics),
+                // TODO: Is BeforePhysics correct here?
             )
             .with_plugin(
                 GameChangeHistoryPlugin::<RigidBodyTypeChange>::new()
@@ -88,6 +89,7 @@ impl Plugin for PhysicsPlugin {
             .with_system(
                 time_rewinding_move_body_transform
                     .in_set(PhysicsPluginSets::BeforePhysics)
+                    .after(time_manager_rewind_rigid_body_type)
                     .run_if(is_rewinding),
             )
             // Pick up logic
