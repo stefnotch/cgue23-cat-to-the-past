@@ -15,7 +15,9 @@ Should make for an interesting puzzle game. Or a stealth:tm: game, because you c
 ## Controls
 
 - WASD+Mouse for moving
+- Space to jump
 - T for swiTching to freecam
+  - WASD + Space to move around in the freecam mode
 - Right mouse button for time rewinding
 - Left mouse button for interacting
 - Esc to quit
