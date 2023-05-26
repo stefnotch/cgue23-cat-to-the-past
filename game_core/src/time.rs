@@ -1,3 +1,4 @@
+use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::*;
 use std::time::{Duration, Instant};
 
@@ -9,7 +10,7 @@ pub struct Time {
 }
 
 impl Time {
-    pub fn new() -> Time {
+    fn new() -> Time {
         Time {
             delta: Duration::from_secs(0),
             delta_seconds: 0.0,
@@ -34,6 +35,20 @@ impl Time {
     }
 }
 
-pub fn update_time(mut time: ResMut<Time>) {
+fn update_time(mut time: ResMut<Time>) {
     time.update();
+}
+
+pub struct TimePlugin;
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum TimePluginSet {
+    UpdateTime,
+}
+
+impl Plugin for TimePlugin {
+    fn build(&mut self, app: &mut PluginAppAccess) {
+        app.with_resource(Time::new())
+            .with_system(update_time.in_set(TimePluginSet::UpdateTime));
+    }
 }

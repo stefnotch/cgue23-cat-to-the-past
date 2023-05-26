@@ -1,13 +1,14 @@
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
+use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::event::EventReader;
 use std::sync::Arc;
 
 use bevy_ecs::system::Commands;
-use game_core::asset::AssetId;
 use nalgebra::{Point3, Vector3};
+use scene::asset::AssetId;
 
-use game::core::application::{AppConfig, ApplicationBuilder};
-use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
+use game::core::application::{AppConfig, Application};
+use game::player::{PlayerPlugin, PlayerSpawnSettings};
 
 use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType, Sensor};
 use physics::physics_events::CollisionEvent;
@@ -118,22 +119,28 @@ fn display_collision_events(mut collision_events: EventReader<CollisionEvent>) {
     }
 }
 
+struct PhysicsDemoPlugin;
+impl Plugin for PhysicsDemoPlugin {
+    fn build(&mut self, app: &mut PluginAppAccess) {
+        app.with_startup_system(spawn_world)
+            .with_system(display_collision_events);
+    }
+}
+
 fn main() {
     let config = AppConfig::default();
 
-    let player_controller_settings = PlayerControllerSettings::new(5.0, 1.0, 9.81);
-
     let player_spawn_settings = PlayerSpawnSettings {
         initial_transform: Default::default(),
-        controller_settings: player_controller_settings,
+        controller_settings: Default::default(),
         free_cam_activated: false,
     };
 
-    let application = ApplicationBuilder::new(config)
-        .with_startup_system(spawn_world)
-        .with_system(display_collision_events)
-        .with_player_controller(player_spawn_settings)
-        .build();
+    let mut application = Application::new(config);
+    application
+        .app
+        .with_plugin(PhysicsDemoPlugin)
+        .with_plugin(PlayerPlugin::new(player_spawn_settings));
 
     application.run();
 }

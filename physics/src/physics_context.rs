@@ -2,13 +2,11 @@ use bevy_ecs::event::EventWriter;
 use game_core::time::Time;
 
 use bevy_ecs::prelude::{
-    Added, Commands, Component, DetectChanges, Entity, Events, IntoSystemConfig, Query, Res,
-    ResMut, Resource, Schedule, With, World,
+    Added, Commands, Component, DetectChanges, Entity, Query, Res, ResMut, Resource, With,
 };
 use bevy_ecs::query::{Changed, Without};
-use game_core::application::AppStage;
-use game_core::time_manager::game_change::GameChangeHistory;
-use game_core::time_manager::{is_rewinding, TimeTracked};
+
+use game_core::time_manager::TimeTracked;
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, UnitQuaternion};
 use rapier3d::na::Vector3;
@@ -17,20 +15,10 @@ pub use rapier3d::prelude::Ray;
 use rapier3d::prelude::*;
 use scene::transform::{Transform, TransformBuilder};
 
-use super::physics_change::{
-    time_manager_rewind_rigid_body_type, time_manager_rewind_rigid_body_velocity,
-    time_manager_track_rigid_body_type, time_manager_track_rigid_body_velocity,
-    RigidBodyTypeChange, VelocityChange,
-};
-use super::player_physics::{
-    apply_player_character_controller_changes, step_character_controllers,
-    PlayerCharacterController,
-};
+use super::player_physics::PlayerCharacterController;
 
 use crate::physics_events::{collider2entity, handle_collision_event, CollisionEvent};
-use crate::pickup_physics::{
-    start_pickup, stop_pickup, update_pickup_target_position, update_pickup_transform, PickedUp,
-};
+use crate::pickup_physics::PickedUp;
 pub use rapier3d::prelude::RigidBodyType;
 
 #[derive(Resource)]
@@ -132,75 +120,6 @@ impl PhysicsContext {
         }
     }
 
-    pub fn setup_systems(self, world: &mut World, schedule: &mut Schedule) {
-        world.insert_resource(self);
-        // Keep ECS and physics world in sync, do note that we should probably do this after update and before physics.
-        schedule.add_system(apply_collider_changes.in_set(AppStage::Update));
-        schedule.add_system(apply_rigid_body_added.in_set(AppStage::Update));
-        schedule.add_system(apply_rigid_body_type_change.in_set(AppStage::Update));
-        schedule.add_system(apply_collider_sensor_change.in_set(AppStage::Update));
-        schedule.add_system(apply_player_character_controller_changes.in_set(AppStage::Update));
-        schedule.add_system(update_move_body_position_system.in_set(AppStage::Update));
-
-        // Update physics world and write back to ECS world
-        schedule.add_system(step_physics_simulation.in_set(AppStage::UpdatePhysics));
-        schedule.add_system(
-            step_character_controllers
-                .in_set(AppStage::UpdatePhysics)
-                .after(step_physics_simulation),
-        );
-        schedule.add_system(
-            update_transform_system
-                .in_set(AppStage::UpdatePhysics)
-                .after(step_physics_simulation),
-        );
-
-        // Time rewinding
-        let velocity_history = GameChangeHistory::<VelocityChange>::new();
-        velocity_history.setup_systems(
-            world,
-            schedule,
-            time_manager_track_rigid_body_velocity,
-            time_manager_rewind_rigid_body_velocity,
-        );
-
-        let body_type_history = GameChangeHistory::<RigidBodyTypeChange>::new();
-        body_type_history.setup_systems(
-            world,
-            schedule,
-            time_manager_track_rigid_body_type,
-            time_manager_rewind_rigid_body_type,
-        );
-
-        // Special logic for time rewinding with a Transform component
-        schedule.add_system(
-            time_rewinding_move_body_transform
-                .in_set(AppStage::Update)
-                .run_if(is_rewinding),
-        );
-
-        world.insert_resource(Events::<CollisionEvent>::default());
-        schedule.add_system(
-            Events::<CollisionEvent>::update_system
-                .in_set(AppStage::UpdatePhysics) // TODO: check if correct
-                .after(step_physics_simulation),
-        );
-
-        // Pick up logic
-
-        schedule.add_system(start_pickup.in_set(AppStage::Update));
-
-        schedule.add_system(stop_pickup.in_set(AppStage::Update));
-
-        schedule.add_system(update_pickup_target_position.in_set(AppStage::Update));
-
-        schedule.add_system(
-            update_pickup_transform
-                .in_set(AppStage::UpdatePhysics)
-                .after(step_physics_simulation),
-        );
-    }
-
     pub fn cast_ray(
         &self,
         ray: &Ray,
@@ -217,11 +136,11 @@ impl PhysicsContext {
             filter,
         )?;
 
-        Some((collider2entity(&self.colliders, handle), toi as f32))
+        Some((collider2entity(&self.colliders, handle), toi))
     }
 }
 
-fn step_physics_simulation(
+pub(crate) fn step_physics_simulation(
     mut physics_context: ResMut<PhysicsContext>,
     time: Res<Time>,
     collision_events: EventWriter<CollisionEvent>,
@@ -240,12 +159,12 @@ pub struct MoveBodyPosition {
 }
 
 #[derive(Component)]
-pub(super) struct RapierRigidBodyHandle {
+pub(crate) struct RapierRigidBodyHandle {
     pub handle: RigidBodyHandle,
 }
 
 #[derive(Component)]
-struct RapierColliderHandle {
+pub(crate) struct RapierColliderHandle {
     handle: ColliderHandle,
 }
 
@@ -277,7 +196,7 @@ fn create_box_collider(
         .build()
 }
 
-pub fn apply_collider_changes(
+pub(crate) fn apply_collider_changes(
     mut commands: Commands,
     mut physics_context: ResMut<PhysicsContext>,
     box_collider_query: Query<
@@ -286,7 +205,7 @@ pub fn apply_collider_changes(
     >,
 ) {
     for (entity, collider, transform) in &box_collider_query {
-        let physics_collider = create_box_collider(&entity, &collider, &transform);
+        let physics_collider = create_box_collider(&entity, collider, transform);
         let handle = physics_context.colliders.insert(physics_collider);
         commands
             .entity(entity)
@@ -294,7 +213,7 @@ pub fn apply_collider_changes(
     }
 }
 
-pub fn apply_rigid_body_added(
+pub(crate) fn apply_rigid_body_added(
     mut commands: Commands,
     mut physics_context: ResMut<PhysicsContext>,
     mut rigid_body_query: Query<(Entity, &BoxCollider, &Transform, &RigidBody), Added<RigidBody>>,
@@ -311,7 +230,7 @@ pub fn apply_rigid_body_added(
 
         let scale_transform = TransformBuilder::new().scale(transform.scale).build();
 
-        let physics_collider = create_box_collider(&entity, &collider, &scale_transform);
+        let physics_collider = create_box_collider(&entity, collider, &scale_transform);
 
         context
             .colliders
@@ -323,7 +242,7 @@ pub fn apply_rigid_body_added(
     }
 }
 
-fn apply_rigid_body_type_change(
+pub(crate) fn apply_rigid_body_type_change(
     mut physics_context: ResMut<PhysicsContext>,
     mut query: Query<(&RigidBody, &RapierRigidBodyHandle), Changed<RigidBody>>,
 ) {
@@ -338,7 +257,7 @@ fn apply_rigid_body_type_change(
     }
 }
 
-fn apply_collider_sensor_change(
+pub(crate) fn apply_collider_sensor_change(
     mut physics_context: ResMut<PhysicsContext>,
     mut query: Query<&RapierColliderHandle, With<Sensor>>,
 ) {
@@ -353,7 +272,7 @@ fn apply_collider_sensor_change(
     }
 }
 
-fn update_transform_system(
+pub(crate) fn update_transform_system(
     physics_context: Res<PhysicsContext>,
     mut query: Query<
         (&mut Transform, &RapierRigidBodyHandle),
@@ -377,7 +296,7 @@ fn update_transform_system(
     }
 }
 
-fn update_move_body_position_system(
+pub(crate) fn update_move_body_position_system(
     mut physics_context: ResMut<PhysicsContext>,
     mut query: Query<(&RapierRigidBodyHandle, &mut MoveBodyPosition), With<RigidBody>>,
 ) {
@@ -395,7 +314,7 @@ fn update_move_body_position_system(
 }
 // TODO: time_manager_rewind_transform and update_transform_system already do stuff like this, so we could remove this
 // *if* we remove the MoveBodyPosition
-fn time_rewinding_move_body_transform(
+pub(crate) fn time_rewinding_move_body_transform(
     mut physics_context: ResMut<PhysicsContext>,
     query: Query<(&RapierRigidBodyHandle, &Transform), (With<RigidBody>, With<TimeTracked>)>,
 ) {

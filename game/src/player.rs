@@ -1,19 +1,18 @@
+use app::plugin::{Plugin, PluginAppAccess};
 use game_core::time::Time;
 
-use crate::core::application::ApplicationBuilder;
-use crate::input::input_map::InputMap;
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
-use game_core::application::AppStage;
-use game_core::camera::Camera;
 use game_core::time_manager::is_rewinding;
 use input::events::{KeyboardInput, MouseMovement};
+use input::input_map::InputMap;
 use nalgebra::{UnitQuaternion, Vector3};
 use physics::player_physics::PlayerCharacterController;
+use scene::camera::Camera;
 use scene::transform::Transform;
-use winit::event::ElementState::Released;
-use winit::event::VirtualKeyCode;
+use windowing::event::ElementState;
+use windowing::event::VirtualKeyCode;
 
 #[derive(Component)]
 pub struct CameraMode {
@@ -64,6 +63,12 @@ impl PlayerControllerSettings {
     }
 }
 
+impl Default for PlayerControllerSettings {
+    fn default() -> Self {
+        PlayerControllerSettings::new(5.0, 1.0, 9.81)
+    }
+}
+
 pub fn handle_mouse_movement(
     mut reader: EventReader<MouseMovement>,
     mut camera: ResMut<Camera>,
@@ -81,8 +86,8 @@ pub fn handle_mouse_movement(
         // Note: positive rotations are counter-clockwise. Adding to yaw rotates the camera to the
         // left. Moving the mouse to the left gives us negative dx values, so we flipped those.
         // Same logic applies to the y coordinate
-        yaw += Deg(-dx as f32 * settings.sensitivity).into();
-        pitch += Deg(-dy as f32 * settings.sensitivity).into();
+        yaw += Deg(-dx as f32 * settings.sensitivity);
+        pitch += Deg(-dy as f32 * settings.sensitivity);
     }
 
     let max_pitch: Deg<f32> = Deg(88.0);
@@ -186,10 +191,10 @@ fn update_player(
     let mut velocity = camera_horizontal_orientation * horizontal_input;
 
     if character_controller.grounded {
-        velocity = move_ground(&velocity, get_horizontal(&last_velocity), &settings, &time);
+        velocity = move_ground(&velocity, get_horizontal(&last_velocity), settings, &time);
         velocity.y = 0.0;
     } else {
-        velocity = move_air(&velocity, get_horizontal(&last_velocity), &settings, &time);
+        velocity = move_air(&velocity, get_horizontal(&last_velocity), settings, &time);
         velocity.y = last_velocity.y;
     }
 
@@ -289,42 +294,65 @@ pub fn free_cam_toggle_system(
     mut reader: EventReader<KeyboardInput>,
 ) {
     for event in reader.iter() {
-        if event.key_code == VirtualKeyCode::T && event.state == Released {
+        if event.key_code == VirtualKeyCode::T && event.state == ElementState::Released {
             let mut camera_mode = query.single_mut();
             camera_mode.free_cam_activated = !camera_mode.free_cam_activated;
         }
     }
 }
 
-impl ApplicationBuilder {
-    pub fn with_player_controller(self, player_spawn_settings: PlayerSpawnSettings) -> Self {
-        self.with_resource(player_spawn_settings)
+pub struct PlayerPlugin {
+    player_spawn_settings: Option<PlayerSpawnSettings>,
+}
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum PlayerPluginSets {
+    /// This set is used to update the player position and velocity. Should run before physics.
+    Update,
+    /// This set is used to update the camera position after the player has moved. Should run after physics.
+    UpdateCamera,
+}
+
+impl PlayerPlugin {
+    pub fn new(player_spawn_settings: PlayerSpawnSettings) -> Self {
+        Self {
+            player_spawn_settings: Some(player_spawn_settings),
+        }
+    }
+}
+
+impl Plugin for PlayerPlugin {
+    fn build(&mut self, app: &mut PluginAppAccess) {
+        app.with_resource(self.player_spawn_settings.take().unwrap())
             .with_startup_system(setup_player)
-            .with_system(handle_mouse_movement.in_set(AppStage::Update))
+            .with_system(handle_mouse_movement.in_set(PlayerPluginSets::Update))
+            .with_system(free_cam_toggle_system.in_set(PlayerPluginSets::Update))
             .with_system(
                 update_player
-                    .in_set(AppStage::Update)
+                    .in_set(PlayerPluginSets::Update)
+                    .after(free_cam_toggle_system)
                     .run_if(not(has_free_camera_activated))
                     .run_if(not(is_rewinding)),
             )
             .with_system(
                 update_player2
-                    .in_set(AppStage::Update)
+                    .in_set(PlayerPluginSets::Update)
+                    .after(free_cam_toggle_system)
                     .run_if(not(has_free_camera_activated))
                     .run_if(is_rewinding),
             )
             .with_system(
-                update_player_camera
-                    .after(AppStage::UpdatePhysics)
-                    .before(AppStage::Render)
-                    .run_if(not(has_free_camera_activated)),
-            )
-            .with_system(
                 update_camera_position
-                    .in_set(AppStage::Update)
+                    .in_set(PlayerPluginSets::Update)
+                    .after(free_cam_toggle_system)
                     .run_if(has_free_camera_activated),
             )
-            .with_system(free_cam_toggle_system.in_set(AppStage::EventUpdate))
+            .with_system(
+                update_player_camera
+                    .in_set(PlayerPluginSets::UpdateCamera)
+                    .run_if(not(has_free_camera_activated)),
+            )
+            .with_set((PlayerPluginSets::Update).before(PlayerPluginSets::UpdateCamera));
     }
 }
 

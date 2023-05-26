@@ -1,10 +1,9 @@
 use bevy_ecs::prelude::{Commands, Entity, EventReader, Query, Res, With};
-use game_core::camera::Camera;
+use input::events::{ElementState, MouseButton, MouseInput};
 use game_core::pickup::Pickupable;
-use input::events::MouseInput;
 use physics::physics_context::{PhysicsContext, QueryFilter, Ray};
 use physics::pickup_physics::PickedUp;
-use winit::event::{ElementState, MouseButton};
+use scene::camera::Camera;
 
 pub fn ray_cast(
     mut commands: Commands,
