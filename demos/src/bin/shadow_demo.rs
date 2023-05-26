@@ -1,12 +1,13 @@
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 use std::sync::Arc;
 
+use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::system::Commands;
-use game_core::asset::AssetId;
 use nalgebra::{Point3, Vector3};
+use scene::asset::AssetId;
 
-use game::core::application::{AppConfig, ApplicationBuilder};
-use game::player::{PlayerControllerSettings, PlayerSpawnSettings};
+use game::core::application::{AppConfig, Application};
+use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 
 use physics::physics_context::BoxCollider;
 use scene::light::{CastShadow, Light, PointLight};
@@ -84,6 +85,13 @@ fn spawn_world(mut commands: Commands) {
     ));
 }
 
+struct ShadowDemoPlugin;
+impl Plugin for ShadowDemoPlugin {
+    fn build(&mut self, app: &mut PluginAppAccess) {
+        app.with_startup_system(spawn_world);
+    }
+}
+
 fn main() {
     let config = AppConfig::default();
 
@@ -95,10 +103,11 @@ fn main() {
         free_cam_activated: false,
     };
 
-    let application = ApplicationBuilder::new(config)
-        .with_startup_system(spawn_world)
-        .with_player_controller(player_spawn_settings)
-        .build();
+    let mut application = Application::new(config);
+    application
+        .app
+        .with_plugin(ShadowDemoPlugin)
+        .with_plugin(PlayerPlugin::new(player_spawn_settings));
 
     application.run();
 }

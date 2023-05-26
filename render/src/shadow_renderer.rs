@@ -2,7 +2,7 @@ use crate::context::Context;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::GpuModel;
 use angle::Deg;
-use game_core::camera::calculate_projection;
+use scene::camera::calculate_projection;
 use nalgebra::{Matrix4, Translation3, UnitQuaternion, Vector3};
 use scene::transform::Transform;
 use std::sync::Arc;
