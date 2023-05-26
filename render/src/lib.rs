@@ -6,6 +6,7 @@ mod model_uploader;
 mod quad_renderer;
 mod scene;
 mod scene_renderer;
+mod shadow_renderer;
 
 pub use crate::main_renderer::*;
 pub use crate::model_uploader::create_gpu_models;

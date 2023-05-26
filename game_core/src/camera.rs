@@ -68,7 +68,7 @@ pub fn update_camera(mut camera: ResMut<Camera>) {
     camera.update();
 }
 
-fn calculate_projection(aspect_ratio: f32, fov: Rad<f32>, near: f32, far: f32) -> Matrix4<f32> {
+pub fn calculate_projection(aspect_ratio: f32, fov: Rad<f32>, near: f32, far: f32) -> Matrix4<f32> {
     // https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/
     // Note that this projection matrix is already multiplied by the X matrix
     let mut projection = Matrix4::identity();

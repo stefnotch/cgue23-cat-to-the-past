@@ -18,7 +18,9 @@ use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
-use vulkano::image::{AttachmentImage, ImageUsage, ImageViewAbstract, SwapchainImage};
+use vulkano::image::{
+    AttachmentImage, ImageUsage, ImageViewAbstract, ImmutableImage, SwapchainImage,
+};
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::padded::Padded;
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
@@ -28,7 +30,9 @@ use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
-use vulkano::sampler::{Filter, Sampler, SamplerCreateInfo};
+use vulkano::sampler::{
+    BorderColor, Filter, Sampler, SamplerAddressMode, SamplerCreateInfo, SamplerMipmapMode,
+};
 use vulkano::sync::GpuFuture;
 
 pub struct SceneRenderer {
@@ -43,6 +47,9 @@ pub struct SceneRenderer {
 
     buffer_allocator: SubbufferAllocator,
 
+    shadow_map_sampler: Arc<Sampler>,
+    shadow_cube_map: Vec<Arc<ImageView<ImmutableImage>>>,
+
     /// The 1x1 white texture used when a model is missing a texture
     missing_texture: Arc<Texture>,
 }
@@ -50,6 +57,7 @@ pub struct SceneRenderer {
 impl SceneRenderer {
     pub fn new(
         context: &Context,
+        shadow_cube_map: Vec<Arc<ImageView<ImmutableImage>>>,
         dimensions: [u32; 2],
         swapchain_image_count: u32,
         memory_allocator: Arc<StandardMemoryAllocator>,
@@ -132,6 +140,20 @@ impl SceneRenderer {
             .unwrap(),
             &context,
         );
+
+        let shadow_map_sampler = Sampler::new(
+            context.device(),
+            SamplerCreateInfo {
+                mag_filter: Filter::Linear,
+                min_filter: Filter::Linear,
+                mipmap_mode: SamplerMipmapMode::Nearest,
+                address_mode: [SamplerAddressMode::ClampToBorder; 3],
+                border_color: BorderColor::FloatOpaqueWhite,
+                ..SamplerCreateInfo::default()
+            },
+        )
+        .unwrap();
+
         SceneRenderer {
             render_pass,
             pipeline,
@@ -141,6 +163,9 @@ impl SceneRenderer {
             command_buffer_allocator,
             descriptor_set_allocator,
 
+            shadow_map_sampler,
+            shadow_cube_map,
+
             buffer_allocator,
             missing_texture,
         }
@@ -148,7 +173,11 @@ impl SceneRenderer {
 }
 
 impl SceneRenderer {
-    pub fn resize(&mut self, images: &Vec<Arc<ImageView<SwapchainImage>>>) {
+    pub fn resize(
+        &mut self,
+        images: &Vec<Arc<ImageView<SwapchainImage>>>,
+        shadow_cube_map: Vec<Arc<ImageView<ImmutableImage>>>,
+    ) {
         let dimensions = images[0].dimensions().width_height();
         let swapchain_image_count = images.len() as u32;
 
@@ -164,6 +193,8 @@ impl SceneRenderer {
             self.output_images.clone(),
             self.render_pass.clone(),
         );
+
+        self.shadow_cube_map = shadow_cube_map;
     }
 
     fn create_framebuffers(
@@ -296,7 +327,14 @@ impl SceneRenderer {
         let scene_descriptor_set = PersistentDescriptorSet::new(
             &self.descriptor_set_allocator,
             scene_set_layout.clone(),
-            [WriteDescriptorSet::buffer(0, uniform_subbuffer_scene)],
+            [
+                WriteDescriptorSet::buffer(0, uniform_subbuffer_scene),
+                WriteDescriptorSet::image_view_sampler(
+                    1,
+                    self.shadow_cube_map[swapchain_frame_index as usize].clone(),
+                    self.shadow_map_sampler.clone(),
+                ),
+            ],
         )
         .unwrap();
 

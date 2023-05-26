@@ -8,13 +8,15 @@ use crate::scene::mesh::Mesh;
 use crate::scene::model::GpuModel;
 use crate::scene::texture::Texture;
 use crate::scene_renderer::SceneRenderer;
+use crate::shadow_renderer::ShadowRenderer;
+use bevy_ecs::query::With;
 use bevy_ecs::schedule::{IntoSystemConfig, Schedule};
 use bevy_ecs::system::{NonSendMut, Query, Res};
 use bevy_ecs::world::World;
 use game_core::application::AppStage;
 use game_core::asset::Assets;
 use game_core::camera::Camera;
-use scene::light::Light;
+use scene::light::{CastShadow, Light};
 use scene::transform::Transform;
 use std::sync::Arc;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -39,6 +41,7 @@ pub struct Renderer {
     // TODO: Huh, this doesn't need to be an option?
     previous_frame_end: Option<Box<dyn GpuFuture>>,
     swapchain: SwapchainContainer,
+    shadow_renderer: ShadowRenderer,
     scene_renderer: SceneRenderer,
     bloom_renderer: BloomRenderer,
     quad_renderer: QuadRenderer,
@@ -76,8 +79,16 @@ impl Renderer {
         let dimensions = swapchain.swapchain.image_extent();
         let swapchain_image_count = swapchain.swapchain.image_count();
 
+        let shadow_renderer = ShadowRenderer::new(
+            context,
+            swapchain_image_count,
+            memory_allocator.clone(),
+            command_buffer_allocator.clone(),
+        );
+
         let scene_renderer = SceneRenderer::new(
             context,
+            shadow_renderer.get_shadow_cube_maps(),
             dimensions,
             swapchain_image_count,
             memory_allocator.clone(),
@@ -107,6 +118,7 @@ impl Renderer {
             recreate_swapchain: false,
             previous_frame_end,
             swapchain,
+            shadow_renderer,
             scene_renderer,
             bloom_renderer,
             quad_renderer,
@@ -141,6 +153,7 @@ pub fn render(
     camera: Res<Camera>,
     query_models: Query<(&Transform, &GpuModel)>,
     query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
+    query_shadow_light: Query<&Transform, (With<CastShadow>, With<Light>)>,
 ) {
     // On Windows, this can occur from minimizing the application.
     let surface = context.surface();
@@ -179,7 +192,13 @@ pub fn render(
 
         // https://doc.rust-lang.org/nomicon/borrow-splitting.html
         let renderer = renderer.as_mut();
-        renderer.scene_renderer.resize(&renderer.swapchain.images);
+        renderer
+            .shadow_renderer
+            .resize(renderer.swapchain.images.len() as u32);
+        renderer.scene_renderer.resize(
+            &renderer.swapchain.images,
+            renderer.shadow_renderer.get_shadow_cube_maps(),
+        );
         renderer
             .bloom_renderer
             .resize(renderer.scene_renderer.output_images().clone());
@@ -223,6 +242,23 @@ pub fn render(
 
     let models = query_models.iter().collect();
     let lights = query_lights.iter().collect();
+
+    let nearest_shadow_light = query_shadow_light
+        .iter()
+        .min_by(|transform_a, transform_b| {
+            let distance_a = (camera.position - transform_a.position).norm_squared();
+            let distance_b = (camera.position - transform_b.position).norm_squared();
+            distance_a.total_cmp(&distance_b)
+        })
+        .expect("at least one shadow light is required");
+
+    let future = renderer.shadow_renderer.render(
+        &context,
+        &models,
+        nearest_shadow_light,
+        future,
+        image_index,
+    );
 
     let future = renderer.scene_renderer.render(
         &context,

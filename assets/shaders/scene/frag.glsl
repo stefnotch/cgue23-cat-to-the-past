@@ -116,4 +116,7 @@ void main() {
     vec3 color = Lo + ambient;
 
     f_color = vec4(color + material.emissivity, 1.0);
+
+    float shadowVec = texture(shadowMap, vec3(1.0,0.0,0.0)).r;
+    f_color = vec4(shadowVec);
 }
