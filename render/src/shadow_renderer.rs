@@ -242,7 +242,7 @@ impl ShadowRenderer {
                         format: Some(image.format()),
                         subresource_range: ImageSubresourceRange {
                             array_layers: 0..6,
-                            aspects: ..image.subresource_range(),
+                            ..image.subresource_range()
                         },
                         ..ImageViewCreateInfo::default()
                     },
