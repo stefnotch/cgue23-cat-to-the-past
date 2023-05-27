@@ -119,7 +119,7 @@ impl ShadowRenderer {
         ]
         .map(|matrix| matrix.to_homogeneous());
 
-        let perspective_matrix = calculate_projection(1.0, Deg(90.0).into(), 0.01, 100.0);
+        let perspective_matrix = calculate_projection(1.0, Deg(90.0).into(), 0.1, 100.0);
 
         ShadowRenderer {
             render_pass,
