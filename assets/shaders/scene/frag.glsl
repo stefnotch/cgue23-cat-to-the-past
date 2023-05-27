@@ -22,15 +22,15 @@ float vectorToDepthValue(vec3 direction) {
     float localZ = max(absDirection.x, max(absDirection.y, absDirection.z));
 
     const float far = 100.0;
-    const float near = 0.1;
-    float normalizedZ =  (far) / (far - near) - (near*far)/(localZ * (far - near));
+    const float near = 1;
+    float normalizedZ =  -(far) / (near - far) + (near*far)/( localZ * (near - far));
     return normalizedZ;
 }
 
 float computeShadowFactor(vec3 l) {
     float shadowDepth = texture(shadowMap, l).r;
-    //return abs(vectorToDepthValue(l) - shadowDepth);
-    const float bias = 0.015;
+    const float bias = 0.0001;
+//    return vectorToDepthValue(l);
     if (shadowDepth + bias > vectorToDepthValue(l)) {
         return 1.0;
     } else {
@@ -141,5 +141,5 @@ void main() {
 
     f_color = vec4(color + material.emissivity, 1.0);
 
-   // f_color = vec4(vec3(1.0) * computeShadowFactor(l), 1.0);
+//    f_color = vec4(vec3(1.0) * computeShadowFactor(l), 1.0);
 }

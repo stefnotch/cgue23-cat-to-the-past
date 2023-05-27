@@ -24,7 +24,7 @@ use vulkano::image::{
 };
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::padded::Padded;
-use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
+use vulkano::pipeline::graphics::depth_stencil::{CompareOp, DepthStencilState};
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::rasterization::{CullMode, PolygonMode, RasterizationState};
 use vulkano::pipeline::graphics::vertex_input::Vertex;

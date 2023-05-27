@@ -109,17 +109,17 @@ impl ShadowRenderer {
             Rotation3::from_axis_angle(&Vector3::x_axis(), rad_180)
                 * Rotation3::from_axis_angle(&Vector3::y_axis(), -rad_90),
             // POSITIVE_Y
-            Rotation3::from_axis_angle(&Vector3::x_axis(), -rad_90),
-            // NEGATIVE_Y
             Rotation3::from_axis_angle(&Vector3::x_axis(), rad_90),
+            // NEGATIVE_Y
+            Rotation3::from_axis_angle(&Vector3::x_axis(), -rad_90),
             // POSITIVE_Z
-            Rotation3::from_axis_angle(&Vector3::x_axis(), rad_180),
-            // NEGATIVE_Z
             Rotation3::from_axis_angle(&Vector3::z_axis(), rad_180),
+            // NEGATIVE_Z
+            Rotation3::from_axis_angle(&Vector3::x_axis(), rad_180),
         ]
         .map(|matrix| matrix.to_homogeneous());
 
-        let perspective_matrix = calculate_projection(1.0, Deg(90.0).into(), 0.1, 100.0);
+        let perspective_matrix = calculate_projection(1.0, Deg(90.0).into(), 1.0, 100.0);
 
         ShadowRenderer {
             render_pass,
