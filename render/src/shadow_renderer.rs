@@ -116,17 +116,18 @@ impl ShadowRenderer {
     }
 
     pub fn resize(&mut self, image_count: u32) {
-        let (images, views) = Self::create_images(self.memory_allocator.clone(), image_count);
-
-        self.shadow_maps = images;
-        self.shadow_maps_views = views;
-
-        self.framebuffers =
-            Self::create_framebuffers(self.shadow_maps.clone(), self.render_pass.clone());
-
-        let aspect_ratio = 1.0;
-
-        self.perspective_matrix = calculate_projection(aspect_ratio, Deg(45.0).into(), 0.01, 100.0);
+        // resize is not necessary since the cubemap is always the same size
+        // let (images, views) = Self::create_images(self.memory_allocator.clone(), image_count);
+        //
+        // self.shadow_maps = images;
+        // self.shadow_maps_views = views;
+        //
+        // self.framebuffers =
+        //     Self::create_framebuffers(self.shadow_maps.clone(), self.render_pass.clone());
+        //
+        // let aspect_ratio = 1.0;
+        //
+        // self.perspective_matrix = calculate_projection(aspect_ratio, Deg(45.0).into(), 0.01, 100.0);
     }
 
     pub fn render<F>(
@@ -223,7 +224,7 @@ impl ShadowRenderer {
                     1,
                     ImageUsage::SAMPLED | ImageUsage::DEPTH_STENCIL_ATTACHMENT,
                     ImageCreateFlags::CUBE_COMPATIBLE,
-                    ImageLayout::DepthAttachmentStencilReadOnlyOptimal,
+                    ImageLayout::DepthStencilAttachmentOptimal,
                     vec![],
                 )
                 .unwrap()
@@ -241,7 +242,6 @@ impl ShadowRenderer {
                         format: Some(image.format()),
                         subresource_range: ImageSubresourceRange {
                             array_layers: 0..6,
-
                             ..image.subresource_range()
                         },
                         ..ImageViewCreateInfo::default()
