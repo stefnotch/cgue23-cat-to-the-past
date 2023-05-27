@@ -57,7 +57,7 @@ pub fn move_cubes(mut query: Query<&mut Transform, With<MovingBox>>, time: Res<T
     for mut transform in query.iter_mut() {
         let new_position = Point3::new(
             time.level_time_seconds().sin() * 2.0,
-            time.level_time_seconds().cos() * 2.0,
+            time.level_time_seconds().cos() * 2.0 + 2.0,
             time.level_time_seconds().cos() * 2.0,
         );
         transform.position = new_position;

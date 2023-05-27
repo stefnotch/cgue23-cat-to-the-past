@@ -22,10 +22,12 @@ use vulkano::image::{
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
-use vulkano::pipeline::graphics::rasterization::{CullMode, PolygonMode, RasterizationState};
+use vulkano::pipeline::graphics::rasterization::{
+    CullMode, DepthBias, DepthBiasState, PolygonMode, RasterizationState,
+};
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
-use vulkano::pipeline::{GraphicsPipeline, Pipeline};
+use vulkano::pipeline::{GraphicsPipeline, Pipeline, StateMode};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::sync::GpuFuture;
 
@@ -73,13 +75,22 @@ impl ShadowRenderer {
             let vs = vs::load(context.device()).unwrap();
             let fs = fs::load(context.device()).unwrap();
 
+            let mut rasterization_state = RasterizationState::new()
+                .cull_mode(CullMode::Back)
+                .polygon_mode(PolygonMode::Fill);
+            // Source: https://blogs.igalia.com/itoral/2017/10/02/working-with-lights-and-shadows-part-iii-rendering-the-shadows/
+            rasterization_state.depth_bias = Some(DepthBiasState {
+                enable_dynamic: false,
+                bias: StateMode::Fixed(DepthBias {
+                    constant_factor: 4.0,
+                    clamp: 0.0,
+                    slope_factor: 1.5,
+                }),
+            });
+
             GraphicsPipeline::start()
                 .vertex_input_state(MeshVertex::per_vertex())
-                // .rasterization_state(
-                //     RasterizationState::new()
-                //         .cull_mode(CullMode::Back)
-                //         .polygon_mode(PolygonMode::Fill),
-                // )
+                .rasterization_state(rasterization_state)
                 .vertex_shader(vs.entry_point("main").unwrap(), ())
                 .input_assembly_state(InputAssemblyState::new())
                 .viewport_state(ViewportState::viewport_dynamic_scissor_irrelevant())
@@ -193,9 +204,8 @@ impl ShadowRenderer {
             let view_matrix = self.face_view_matrices[face_index];
 
             let light_position: Matrix4<f32> =
-                Translation3::from(nearest_shadow_light.position).to_homogeneous();
-            let view_matrix = light_position * view_matrix;
-            let proj_view_matrix = self.perspective_matrix * view_matrix;
+                Translation3::from(-nearest_shadow_light.position).to_homogeneous();
+            let proj_view_matrix = self.perspective_matrix * view_matrix * light_position;
 
             for (transform, model) in models.iter() {
                 for primitive in &model.primitives {

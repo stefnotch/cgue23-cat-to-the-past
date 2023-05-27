@@ -23,14 +23,13 @@ float vectorToDepthValue(vec3 direction) {
 
     const float far = 100.0;
     const float near = 1;
-    float normalizedZ =  -(far) / (near - far) + (near*far)/( localZ * (near - far));
+    float normalizedZ =  (1.0 - (near / localZ)) / ((far - near) / far);
     return normalizedZ;
 }
 
 float computeShadowFactor(vec3 l) {
     float shadowDepth = texture(shadowMap, l).r;
     const float bias = 0.0001;
-//    return vectorToDepthValue(l);
     if (shadowDepth + bias > vectorToDepthValue(l)) {
         return 1.0;
     } else {
