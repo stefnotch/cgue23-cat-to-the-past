@@ -1,7 +1,10 @@
+use bevy_ecs::prelude::{Entity, Res};
+use bevy_ecs::query::Added;
 use std::sync::Arc;
+use std::time::Instant;
 
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::system::Commands;
+use bevy_ecs::system::{Commands, Query};
 use nalgebra::{Point3, Vector3};
 use scene::asset::AssetId;
 
@@ -14,69 +17,27 @@ use scene::material::CpuMaterial;
 use scene::mesh::CpuMesh;
 use scene::model::{CpuPrimitive, Model};
 use scene::transform::TransformBuilder;
+use scene_loader::loader::AssetServer;
 
-fn spawn_world(mut commands: Commands) {
-    let cube = CpuMesh::cube(1.0, 1.0, 1.0);
-
-    let bounding_box = cube.bounding_box.clone();
-
-    let white_material = Arc::new(CpuMaterial {
-        id: AssetId::new_v4(),
-        base_color: [1.0; 3].into(),
-        base_color_texture: None,
-        roughness_factor: 1.0,
-        metallic_factor: 0.0,
-        emissivity: Default::default(),
-    });
-
-    let mut spawn_light = |position: Point3<f32>| {
-        commands.spawn((
-            Light::Point(PointLight {
-                color: Vector3::new(1.0, 1.0, 1.0),
-                range: 1000.0,
-                intensity: 60.0,
-            }),
-            TransformBuilder::new()
-                .scale([0.1; 3].into())
-                .position(position)
-                .build(),
-            CastShadow,
-        ));
-    };
-
-    spawn_light([0.0, 0.0, 0.0].into());
-
-    commands.spawn((
-        Model {
-            primitives: vec![CpuPrimitive {
-                mesh: cube.clone(),
-                material: white_material.clone(),
-            }],
-        },
-        BoxCollider {
-            bounds: bounding_box.clone(),
-        },
-        TransformBuilder::new()
-            .position([0.0, -1.0, 0.0].into())
-            .scale([30.0, 1.0, 20.0].into())
-            .build(),
-    ));
-
-    commands.spawn((
-        Model {
-            primitives: vec![CpuPrimitive {
-                mesh: cube.clone(),
-                material: white_material.clone(),
-            }],
-        },
-        BoxCollider {
-            bounds: bounding_box.clone(),
-        },
-        TransformBuilder::new()
-            .position([0.0, 1.5, -4.0].into())
-            .build(),
-    ));
+fn spawn_world(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let before = Instant::now();
+    asset_server
+        .load_default_scene(
+            "./assets/scene/testing/shadow_test/shadow_test.glb",
+            &mut commands,
+        )
+        .unwrap();
+    println!(
+        "Loading the scene took {}sec",
+        before.elapsed().as_secs_f64()
+    );
 }
+//
+// fn add_cast_shadow_comp(mut commands: Commands, query: Query<Entity, Added<Light>>) {
+//     for entity in query.iter() {
+//         commands.entity(entity).insert(CastShadow);
+//     }
+// }
 
 struct ShadowDemoPlugin;
 impl Plugin for ShadowDemoPlugin {
@@ -93,7 +54,7 @@ fn main() {
     let player_spawn_settings = PlayerSpawnSettings {
         initial_transform: Default::default(),
         controller_settings: player_controller_settings,
-        free_cam_activated: false,
+        free_cam_activated: true,
     };
 
     let mut application = Application::new(config);

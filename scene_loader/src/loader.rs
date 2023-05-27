@@ -10,7 +10,7 @@ use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
 use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, Sensor};
 use scene::asset::{AssetId, Assets};
 use scene::debug_name::DebugName;
-use scene::light::{Light, PointLight};
+use scene::light::{CastShadow, Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::{CpuMesh, CpuMeshVertex};
 use scene::model::{CpuPrimitive, Model};
@@ -106,14 +106,13 @@ impl AssetServer {
 
         for (transform, light, name) in scene_loading_result.lights {
             commands.spawn((
-                name,
-                light,
-                Model {
-                    primitives: vec![CpuPrimitive {
-                        mesh: sphere.clone(),
-                        material: Arc::new(CpuMaterial::default()),
-                    }],
-                },
+                name, light, CastShadow,
+                // Model {
+                //     primitives: vec![CpuPrimitive {
+                //         mesh: sphere.clone(),
+                //         material: Arc::new(CpuMaterial::default()),
+                //     }],
+                // },
                 transform,
             ));
         }

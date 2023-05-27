@@ -590,6 +590,7 @@ dependencies = [
  "nalgebra",
  "physics",
  "scene",
+ "scene_loader",
 ]
 
 [[package]]

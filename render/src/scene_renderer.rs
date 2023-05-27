@@ -254,6 +254,7 @@ impl SceneRenderer {
         models: Vec<(&Transform, &GpuModel)>,
         lights: Vec<(&Transform, &Light)>,
         future: F,
+        nearest_shadow_light: &Transform,
         swapchain_frame_index: u32,
         viewport: &Viewport,
     ) -> CommandBufferExecFuture<F>
@@ -316,7 +317,8 @@ impl SceneRenderer {
 
             let uniform_data = vs::Scene {
                 pointLights: point_lights,
-                numLights: num_lights,
+                numLights: num_lights.into(),
+                nearestShadowLight: nearest_shadow_light.position.into(),
             };
 
             let subbuffer = self.buffer_allocator.allocate_sized().unwrap();

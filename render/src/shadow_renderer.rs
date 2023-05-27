@@ -3,7 +3,7 @@ use crate::custom_storage_image::CustomStorageImage;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::GpuModel;
 use angle::Deg;
-use nalgebra::{Matrix4, Translation3, UnitQuaternion, Vector3};
+use nalgebra::{Matrix3, Matrix4, Rotation3, Translation3, UnitQuaternion, Vector3};
 use scene::camera::calculate_projection;
 use scene::transform::Transform;
 use std::sync::Arc;
@@ -22,6 +22,7 @@ use vulkano::image::{
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
+use vulkano::pipeline::graphics::rasterization::{CullMode, PolygonMode, RasterizationState};
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::{GraphicsPipeline, Pipeline};
@@ -40,7 +41,7 @@ pub struct ShadowRenderer {
     memory_allocator: Arc<StandardMemoryAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
 
-    face_orientations: [UnitQuaternion<f32>; 6],
+    face_view_matrices: [Matrix4<f32>; 6],
     perspective_matrix: Matrix4<f32>,
 }
 
@@ -74,6 +75,11 @@ impl ShadowRenderer {
 
             GraphicsPipeline::start()
                 .vertex_input_state(MeshVertex::per_vertex())
+                // .rasterization_state(
+                //     RasterizationState::new()
+                //         .cull_mode(CullMode::Back)
+                //         .polygon_mode(PolygonMode::Fill),
+                // )
                 .vertex_shader(vs.entry_point("main").unwrap(), ())
                 .input_assembly_state(InputAssemblyState::new())
                 .viewport_state(ViewportState::viewport_dynamic_scissor_irrelevant())
@@ -92,18 +98,28 @@ impl ShadowRenderer {
         let framebuffers: Vec<[Arc<Framebuffer>; 6]> =
             Self::create_framebuffers(shadow_maps.clone(), render_pass.clone());
 
-        let up_vector = Vector3::<f32>::y_axis();
+        let rad_90 = std::f32::consts::FRAC_PI_2;
+        let rad_180 = std::f32::consts::PI;
 
-        let face_orientations = [
-            UnitQuaternion::face_towards(&Vector3::x_axis(), &up_vector),
-            UnitQuaternion::face_towards(&-Vector3::x_axis(), &up_vector),
-            UnitQuaternion::face_towards(&Vector3::y_axis(), &up_vector),
-            UnitQuaternion::face_towards(&-Vector3::y_axis(), &up_vector),
-            UnitQuaternion::face_towards(&Vector3::z_axis(), &up_vector),
-            UnitQuaternion::face_towards(&-Vector3::z_axis(), &up_vector),
-        ];
+        let face_view_matrices = [
+            // POSITIVE_X
+            Rotation3::from_axis_angle(&Vector3::x_axis(), rad_180)
+                * Rotation3::from_axis_angle(&Vector3::y_axis(), rad_90),
+            // NEGATIVE_X
+            Rotation3::from_axis_angle(&Vector3::x_axis(), rad_180)
+                * Rotation3::from_axis_angle(&Vector3::y_axis(), -rad_90),
+            // POSITIVE_Y
+            Rotation3::from_axis_angle(&Vector3::x_axis(), -rad_90),
+            // NEGATIVE_Y
+            Rotation3::from_axis_angle(&Vector3::x_axis(), rad_90),
+            // POSITIVE_Z
+            Rotation3::from_axis_angle(&Vector3::x_axis(), rad_180),
+            // NEGATIVE_Z
+            Rotation3::from_axis_angle(&Vector3::z_axis(), rad_180),
+        ]
+        .map(|matrix| matrix.to_homogeneous());
 
-        let perspective_matrix = calculate_projection(1.0, Deg(45.0).into(), 0.01, 100.0);
+        let perspective_matrix = calculate_projection(1.0, Deg(90.0).into(), 0.01, 100.0);
 
         ShadowRenderer {
             render_pass,
@@ -113,7 +129,7 @@ impl ShadowRenderer {
             shadow_maps_views,
             memory_allocator,
             command_buffer_allocator,
-            face_orientations,
+            face_view_matrices,
             perspective_matrix,
         }
     }
@@ -172,9 +188,7 @@ impl ShadowRenderer {
                 .set_viewport(0, [viewport.clone()])
                 .bind_pipeline_graphics(self.pipeline.clone());
 
-            let view_matrix = self.face_orientations[face_index]
-                .to_rotation_matrix()
-                .to_homogeneous();
+            let view_matrix = self.face_view_matrices[face_index];
 
             let light_position: Matrix4<f32> =
                 Translation3::from(nearest_shadow_light.position).to_homogeneous();

@@ -298,6 +298,7 @@ pub fn render(
         models,
         lights,
         future,
+        nearest_shadow_light,
         image_index,
         &renderer.viewport,
     );

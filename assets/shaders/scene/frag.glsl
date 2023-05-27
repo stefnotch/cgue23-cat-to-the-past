@@ -17,6 +17,26 @@ vec3 ambientLightColor = vec3(1.0, 1.0, 1.0);
 // v: normalized view vector pointing to the camera
 // h: normalized half-way vector between v and l
 
+float vectorToDepthValue(vec3 direction) {
+    vec3 absDirection = abs(direction);
+    float localZ = max(absDirection.x, max(absDirection.y, absDirection.z));
+
+    const float far = 100.0;
+    const float near = 0.01;
+    float normalizedZ = - (far) / (near-far) - (far*near)/(near-far)/localZ;
+    return normalizedZ;
+}
+
+float computeShadowFactor(vec3 l) {
+    float shadowDepth = texture(shadowMap, l).r;
+    const float bias = 0.015;
+    if (shadowDepth + bias > vectorToDepthValue(l)) {
+        return 1.0;
+    } else {
+        return 0.0;
+    }
+}
+
 float distributionGGXTrowbridgeReitz(vec3 n, vec3 h, float alpha) {
     float alphaSquared = alpha * alpha;
 
@@ -113,10 +133,12 @@ void main() {
     float ka = 0.03;
     vec3 ambient = (ambientLightColor * ka) * albedo;
 
-    vec3 color = Lo + ambient;
+    vec3 positionToNearestShadowLight = scene.nearestShadowLight - worldPos;
+    vec3 l = positionToNearestShadowLight;
+
+    vec3 color = Lo * computeShadowFactor(l)  + ambient;
 
     f_color = vec4(color + material.emissivity, 1.0);
 
-    float shadowVec = texture(shadowMap, vec3(1.0,0.0,0.0)).r;
-    f_color = vec4(shadowVec);
+//    f_color = vec4(vec3(1.0) * computeShadowFactor(l), 1.0);
 }
