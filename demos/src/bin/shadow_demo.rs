@@ -1,22 +1,24 @@
-use bevy_ecs::prelude::{Entity, Res};
+use bevy_ecs::prelude::{Component, Entity, Res, With};
 use bevy_ecs::query::Added;
+use std::f32::consts::PI;
 use std::sync::Arc;
 use std::time::Instant;
 
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::system::{Commands, Query};
-use nalgebra::{Point3, Vector3};
+use nalgebra::{Point3, Translation3, Vector3};
 use scene::asset::AssetId;
 
 use game::core::application::{AppConfig, Application};
 use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
+use game_core::time_manager::TimeManager;
 
-use physics::physics_context::BoxCollider;
+use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody};
 use scene::light::{CastShadow, Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::CpuMesh;
 use scene::model::{CpuPrimitive, Model};
-use scene::transform::TransformBuilder;
+use scene::transform::{Transform, TransformBuilder};
 use scene_loader::loader::AssetServer;
 
 fn spawn_world(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -32,17 +34,42 @@ fn spawn_world(mut commands: Commands, asset_server: Res<AssetServer>) {
         before.elapsed().as_secs_f64()
     );
 }
-//
-// fn add_cast_shadow_comp(mut commands: Commands, query: Query<Entity, Added<Light>>) {
-//     for entity in query.iter() {
-//         commands.entity(entity).insert(CastShadow);
-//     }
-// }
+
+#[derive(Component)]
+pub struct MovingBox;
+
+pub fn spawn_moving_cube(mut commands: Commands) {
+    let cube = CpuMesh::cube(1.0, 1.0, 1.0);
+
+    commands.spawn((
+        Transform::default(),
+        Model {
+            primitives: vec![CpuPrimitive {
+                mesh: cube.clone(),
+                material: Arc::new(Default::default()),
+            }],
+        },
+        MovingBox,
+    ));
+}
+
+pub fn move_cubes(mut query: Query<&mut Transform, With<MovingBox>>, time: Res<TimeManager>) {
+    for mut transform in query.iter_mut() {
+        let new_position = Point3::new(
+            time.level_time_seconds().sin() * 4.0,
+            time.level_time_seconds().sin() * 2.0,
+            time.level_time_seconds().cos() * 4.0,
+        );
+        transform.position = new_position;
+    }
+}
 
 struct ShadowDemoPlugin;
 impl Plugin for ShadowDemoPlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
-        app.with_startup_system(spawn_world);
+        app.with_startup_system(spawn_world)
+            .with_startup_system(spawn_moving_cube)
+            .with_system(move_cubes);
     }
 }
 
