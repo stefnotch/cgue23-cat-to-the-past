@@ -106,13 +106,15 @@ impl AssetServer {
 
         for (transform, light, name) in scene_loading_result.lights {
             commands.spawn((
-                name, light, CastShadow,
-                // Model {
-                //     primitives: vec![CpuPrimitive {
-                //         mesh: sphere.clone(),
-                //         material: Arc::new(CpuMaterial::default()),
-                //     }],
-                // },
+                name,
+                light,
+                CastShadow,
+                Model {
+                    primitives: vec![CpuPrimitive {
+                        mesh: sphere.clone(),
+                        material: Arc::new(CpuMaterial::default()),
+                    }],
+                },
                 transform,
             ));
         }

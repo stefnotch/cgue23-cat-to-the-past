@@ -109,9 +109,11 @@ impl ShadowRenderer {
             Rotation3::from_axis_angle(&Vector3::x_axis(), rad_180)
                 * Rotation3::from_axis_angle(&Vector3::y_axis(), -rad_90),
             // POSITIVE_Y
-            Rotation3::from_axis_angle(&Vector3::x_axis(), rad_90),
+            Rotation3::from_axis_angle(&Vector3::x_axis(), rad_90)
+                * Rotation3::from_axis_angle(&Vector3::y_axis(), rad_180),
             // NEGATIVE_Y
-            Rotation3::from_axis_angle(&Vector3::x_axis(), -rad_90),
+            Rotation3::from_axis_angle(&Vector3::x_axis(), -rad_90)
+                * Rotation3::from_axis_angle(&Vector3::y_axis(), rad_180),
             // POSITIVE_Z
             Rotation3::from_axis_angle(&Vector3::z_axis(), rad_180),
             // NEGATIVE_Z

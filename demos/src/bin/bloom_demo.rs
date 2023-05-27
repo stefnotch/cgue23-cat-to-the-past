@@ -9,7 +9,7 @@ use scene::asset::AssetId;
 
 use game::core::application::{AppConfig, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
-use scene::light::{Light, PointLight};
+use scene::light::{CastShadow, Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::CpuMesh;
 use scene::model::{CpuPrimitive, Model};
@@ -81,6 +81,7 @@ fn spawn_bloom_demo(mut commands: Commands) {
                     }),
                 }],
             },
+            CastShadow,
             Light::Point(PointLight {
                 color,
                 range: 1000.0,
