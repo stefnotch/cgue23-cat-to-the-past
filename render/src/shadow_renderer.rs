@@ -92,13 +92,15 @@ impl ShadowRenderer {
         let framebuffers: Vec<[Arc<Framebuffer>; 6]> =
             Self::create_framebuffers(shadow_maps.clone(), render_pass.clone());
 
+        let up_vector = Vector3::<f32>::y_axis();
+
         let face_orientations = [
-            UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 0.0),
-            UnitQuaternion::from_axis_angle(&-Vector3::x_axis(), 0.0),
-            UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.0),
-            UnitQuaternion::from_axis_angle(&-Vector3::y_axis(), 0.0),
-            UnitQuaternion::from_axis_angle(&Vector3::z_axis(), 0.0),
-            UnitQuaternion::from_axis_angle(&-Vector3::z_axis(), 0.0),
+            UnitQuaternion::face_towards(&Vector3::x_axis(), &up_vector),
+            UnitQuaternion::face_towards(&-Vector3::x_axis(), &up_vector),
+            UnitQuaternion::face_towards(&Vector3::y_axis(), &up_vector),
+            UnitQuaternion::face_towards(&-Vector3::y_axis(), &up_vector),
+            UnitQuaternion::face_towards(&Vector3::z_axis(), &up_vector),
+            UnitQuaternion::face_towards(&-Vector3::z_axis(), &up_vector),
         ];
 
         let perspective_matrix = calculate_projection(1.0, Deg(45.0).into(), 0.01, 100.0);
