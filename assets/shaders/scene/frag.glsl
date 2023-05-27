@@ -139,7 +139,7 @@ void main() {
 
     vec3 color = Lo * computeShadowFactor(l)  + ambient;
 
-    //f_color = vec4(color + material.emissivity, 1.0);
+    f_color = vec4(color + material.emissivity, 1.0);
 
-    f_color = vec4(vec3(1.0) * computeShadowFactor(l), 1.0);
+   // f_color = vec4(vec3(1.0) * computeShadowFactor(l), 1.0);
 }
