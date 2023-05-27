@@ -10,6 +10,7 @@ use crate::scene::texture::Texture;
 use crate::scene_renderer::SceneRenderer;
 use crate::shadow_renderer::ShadowRenderer;
 use app::plugin::{Plugin, PluginAppAccess};
+use bevy_ecs::prelude::Local;
 use bevy_ecs::query::With;
 use bevy_ecs::schedule::{IntoSystemConfig, SystemSet};
 use bevy_ecs::system::{NonSendMut, Query, Res};
@@ -181,6 +182,7 @@ pub fn render(
     query_models: Query<(&Transform, &GpuModel)>,
     query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
     query_shadow_light: Query<&Transform, (With<CastShadow>, With<Light>)>,
+    mut counter: Local<u32>,
 ) {
     // On Windows, this can occur from minimizing the application.
     let surface = context.surface();
@@ -279,13 +281,16 @@ pub fn render(
         })
         .expect("at least one shadow light is required");
 
-    let future = renderer.shadow_renderer.render(
-        &context,
-        &models,
-        nearest_shadow_light,
-        future,
-        image_index,
-    );
+    let future = if *counter > 2 {
+        renderer
+            .shadow_renderer
+            .render(&context, &models, nearest_shadow_light, future, image_index)
+            .boxed()
+    } else {
+        future.boxed()
+    };
+
+    *counter += 1;
 
     let future = renderer.scene_renderer.render(
         &context,

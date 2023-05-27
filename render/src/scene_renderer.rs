@@ -1,4 +1,5 @@
 use crate::context::Context;
+use crate::custom_storage_image::CustomStorageImage;
 use crate::scene::material::Material;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::GpuModel;
@@ -48,7 +49,7 @@ pub struct SceneRenderer {
     buffer_allocator: SubbufferAllocator,
 
     shadow_map_sampler: Arc<Sampler>,
-    shadow_cube_map: Vec<Arc<ImageView<ImmutableImage>>>,
+    shadow_cube_map: Vec<Arc<ImageView<CustomStorageImage>>>,
 
     /// The 1x1 white texture used when a model is missing a texture
     missing_texture: Arc<Texture>,
@@ -57,7 +58,7 @@ pub struct SceneRenderer {
 impl SceneRenderer {
     pub fn new(
         context: &Context,
-        shadow_cube_map: Vec<Arc<ImageView<ImmutableImage>>>,
+        shadow_cube_map: Vec<Arc<ImageView<CustomStorageImage>>>,
         dimensions: [u32; 2],
         swapchain_image_count: u32,
         memory_allocator: Arc<StandardMemoryAllocator>,
@@ -176,7 +177,7 @@ impl SceneRenderer {
     pub fn resize(
         &mut self,
         images: &Vec<Arc<ImageView<SwapchainImage>>>,
-        shadow_cube_map: Vec<Arc<ImageView<ImmutableImage>>>,
+        shadow_cube_map: Vec<Arc<ImageView<CustomStorageImage>>>,
     ) {
         let dimensions = images[0].dimensions().width_height();
         let swapchain_image_count = images.len() as u32;

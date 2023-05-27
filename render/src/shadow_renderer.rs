@@ -1,9 +1,10 @@
 use crate::context::Context;
+use crate::custom_storage_image::CustomStorageImage;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::GpuModel;
 use angle::Deg;
-use scene::camera::calculate_projection;
 use nalgebra::{Matrix4, Translation3, UnitQuaternion, Vector3};
+use scene::camera::calculate_projection;
 use scene::transform::Transform;
 use std::sync::Arc;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -11,12 +12,12 @@ use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, RenderPassBeginInfo,
     SubpassContents,
 };
+use vulkano::descriptor_set::layout::DescriptorType::StorageImage;
 use vulkano::format::{ClearValue, Format};
 use vulkano::image::view::{ImageView, ImageViewCreateInfo};
 use vulkano::image::ImageDimensions::Dim2d;
 use vulkano::image::{
     ImageAccess, ImageCreateFlags, ImageLayout, ImageSubresourceRange, ImageUsage, ImageViewType,
-    ImmutableImage,
 };
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
@@ -33,8 +34,8 @@ pub struct ShadowRenderer {
     render_pass: Arc<RenderPass>,
     pipeline: Arc<GraphicsPipeline>,
     framebuffers: Vec<[Arc<Framebuffer>; 6]>,
-    shadow_maps: Vec<Arc<ImmutableImage>>,
-    shadow_maps_views: Vec<Arc<ImageView<ImmutableImage>>>,
+    shadow_maps: Vec<Arc<CustomStorageImage>>,
+    shadow_maps_views: Vec<Arc<ImageView<CustomStorageImage>>>,
 
     memory_allocator: Arc<StandardMemoryAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
@@ -84,8 +85,8 @@ impl ShadowRenderer {
         };
 
         let (shadow_maps, shadow_maps_views): (
-            Vec<Arc<ImmutableImage>>,
-            Vec<Arc<ImageView<ImmutableImage>>>,
+            Vec<Arc<CustomStorageImage>>,
+            Vec<Arc<ImageView<CustomStorageImage>>>,
         ) = Self::create_images(memory_allocator.clone(), image_count);
 
         let framebuffers: Vec<[Arc<Framebuffer>; 6]> =
@@ -169,17 +170,17 @@ impl ShadowRenderer {
                 .set_viewport(0, [viewport.clone()])
                 .bind_pipeline_graphics(self.pipeline.clone());
 
+            let view_matrix = self.face_orientations[face_index]
+                .to_rotation_matrix()
+                .to_homogeneous();
+
+            let light_position: Matrix4<f32> =
+                Translation3::from(nearest_shadow_light.position).to_homogeneous();
+            let view_matrix = light_position * view_matrix;
+            let proj_view_matrix = self.perspective_matrix * view_matrix;
+
             for (transform, model) in models.iter() {
                 for primitive in &model.primitives {
-                    let view_matrix = self.face_orientations[face_index]
-                        .to_rotation_matrix()
-                        .to_homogeneous();
-
-                    let light_position: Matrix4<f32> =
-                        Translation3::from(nearest_shadow_light.position).to_homogeneous();
-                    let view_matrix = light_position * view_matrix;
-                    let proj_view_matrix = self.perspective_matrix * view_matrix;
-
                     let push_consts = vs::PushConsts {
                         projView: proj_view_matrix.into(),
                         model: transform.to_matrix().into(),
@@ -208,12 +209,12 @@ impl ShadowRenderer {
         memory_allocator: Arc<StandardMemoryAllocator>,
         num_images: u32,
     ) -> (
-        Vec<Arc<ImmutableImage>>,
-        Vec<Arc<ImageView<ImmutableImage>>>,
+        Vec<Arc<CustomStorageImage>>,
+        Vec<Arc<ImageView<CustomStorageImage>>>,
     ) {
-        let images: Vec<Arc<ImmutableImage>> = (0..num_images)
+        let images: Vec<Arc<CustomStorageImage>> = (0..num_images)
             .map(|_| {
-                ImmutableImage::uninitialized(
+                CustomStorageImage::uninitialized(
                     &memory_allocator,
                     Dim2d {
                         width: CUBE_SIZE,
@@ -224,15 +225,12 @@ impl ShadowRenderer {
                     1,
                     ImageUsage::SAMPLED | ImageUsage::DEPTH_STENCIL_ATTACHMENT,
                     ImageCreateFlags::CUBE_COMPATIBLE,
-                    ImageLayout::DepthStencilAttachmentOptimal,
-                    vec![],
                 )
                 .unwrap()
-                .0
             })
             .collect();
 
-        let views: Vec<Arc<ImageView<ImmutableImage>>> = images
+        let views: Vec<Arc<ImageView<CustomStorageImage>>> = images
             .iter()
             .map(|image| {
                 ImageView::new(
@@ -255,7 +253,7 @@ impl ShadowRenderer {
     }
 
     fn create_framebuffers(
-        images: Vec<Arc<ImmutableImage>>,
+        images: Vec<Arc<CustomStorageImage>>,
         renderpass: Arc<RenderPass>,
     ) -> Vec<[Arc<Framebuffer>; 6]> {
         images
@@ -292,7 +290,7 @@ impl ShadowRenderer {
             .collect()
     }
 
-    pub fn get_shadow_cube_maps(&self) -> Vec<Arc<ImageView<ImmutableImage>>> {
+    pub fn get_shadow_cube_maps(&self) -> Vec<Arc<ImageView<CustomStorageImage>>> {
         self.shadow_maps_views.clone()
     }
 }

@@ -40,17 +40,11 @@ fn spawn_world(mut commands: Commands) {
                 .scale([0.1; 3].into())
                 .position(position)
                 .build(),
-            Model {
-                primitives: vec![CpuPrimitive {
-                    mesh: cube.clone(),
-                    material: white_material.clone(),
-                }],
-            },
             CastShadow,
         ));
     };
 
-    spawn_light([-2.0, 4.0, 0.0].into());
+    spawn_light([0.0, 0.0, 0.0].into());
 
     commands.spawn((
         Model {

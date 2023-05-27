@@ -40,18 +40,13 @@ impl CustomStorageImage {
     /// Returns the uninitialized image
     pub fn uninitialized(
         allocator: &(impl MemoryAllocator + ?Sized),
-        dimensions: [u32; 2],
+        dimensions: ImageDimensions,
         format: Format,
         num_mip_levels: u32,
         usage: ImageUsage,
+        flags: ImageCreateFlags,
     ) -> Result<Arc<CustomStorageImage>, ImageError> {
-        let dimensions = ImageDimensions::Dim2d {
-            width: dimensions[0],
-            height: dimensions[1],
-            array_layers: 1,
-        };
-
-        let flags = ImageCreateFlags::empty();
+        assert!(!flags.intersects(ImageCreateFlags::DISJOINT));
 
         let raw_image = RawImage::new(
             allocator.device().clone(),
