@@ -2,7 +2,7 @@ use app::plugin::Plugin;
 use app::App;
 use game_core::level::level_flags::LevelFlags;
 use game_core::time::{TimePlugin, TimePluginSet};
-use input::plugin::{InputPlugin, InputPluginSet};
+use input::plugin::InputPlugin;
 use physics::plugin::PhysicsPlugin;
 use windowing::window::{EventLoopContainer, WindowPlugin};
 
@@ -101,7 +101,7 @@ impl Application {
                     .after(TimePluginSet::UpdateTime),
             )
             .with_plugin(InputPlugin)
-            .with_set(InputPluginSet::UpdateInput.in_set(AppStage::EventUpdate))
+            .with_set(InputPlugin::system_set().in_set(AppStage::EventUpdate))
             .with_plugin(PhysicsPlugin)
             .with_set(PhysicsPlugin::system_set().in_set(AppStage::UpdatePhysics))
             // Transform tracking
@@ -127,7 +127,7 @@ impl Application {
         self.app.build_plugins();
 
         let config: &AppConfig = &self.config;
-        let mut world = &mut self.app.world;
+        let world = &mut self.app.world;
         let schedule = &mut self.app.schedule;
 
         let aspect_ratio = config.window.resolution.0 as f32 / config.window.resolution.1 as f32;
@@ -163,7 +163,7 @@ impl Application {
                 .before(AppStage::Update),
         );
 
-        schedule.add_system(lock_mouse);
+        schedule.add_system(lock_mouse.after(AppStage::EventUpdate));
 
         self.app.run_startup();
 

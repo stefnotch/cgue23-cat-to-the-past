@@ -129,7 +129,11 @@ impl TimeManager {
     }
 }
 
-fn start_frame(time: Res<Time>, mut time_manager: ResMut<TimeManager>) {
+fn start_frame(
+    time: Res<Time>,
+    mut time_manager: ResMut<TimeManager>,
+    mut next_level: EventReader<NextLevel>,
+) {
     time_manager.start_frame(time.delta());
 }
 
@@ -150,11 +154,15 @@ impl Plugin for TimeManagerPlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
         app.with_resource(TimeManager::new())
             .with_system(
+                next_level
+                    .in_set(TimeManagerPluginSet::StartFrame)
+                    .before(start_frame),
+            )
+            .with_system(
                 start_frame
                     .in_set(TimeManagerPluginSet::StartFrame)
                     .after(TimePluginSet::UpdateTime),
             )
-            .with_resource(Events::<NextLevel>::default())
-            .with_system(next_level.in_set(TimeManagerPluginSet::StartFrame));
+            .with_resource(Events::<NextLevel>::default());
     }
 }
