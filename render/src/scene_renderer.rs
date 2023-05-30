@@ -150,6 +150,7 @@ impl SceneRenderer {
                 mipmap_mode: SamplerMipmapMode::Nearest,
                 address_mode: [SamplerAddressMode::ClampToBorder; 3],
                 border_color: BorderColor::FloatOpaqueWhite,
+                compare: Some(CompareOp::LessOrEqual),
                 ..SamplerCreateInfo::default()
             },
         )

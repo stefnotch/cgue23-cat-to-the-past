@@ -21,20 +21,15 @@ float vectorToDepthValue(vec3 direction) {
     vec3 absDirection = abs(direction);
     float localZ = max(absDirection.x, max(absDirection.y, absDirection.z));
 
-    const float far = 100.0;
-    const float near = 1;
+    const float far = 50.0;
+    const float near = 0.5;
     float normalizedZ =  (1.0 - (near / localZ)) / ((far - near) / far);
     return normalizedZ;
 }
 
 float computeShadowFactor(vec3 l) {
-    float shadowDepth = texture(shadowMap, l).r;
-    const float bias = 0.0001;
-    if (shadowDepth + bias > vectorToDepthValue(l)) {
-        return 1.0;
-    } else {
-        return 0.0;
-    }
+    float shadow = texture(shadowMap, vec4(l, vectorToDepthValue(l))).r;
+    return shadow;
 }
 
 float distributionGGXTrowbridgeReitz(vec3 n, vec3 h, float alpha) {

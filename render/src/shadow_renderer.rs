@@ -79,14 +79,14 @@ impl ShadowRenderer {
                 .cull_mode(CullMode::Back)
                 .polygon_mode(PolygonMode::Fill);
             // Source: https://blogs.igalia.com/itoral/2017/10/02/working-with-lights-and-shadows-part-iii-rendering-the-shadows/
-            rasterization_state.depth_bias = Some(DepthBiasState {
-                enable_dynamic: false,
-                bias: StateMode::Fixed(DepthBias {
-                    constant_factor: 4.0,
-                    clamp: 0.0,
-                    slope_factor: 1.5,
-                }),
-            });
+            // rasterization_state.depth_bias = Some(DepthBiasState {
+            //     enable_dynamic: false,
+            //     bias: StateMode::Fixed(DepthBias {
+            //         constant_factor: 2.0,
+            //         clamp: 0.0,
+            //         slope_factor: 50.0,
+            //     }),
+            // });
 
             GraphicsPipeline::start()
                 .vertex_input_state(MeshVertex::per_vertex())
@@ -132,7 +132,10 @@ impl ShadowRenderer {
         ]
         .map(|matrix| matrix.to_homogeneous());
 
-        let perspective_matrix = calculate_projection(1.0, Deg(90.0).into(), 1.0, 100.0);
+        const far: f32 = 50.0;
+        const near: f32 = 0.5;
+
+        let perspective_matrix = calculate_projection(1.0, Deg(90.0).into(), near, far);
 
         ShadowRenderer {
             render_pass,
