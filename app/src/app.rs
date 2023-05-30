@@ -69,9 +69,9 @@ impl App {
 
         let mut startup_schedule = Schedule::default();
         startup_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
-        schedule.set_apply_final_buffers(true);
-        schedule.set_build_settings(ScheduleBuildSettings {
-            ambiguity_detection: LogLevel::Warn,
+        startup_schedule.set_apply_final_buffers(true);
+        startup_schedule.set_build_settings(ScheduleBuildSettings {
+            ambiguity_detection: LogLevel::Error,
             ..Default::default()
         });
 
