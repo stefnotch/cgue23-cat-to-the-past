@@ -1,10 +1,7 @@
 use std::collections::VecDeque;
 
 use bevy_ecs::{
-    schedule::{
-        ExecutorKind, IntoSystemConfig, IntoSystemSetConfig, LogLevel, Schedule,
-        ScheduleBuildSettings,
-    },
+    schedule::{ExecutorKind, IntoSystemSetConfig, LogLevel, Schedule, ScheduleBuildSettings},
     world::World,
 };
 
@@ -89,12 +86,6 @@ impl App {
     {
         self.plugins
             .push_back(Box::new(PluginContainer::new(plugin)));
-        self
-    }
-
-    // TODO: Get rid of this
-    pub fn with_system<Params>(&mut self, system: impl IntoSystemConfig<Params>) -> &mut Self {
-        self.schedule.add_system(system);
         self
     }
 

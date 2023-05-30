@@ -56,6 +56,7 @@ impl Default for AppConfig {
 pub enum AppStage {
     StartFrame,
     EventUpdate,
+    /// for game logic
     Update,
     UpdatePhysics,
     /// after physics
@@ -156,7 +157,11 @@ impl Application {
         schedule
             .add_system(Events::<WindowFocusChanged>::update_system.in_set(AppStage::EventUpdate));
 
-        schedule.add_system(read_input.in_set(AppStage::Update));
+        schedule.add_system(
+            read_input
+                .after(AppStage::EventUpdate)
+                .before(AppStage::Update),
+        );
 
         schedule.add_system(lock_mouse);
 

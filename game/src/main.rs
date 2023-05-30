@@ -5,6 +5,7 @@ mod pickup_system;
 use animations::animation::Animation;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::{Component, EventReader, Query, With};
+use bevy_ecs::schedule::{IntoSystemConfig, IntoSystemSetConfig};
 use debug::log::enable_logging;
 use debug::setup_debugging;
 use game_core::level::LevelId;
@@ -22,8 +23,7 @@ use std::time::Instant;
 use bevy_ecs::system::{Commands, Res, ResMut};
 use nalgebra::{Point3, Translation3};
 
-use game::core::application::{AppConfig, Application};
-
+use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
 
 use crate::pickup_system::ray_cast;
@@ -111,9 +111,9 @@ impl Plugin for GamePlugin {
         app.with_startup_system(spawn_world)
             .with_startup_system(setup_levels)
             .with_startup_system(spawn_moving_cube)
-            .with_system(ray_cast)
-            .with_system(door_system)
-            .with_system(move_cubes);
+            .with_system(ray_cast.in_set(AppStage::Update))
+            .with_system(door_system.in_set(AppStage::Update))
+            .with_system(move_cubes.in_set(AppStage::Update));
     }
 }
 
@@ -135,7 +135,8 @@ fn main() {
     application
         .app
         .with_plugin(GamePlugin)
-        .with_plugin(PlayerPlugin::new(player_spawn_settings));
+        .with_plugin(PlayerPlugin::new(player_spawn_settings))
+        .with_set(PlayerPlugin::system_set().in_set(AppStage::Update));
 
     application.run();
 }
