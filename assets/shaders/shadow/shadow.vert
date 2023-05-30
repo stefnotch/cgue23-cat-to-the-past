@@ -9,6 +9,5 @@ layout(push_constant) uniform PushConsts {
 
 void main() {
     vec4 clipSpacePosition = push.projView * push.model * vec4(position, 1.0);
-    clipSpacePosition.z -= 0.001;
     gl_Position = clipSpacePosition;
 }
