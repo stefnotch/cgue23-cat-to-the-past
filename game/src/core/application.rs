@@ -9,7 +9,6 @@ use windowing::window::{EventLoopContainer, WindowPlugin};
 use crate::input::events::{WindowFocusChanged, WindowResize};
 use angle::Deg;
 use bevy_ecs::prelude::*;
-use game_core::application::AppStage;
 use input::events::{KeyboardInput, MouseInput, MouseMovement};
 use input::input_map::InputMap;
 use nalgebra::{Point3, UnitQuaternion};
@@ -52,6 +51,19 @@ impl Default for AppConfig {
         }
     }
 }
+
+#[derive(SystemSet, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum AppStage {
+    StartFrame,
+    EventUpdate,
+    Update,
+    UpdatePhysics,
+    /// after physics
+    BeforeRender,
+    Render,
+    EndFrame,
+}
+
 pub struct Application {
     config: AppConfig,
     pub app: App,
