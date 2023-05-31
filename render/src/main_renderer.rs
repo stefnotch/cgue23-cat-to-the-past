@@ -149,7 +149,7 @@ impl RendererPlugin {
 impl Plugin for RendererPlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
         let context = Context::new(
-            app.world_hack_mut()
+            app.world_hack_access()
                 .get_resource::<WindowManager>()
                 .unwrap()
                 .window

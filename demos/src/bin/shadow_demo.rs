@@ -1,24 +1,21 @@
-use bevy_ecs::prelude::{Component, Entity, Res, With};
-use bevy_ecs::query::Added;
-use std::f32::consts::PI;
+use bevy_ecs::prelude::{Component, Res, With};
+
+use bevy_ecs::schedule::{IntoSystemConfig, IntoSystemSetConfig};
+
 use std::sync::Arc;
 use std::time::Instant;
 
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::system::{Commands, Query};
-use nalgebra::{Point3, Translation3, Vector3};
-use scene::asset::AssetId;
+use nalgebra::Point3;
 
-use game::core::application::{AppConfig, Application};
+use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 use game_core::time_manager::TimeManager;
 
-use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody};
-use scene::light::{CastShadow, Light, PointLight};
-use scene::material::CpuMaterial;
 use scene::mesh::CpuMesh;
 use scene::model::{CpuPrimitive, Model};
-use scene::transform::{Transform, TransformBuilder};
+use scene::transform::Transform;
 use scene_loader::loader::AssetServer;
 
 fn spawn_world(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -69,7 +66,7 @@ impl Plugin for ShadowDemoPlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
         app.with_startup_system(spawn_world)
             .with_startup_system(spawn_moving_cube)
-            .with_system(move_cubes);
+            .with_system(move_cubes.in_set(AppStage::Update));
     }
 }
 
@@ -88,7 +85,8 @@ fn main() {
     application
         .app
         .with_plugin(ShadowDemoPlugin)
-        .with_plugin(PlayerPlugin::new(player_spawn_settings));
+        .with_plugin(PlayerPlugin::new(player_spawn_settings))
+        .with_set(PlayerPlugin::system_set().in_set(AppStage::Update));
 
     application.run();
 }

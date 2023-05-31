@@ -88,7 +88,7 @@ impl<'app> PluginAppAccess<'app> {
     }
 
     /// TODO: This is a hack to get access to the world. We should probably have a better way to do this.
-    pub fn world_hack_mut(&mut self) -> &mut bevy_ecs::world::World {
-        &mut self.app.world
+    pub fn world_hack_access(&mut self) -> &bevy_ecs::world::World {
+        &self.app.world
     }
 }

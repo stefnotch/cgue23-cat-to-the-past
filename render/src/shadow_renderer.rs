@@ -3,7 +3,7 @@ use crate::custom_storage_image::CustomStorageImage;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::GpuModel;
 use angle::Deg;
-use nalgebra::{Matrix3, Matrix4, Rotation3, Translation3, UnitQuaternion, Vector3};
+use nalgebra::{Matrix4, Rotation3, Translation3, Vector3};
 use scene::camera::calculate_projection;
 use scene::transform::Transform;
 use std::sync::Arc;
@@ -12,22 +12,20 @@ use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, RenderPassBeginInfo,
     SubpassContents,
 };
-use vulkano::descriptor_set::layout::DescriptorType::StorageImage;
+
 use vulkano::format::{ClearValue, Format};
 use vulkano::image::view::{ImageView, ImageViewCreateInfo};
 use vulkano::image::ImageDimensions::Dim2d;
 use vulkano::image::{
-    ImageAccess, ImageCreateFlags, ImageLayout, ImageSubresourceRange, ImageUsage, ImageViewType,
+    ImageAccess, ImageCreateFlags, ImageSubresourceRange, ImageUsage, ImageViewType,
 };
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
-use vulkano::pipeline::graphics::rasterization::{
-    CullMode, DepthBias, DepthBiasState, PolygonMode, RasterizationState,
-};
+use vulkano::pipeline::graphics::rasterization::{CullMode, PolygonMode, RasterizationState};
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
-use vulkano::pipeline::{GraphicsPipeline, Pipeline, StateMode};
+use vulkano::pipeline::{GraphicsPipeline, Pipeline};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::sync::GpuFuture;
 
@@ -100,7 +98,7 @@ impl ShadowRenderer {
         let framebuffers: Vec<[Arc<Framebuffer>; 6]> =
             Self::create_framebuffers(shadow_maps.clone(), render_pass.clone());
 
-        let face_view_matrices = dbg!([
+        let face_view_matrices = [
             // POSITIVE_X
             Matrix4::from_row_slice(&[
                 0.0, 0.0, 1.0, 0.0, //
@@ -143,7 +141,7 @@ impl ShadowRenderer {
                 0.0, 0.0, -1.0, 0.0, //
                 0.0, 0.0, 0.0, 1.0, //
             ]),
-        ]);
+        ];
 
         const far: f32 = 50.0;
         const near: f32 = 0.5;

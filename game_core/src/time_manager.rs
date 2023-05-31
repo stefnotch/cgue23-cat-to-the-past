@@ -102,6 +102,10 @@ impl TimeManager {
         self.level_time.as_secs_f32()
     }
 
+    pub fn level_time(&self) -> &LevelTime {
+        &self.level_time
+    }
+
     fn next_level(&mut self) {
         self.level_time = LevelTime::zero();
     }
@@ -150,11 +154,15 @@ impl Plugin for TimeManagerPlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
         app.with_resource(TimeManager::new())
             .with_system(
+                next_level
+                    .in_set(TimeManagerPluginSet::StartFrame)
+                    .before(start_frame),
+            )
+            .with_system(
                 start_frame
                     .in_set(TimeManagerPluginSet::StartFrame)
                     .after(TimePluginSet::UpdateTime),
             )
-            .with_resource(Events::<NextLevel>::default())
-            .with_system(next_level.in_set(TimeManagerPluginSet::StartFrame));
+            .with_resource(Events::<NextLevel>::default());
     }
 }

@@ -1,4 +1,3 @@
-pub mod application;
 pub mod events;
 pub mod level;
 pub mod pickup;

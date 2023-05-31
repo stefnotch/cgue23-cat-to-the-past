@@ -54,6 +54,16 @@ impl Add<Duration> for LevelTime {
     }
 }
 
+impl Add<Duration> for &LevelTime {
+    type Output = LevelTime;
+
+    fn add(self, other: Duration) -> LevelTime {
+        LevelTime {
+            elapsed: self.elapsed + other,
+        }
+    }
+}
+
 impl AddAssign<Duration> for LevelTime {
     fn add_assign(&mut self, other: Duration) {
         self.elapsed += other;

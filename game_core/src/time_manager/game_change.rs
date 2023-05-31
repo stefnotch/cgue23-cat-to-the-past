@@ -212,14 +212,14 @@ fn clear_on_next_level<T>(
 pub enum GameChangeHistoryPluginSet<T> {
     Update,
     // Well that's not very elegant
-    _Impossible(std::convert::Infallible, std::marker::PhantomData<T>),
+    _Marker(std::convert::Infallible, std::marker::PhantomData<T>),
 }
 
 impl<T> std::fmt::Debug for GameChangeHistoryPluginSet<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             GameChangeHistoryPluginSet::Update => write!(f, "GameChangeHistoryPluginSet::Update"),
-            GameChangeHistoryPluginSet::_Impossible(_, _) => {
+            GameChangeHistoryPluginSet::_Marker(_, _) => {
                 write!(f, "GameChangeHistoryPluginSet::_Impossible")
             }
         }
@@ -229,7 +229,7 @@ impl<T> Clone for GameChangeHistoryPluginSet<T> {
     fn clone(&self) -> Self {
         match self {
             Self::Update => Self::Update,
-            Self::_Impossible(_arg0, _arg1) => panic!("d"),
+            Self::_Marker(_arg0, _arg1) => panic!("d"),
         }
     }
 }
@@ -237,7 +237,7 @@ impl<T> PartialEq for GameChangeHistoryPluginSet<T> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Update, Self::Update) => true,
-            (Self::_Impossible(_arg0, _arg1), Self::_Impossible(_arg0_other, _arg1_other)) => {
+            (Self::_Marker(_arg0, _arg1), Self::_Marker(_arg0_other, _arg1_other)) => {
                 panic!("e")
             }
             _ => false,
@@ -254,7 +254,7 @@ where
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
             Self::Update => std::any::TypeId::of::<T>().hash(state),
-            Self::_Impossible(_arg0, _arg1) => panic!("a"),
+            Self::_Marker(_arg0, _arg1) => panic!("a"),
         }
     }
 }
@@ -320,12 +320,13 @@ where
 
         app.with_resource(GameChangeHistory::<T>::new())
             .with_system(
-                read_timestamp::<T>
+                clear_on_next_level::<T>
                     .before(GameChangeHistoryPluginSet::<T>::Update)
+                    .before(read_timestamp::<T>)
                     .after(TimeManagerPluginSet::StartFrame),
             )
             .with_system(
-                clear_on_next_level::<T>
+                read_timestamp::<T>
                     .before(GameChangeHistoryPluginSet::<T>::Update)
                     .after(TimeManagerPluginSet::StartFrame),
             )

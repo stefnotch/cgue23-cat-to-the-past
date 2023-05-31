@@ -39,6 +39,19 @@ impl Transform {
 
         translated_position.into()
     }
+
+    pub fn lerp(&self, other: &Transform, factor: f32) -> Transform {
+        // eh, just lerp the components individually
+        Transform {
+            position: self
+                .position
+                .coords
+                .lerp(&other.position.coords, factor)
+                .into(),
+            rotation: self.rotation.slerp(&other.rotation, factor),
+            scale: self.scale.lerp(&other.scale, factor),
+        }
+    }
 }
 
 impl Mul<Transform> for &Transform {

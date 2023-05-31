@@ -2,10 +2,11 @@
 
 mod pickup_system;
 
-use animations::animation::Animation;
+use animations::animation::PlayingAnimation;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::{Component, EventReader, Query, With};
-use debug::log::enable_logging;
+use bevy_ecs::schedule::{IntoSystemConfig, IntoSystemSetConfig};
+
 use debug::setup_debugging;
 use game_core::level::LevelId;
 use game_core::time_manager::TimeManager;
@@ -22,12 +23,11 @@ use std::time::Instant;
 use bevy_ecs::system::{Commands, Res, ResMut};
 use nalgebra::{Point3, Translation3};
 
-use game::core::application::{AppConfig, Application};
-
+use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
 
 use crate::pickup_system::ray_cast;
-use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, RigidBodyType};
+use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType};
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
 use scene::transform::{Transform, TransformBuilder};
 
@@ -71,17 +71,11 @@ pub fn spawn_moving_cube(mut commands: Commands) {
             bounds: cube.bounding_box.clone(),
         },
         RigidBody(RigidBodyType::KinematicPositionBased),
-        MoveBodyPosition {
-            new_position: Default::default(),
-        },
         MovingBox,
     ));
 }
 
-pub fn move_cubes(
-    mut query: Query<&mut MoveBodyPosition, With<MovingBox>>,
-    time: Res<TimeManager>,
-) {
+pub fn move_cubes(mut query: Query<&mut Transform, With<MovingBox>>, time: Res<TimeManager>) {
     let origin = Point3::origin();
     for mut move_body_position in query.iter_mut() {
         let shift = Translation3::new(
@@ -89,18 +83,19 @@ pub fn move_cubes(
             1.0,
             5.0 * (time.level_time_seconds() * PI / 2.0 * 0.5).sin(),
         );
-        move_body_position.new_position = Some(shift.transform_point(&origin));
+        move_body_position.position = shift.transform_point(&origin);
     }
 }
 
 fn door_system(
     mut collision_events: EventReader<CollisionEvent>,
-    mut query: Query<(&Animation, &mut MoveBodyPosition), With<Door>>,
+    mut query: Query<&mut PlayingAnimation, With<Door>>,
+    time: Res<TimeManager>,
 ) {
     for collision_event in collision_events.iter() {
         if let CollisionEvent::Started(_e1, _e2, CollisionEventFlags::SENSOR) = collision_event {
-            let (animation, mut door_new_position) = query.single_mut();
-            door_new_position.new_position = Some(animation.end_transform.position);
+            let mut animation = query.single_mut();
+            animation.play_forwards(time.level_time());
         }
     }
 }
@@ -111,9 +106,9 @@ impl Plugin for GamePlugin {
         app.with_startup_system(spawn_world)
             .with_startup_system(setup_levels)
             .with_startup_system(spawn_moving_cube)
-            .with_system(ray_cast)
-            .with_system(door_system)
-            .with_system(move_cubes);
+            .with_system(ray_cast.in_set(AppStage::Update))
+            .with_system(door_system.in_set(AppStage::Update))
+            .with_system(move_cubes.in_set(AppStage::Update));
     }
 }
 
@@ -135,7 +130,8 @@ fn main() {
     application
         .app
         .with_plugin(GamePlugin)
-        .with_plugin(PlayerPlugin::new(player_spawn_settings));
+        .with_plugin(PlayerPlugin::new(player_spawn_settings))
+        .with_set(PlayerPlugin::system_set().in_set(AppStage::Update));
 
     application.run();
 }

@@ -1,15 +1,15 @@
+use animations::animation::AnimationPlugin;
 use app::plugin::Plugin;
 use app::App;
 use game_core::level::level_flags::LevelFlags;
 use game_core::time::{TimePlugin, TimePluginSet};
-use input::plugin::{InputPlugin, InputPluginSet};
+use input::plugin::InputPlugin;
 use physics::plugin::PhysicsPlugin;
 use windowing::window::{EventLoopContainer, WindowPlugin};
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
 use angle::Deg;
 use bevy_ecs::prelude::*;
-use game_core::application::AppStage;
 use input::events::{KeyboardInput, MouseInput, MouseMovement};
 use input::input_map::InputMap;
 use nalgebra::{Point3, UnitQuaternion};
@@ -52,6 +52,20 @@ impl Default for AppConfig {
         }
     }
 }
+
+#[derive(SystemSet, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum AppStage {
+    StartFrame,
+    EventUpdate,
+    /// for game logic
+    Update,
+    UpdatePhysics,
+    /// after physics
+    BeforeRender,
+    Render,
+    EndFrame,
+}
+
 pub struct Application {
     config: AppConfig,
     pub app: App,
@@ -88,7 +102,13 @@ impl Application {
                     .after(TimePluginSet::UpdateTime),
             )
             .with_plugin(InputPlugin)
-            .with_set(InputPluginSet::UpdateInput.in_set(AppStage::EventUpdate))
+            .with_set(InputPlugin::system_set().in_set(AppStage::EventUpdate))
+            .with_plugin(AnimationPlugin)
+            .with_set(
+                AnimationPlugin::system_set()
+                    .before(AppStage::Update)
+                    .after(AppStage::EventUpdate),
+            )
             .with_plugin(PhysicsPlugin)
             .with_set(PhysicsPlugin::system_set().in_set(AppStage::UpdatePhysics))
             // Transform tracking
@@ -114,7 +134,7 @@ impl Application {
         self.app.build_plugins();
 
         let config: &AppConfig = &self.config;
-        let mut world = &mut self.app.world;
+        let world = &mut self.app.world;
         let schedule = &mut self.app.schedule;
 
         let aspect_ratio = config.window.resolution.0 as f32 / config.window.resolution.1 as f32;
@@ -144,9 +164,9 @@ impl Application {
         schedule
             .add_system(Events::<WindowFocusChanged>::update_system.in_set(AppStage::EventUpdate));
 
-        schedule.add_system(read_input.in_set(AppStage::Update));
+        schedule.add_system(read_input.in_set(AppStage::EndFrame));
 
-        schedule.add_system(lock_mouse);
+        schedule.add_system(lock_mouse.after(AppStage::EventUpdate));
 
         self.app.run_startup();
 

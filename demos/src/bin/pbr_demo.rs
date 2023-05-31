@@ -2,8 +2,9 @@
 use std::sync::Arc;
 
 use app::plugin::{Plugin, PluginAppAccess};
+use bevy_ecs::schedule::IntoSystemSetConfig;
 use bevy_ecs::system::Commands;
-use game::core::application::{AppConfig, Application};
+use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
 use nalgebra::{Point3, Vector3};
 use scene::asset::AssetId;
@@ -88,7 +89,8 @@ fn main() {
     application
         .app
         .with_plugin(PbrDemoPlugin)
-        .with_plugin(PlayerPlugin::new(player_spawn_settings));
+        .with_plugin(PlayerPlugin::new(player_spawn_settings))
+        .with_set(PlayerPlugin::system_set().in_set(AppStage::Update));
 
     application.run();
 }
