@@ -8,7 +8,7 @@ use gltf::texture::{MagFilter, MinFilter, WrappingMode};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
-use physics::physics_context::{BoxCollider, MovePositionTo, RigidBody, Sensor};
+use physics::physics_context::{BoxCollider, RigidBody, Sensor};
 use scene::asset::{AssetId, Assets};
 use scene::debug_name::DebugName;
 use scene::light::{CastShadow, Light, PointLight};
@@ -142,11 +142,7 @@ impl AssetServer {
 
             if let Some(str) = extras.rigid_body {
                 if str == "kinematic" {
-                    entity.insert((
-                        MovePositionTo { new_position: None },
-                        RigidBody(KinematicPositionBased),
-                        TimeTracked::new(),
-                    ));
+                    entity.insert((RigidBody(KinematicPositionBased), TimeTracked::new()));
                 } else if str == "dynamic" {
                     entity.insert((RigidBody(Dynamic), TimeTracked::new()));
                 } else {

@@ -27,7 +27,7 @@ use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
 
 use crate::pickup_system::ray_cast;
-use physics::physics_context::{BoxCollider, MovePositionTo, RigidBody, RigidBodyType};
+use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType};
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
 use scene::transform::{Transform, TransformBuilder};
 
@@ -71,14 +71,11 @@ pub fn spawn_moving_cube(mut commands: Commands) {
             bounds: cube.bounding_box.clone(),
         },
         RigidBody(RigidBodyType::KinematicPositionBased),
-        MovePositionTo {
-            new_position: Default::default(),
-        },
         MovingBox,
     ));
 }
 
-pub fn move_cubes(mut query: Query<&mut MovePositionTo, With<MovingBox>>, time: Res<TimeManager>) {
+pub fn move_cubes(mut query: Query<&mut Transform, With<MovingBox>>, time: Res<TimeManager>) {
     let origin = Point3::origin();
     for mut move_body_position in query.iter_mut() {
         let shift = Translation3::new(
@@ -86,7 +83,7 @@ pub fn move_cubes(mut query: Query<&mut MovePositionTo, With<MovingBox>>, time: 
             1.0,
             5.0 * (time.level_time_seconds() * PI / 2.0 * 0.5).sin(),
         );
-        move_body_position.new_position = Some(shift.transform_point(&origin));
+        move_body_position.position = shift.transform_point(&origin);
     }
 }
 

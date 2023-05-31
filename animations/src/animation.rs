@@ -1,7 +1,11 @@
 use std::time::Duration;
 
-use bevy_ecs::prelude::Component;
-use game_core::time_manager::level_time::LevelTime;
+use app::plugin::{Plugin, PluginAppAccess};
+use bevy_ecs::{
+    prelude::Component,
+    system::{Query, Res},
+};
+use game_core::time_manager::{level_time::LevelTime, TimeManager};
 use scene::transform::Transform;
 
 pub struct Animation {
@@ -64,5 +68,18 @@ impl PlayingAnimation {
     pub fn play_backwards(&mut self, time: &LevelTime) {
         self.reverse = true;
         self.end_time = time + self.animation.duration;
+    }
+}
+
+pub struct AnimationPlugin;
+impl Plugin for AnimationPlugin {
+    fn build(&mut self, app: &mut PluginAppAccess) {
+        app.with_system(play_animations);
+    }
+}
+
+fn play_animations(time: Res<TimeManager>, mut query: Query<(&PlayingAnimation, &mut Transform)>) {
+    for (playing_animation, mut transform) in query.iter_mut() {
+        *transform = playing_animation.get_transform(*time.level_time());
     }
 }

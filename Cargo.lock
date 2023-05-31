@@ -95,6 +95,7 @@ dependencies = [
 name = "animations"
 version = "0.1.0"
 dependencies = [
+ "app",
  "bevy_ecs",
  "game_core",
  "scene",

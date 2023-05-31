@@ -154,11 +154,6 @@ pub(crate) fn step_physics_simulation(
 pub struct Sensor;
 
 #[derive(Component)]
-pub struct MovePositionTo {
-    pub new_position: Option<Point3<f32>>,
-}
-
-#[derive(Component)]
 pub(crate) struct RapierRigidBodyHandle {
     pub handle: RigidBodyHandle,
 }
@@ -272,7 +267,7 @@ pub(crate) fn apply_collider_sensor_change(
     }
 }
 
-pub(crate) fn update_transform_system(
+pub(crate) fn write_transform_back(
     physics_context: Res<PhysicsContext>,
     mut query: Query<
         (&mut Transform, &RapierRigidBodyHandle),
@@ -280,9 +275,6 @@ pub(crate) fn update_transform_system(
     >,
 ) {
     for (mut transform, body_handle) in query.iter_mut() {
-        if transform.is_changed() {
-            // println!("Warning: Transform changed illegally");
-        }
         let body = physics_context
             .rigid_bodies
             .get(body_handle.handle)
@@ -296,43 +288,20 @@ pub(crate) fn update_transform_system(
     }
 }
 
-pub(crate) fn update_move_body_position_system(
+pub(crate) fn apply_transform_changes(
     mut physics_context: ResMut<PhysicsContext>,
-    mut query: Query<(&RapierRigidBodyHandle, &mut MovePositionTo), With<RigidBody>>,
+    query: Query<(&RapierRigidBodyHandle, &Transform), With<RigidBody>>,
 ) {
-    for (rigid_body_handle, mut move_body_position) in query.iter_mut() {
-        if let Some(position) = move_body_position.new_position {
-            let rigid_body = physics_context
-                .rigid_bodies
-                .get_mut(rigid_body_handle.handle)
-                .unwrap();
-
-            rigid_body.set_next_kinematic_translation(position.coords);
-            move_body_position.new_position = None;
-        }
-    }
-}
-// TODO: time_manager_rewind_transform and update_transform_system already do stuff like this, so we could remove this
-// *if* we remove the MoveBodyPosition
-pub(crate) fn time_rewinding_move_body_transform(
-    mut physics_context: ResMut<PhysicsContext>,
-    query: Query<(&RapierRigidBodyHandle, &Transform), (With<RigidBody>, With<TimeTracked>)>,
-) {
-    for (
-        rigid_body_handle,
-        Transform {
-            position,
-            rotation,
-            scale: _,
-        },
-    ) in query.iter()
-    {
-        // We aren't using the MoveBodyPosition for this, since if we did, we might mess up entities that already have a MoveBodyPosition
+    for (rigid_body_handle, transform) in query.iter() {
         let rigid_body = physics_context
             .rigid_bodies
             .get_mut(rigid_body_handle.handle)
             .unwrap();
-        rigid_body.set_next_kinematic_translation(position.coords);
-        rigid_body.set_next_kinematic_rotation(rotation.clone());
+
+        if rigid_body.is_kinematic() {
+            rigid_body.set_next_kinematic_position(transform.to_isometry());
+        } else {
+            // we ignore it
+        }
     }
 }

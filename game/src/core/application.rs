@@ -1,3 +1,4 @@
+use animations::animation::AnimationPlugin;
 use app::plugin::Plugin;
 use app::App;
 use game_core::level::level_flags::LevelFlags;
@@ -102,6 +103,12 @@ impl Application {
             )
             .with_plugin(InputPlugin)
             .with_set(InputPlugin::system_set().in_set(AppStage::EventUpdate))
+            .with_plugin(AnimationPlugin)
+            .with_set(
+                AnimationPlugin::system_set()
+                    .before(AppStage::Update)
+                    .after(AppStage::EventUpdate),
+            )
             .with_plugin(PhysicsPlugin)
             .with_set(PhysicsPlugin::system_set().in_set(AppStage::UpdatePhysics))
             // Transform tracking
