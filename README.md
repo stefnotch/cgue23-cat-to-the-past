@@ -43,6 +43,14 @@ You can also [build](https://doc.rust-lang.org/book/ch01-03-hello-cargo.html) th
 cargo build
 ```
 
+To get a release build without manually copying files, you can use
+
+```
+npm build
+```
+
+(I want Rust build scripts that don't run during development.)
+
 ## Demos
 
 ```
