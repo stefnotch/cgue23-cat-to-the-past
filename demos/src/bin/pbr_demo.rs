@@ -6,6 +6,7 @@ use bevy_ecs::schedule::IntoSystemSetConfig;
 use bevy_ecs::system::Commands;
 use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
+use loader::config_loader::LoadableConfig;
 use nalgebra::{Point3, Vector3};
 use scene::asset::AssetId;
 use scene::light::{Light, PointLight};
@@ -77,7 +78,7 @@ impl Plugin for PbrDemoPlugin {
 }
 
 fn main() {
-    let config = AppConfig::default();
+    let config: AppConfig = LoadableConfig::default().into();
 
     let player_spawn_settings = PlayerSpawnSettings {
         initial_transform: Default::default(),

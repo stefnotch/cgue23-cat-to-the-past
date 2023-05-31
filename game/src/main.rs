@@ -11,6 +11,7 @@ use debug::setup_debugging;
 use game_core::level::LevelId;
 use game_core::time_manager::TimeManager;
 use game_core::{level::level_flags::LevelFlags, time::Time};
+use loader::config_loader::LoadableConfig;
 use loader::loader::{AssetServer, Door};
 use scene::{
     mesh::CpuMesh,
@@ -115,8 +116,7 @@ impl Plugin for GamePlugin {
 fn main() {
     let _guard = setup_debugging();
 
-    // TODO: read from file
-    let config = AppConfig::default();
+    let config: AppConfig = LoadableConfig::load("./assets/config.json").into();
 
     let player_spawn_settings = PlayerSpawnSettings {
         initial_transform: TransformBuilder::new()

@@ -2,6 +2,7 @@
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::schedule::IntoSystemSetConfig;
+use loader::config_loader::LoadableConfig;
 use std::sync::Arc;
 
 use bevy_ecs::system::Commands;
@@ -129,7 +130,7 @@ impl Plugin for PhysicsDemoPlugin {
 }
 
 fn main() {
-    let config = AppConfig::default();
+    let config: AppConfig = LoadableConfig::default().into();
 
     let player_spawn_settings = PlayerSpawnSettings {
         initial_transform: Default::default(),

@@ -4,6 +4,7 @@ use app::App;
 use game_core::level::level_flags::LevelFlags;
 use game_core::time::{TimePlugin, TimePluginSet};
 use input::plugin::InputPlugin;
+use loader::config_loader::LoadableConfig;
 use physics::plugin::PhysicsPlugin;
 use windowing::window::{EventLoopContainer, WindowPlugin};
 
@@ -40,15 +41,15 @@ pub struct AppConfig {
     pub brightness: f32,
 }
 
-impl Default for AppConfig {
-    fn default() -> Self {
+impl From<LoadableConfig> for AppConfig {
+    fn from(config: LoadableConfig) -> Self {
         Self {
             window: WindowConfig {
-                resolution: (1280, 720),
-                fullscreen: false,
-                refresh_rate: 60,
+                resolution: config.resolution,
+                fullscreen: config.fullscreen,
+                refresh_rate: config.refresh_rate,
             },
-            brightness: 1.0,
+            brightness: config.brightness,
         }
     }
 }

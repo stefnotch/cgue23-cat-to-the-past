@@ -1,6 +1,7 @@
 use bevy_ecs::prelude::{Component, Res, With};
 
 use bevy_ecs::schedule::{IntoSystemConfig, IntoSystemSetConfig};
+use loader::config_loader::LoadableConfig;
 
 use std::sync::Arc;
 use std::time::Instant;
@@ -71,7 +72,7 @@ impl Plugin for ShadowDemoPlugin {
 }
 
 fn main() {
-    let config = AppConfig::default();
+    let config: AppConfig = LoadableConfig::default().into();
 
     let player_controller_settings = PlayerControllerSettings::new(5.0, 1.0, 9.81);
 
