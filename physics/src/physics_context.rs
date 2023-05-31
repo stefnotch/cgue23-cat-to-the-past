@@ -1,14 +1,11 @@
 use bevy_ecs::event::EventWriter;
 use game_core::time::Time;
 
-use bevy_ecs::prelude::{
-    Added, Commands, Component, DetectChanges, Entity, Query, Res, ResMut, Resource, With,
-};
+use bevy_ecs::prelude::{Added, Commands, Component, Entity, Query, Res, ResMut, Resource, With};
 use bevy_ecs::query::{Changed, Without};
 
-use game_core::time_manager::TimeTracked;
 use math::bounding_box::BoundingBox;
-use nalgebra::{Point3, UnitQuaternion};
+use nalgebra::UnitQuaternion;
 use rapier3d::na::Vector3;
 pub use rapier3d::prelude::QueryFilter;
 pub use rapier3d::prelude::Ray;

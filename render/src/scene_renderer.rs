@@ -19,9 +19,7 @@ use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
-use vulkano::image::{
-    AttachmentImage, ImageUsage, ImageViewAbstract, ImmutableImage, SwapchainImage,
-};
+use vulkano::image::{AttachmentImage, ImageUsage, ImageViewAbstract, SwapchainImage};
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::padded::Padded;
 use vulkano::pipeline::graphics::depth_stencil::{CompareOp, DepthStencilState};

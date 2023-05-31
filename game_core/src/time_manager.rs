@@ -133,11 +133,7 @@ impl TimeManager {
     }
 }
 
-fn start_frame(
-    time: Res<Time>,
-    mut time_manager: ResMut<TimeManager>,
-    mut next_level: EventReader<NextLevel>,
-) {
+fn start_frame(time: Res<Time>, mut time_manager: ResMut<TimeManager>) {
     time_manager.start_frame(time.delta());
 }
 

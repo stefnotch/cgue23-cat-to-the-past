@@ -1,25 +1,21 @@
-use bevy_ecs::prelude::{Component, Entity, Res, With};
-use bevy_ecs::query::Added;
+use bevy_ecs::prelude::{Component, Res, With};
+
 use bevy_ecs::schedule::{IntoSystemConfig, IntoSystemSetConfig};
-use std::f32::consts::PI;
+
 use std::sync::Arc;
 use std::time::Instant;
 
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::system::{Commands, Query};
-use nalgebra::{Point3, Translation3, Vector3};
-use scene::asset::AssetId;
+use nalgebra::Point3;
 
 use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 use game_core::time_manager::TimeManager;
 
-use physics::physics_context::{BoxCollider, RigidBody};
-use scene::light::{CastShadow, Light, PointLight};
-use scene::material::CpuMaterial;
 use scene::mesh::CpuMesh;
 use scene::model::{CpuPrimitive, Model};
-use scene::transform::{Transform, TransformBuilder};
+use scene::transform::Transform;
 use scene_loader::loader::AssetServer;
 
 fn spawn_world(mut commands: Commands, asset_server: Res<AssetServer>) {

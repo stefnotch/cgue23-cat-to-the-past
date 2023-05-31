@@ -2,11 +2,11 @@
 
 mod pickup_system;
 
-use animations::animation::{Animation, PlayingAnimation};
+use animations::animation::PlayingAnimation;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::{Component, EventReader, Query, With};
 use bevy_ecs::schedule::{IntoSystemConfig, IntoSystemSetConfig};
-use debug::log::enable_logging;
+
 use debug::setup_debugging;
 use game_core::level::LevelId;
 use game_core::time_manager::TimeManager;
