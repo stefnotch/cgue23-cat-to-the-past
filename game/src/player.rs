@@ -61,6 +61,11 @@ impl PlayerControllerSettings {
             camera_smoothing: 20.0,
         }
     }
+
+    pub fn with_sensitivity(mut self, sensitivity: f32) -> Self {
+        self.sensitivity = sensitivity;
+        self
+    }
 }
 
 impl Default for PlayerControllerSettings {

@@ -22,11 +22,18 @@ Should make for an interesting puzzle game. Or a stealth:tm: game, because you c
 - Left mouse button for interacting
 - Esc to quit
 
+## File structure
+
+```text
+
+
+```
+
 ## Technical Details
 
-world space: +y up, -z forward, +x right (reasonable right-handed coordinate system)  
+world space: +y up, -z forward, +x right (reasonable right-handed coordinate system)
 winding order: counter-clockwise
-units: meter  
+units: meter
 importer: gltf, we flatten the tree, we generate one axis aligned collider per model
 
 ## Compiling and Running
@@ -34,42 +41,30 @@ importer: gltf, we flatten the tree, we generate one axis aligned collider per m
 You'll need a [Rust toolchain installed](https://www.rust-lang.org/tools/install). After that, you can start the game with
 
 ```
+
 cargo run
-```
 
-You can also [build](https://doc.rust-lang.org/book/ch01-03-hello-cargo.html) the project with
-
-```
-cargo build
 ```
 
 To get a release build without manually copying files, you can use
 
 ```
+
 npm build
+
 ```
 
-(I want Rust build scripts that don't run during development.)
+(I really want Rust build scripts that don't run during development.)
 
 ## Demos
 
 ```
+
 cargo run --bin bloom_demo
+
 ```
 
 where bloom_demo can be replaced with the name of any demo project in the `demos/src/bin` folder
-
-## More concrete ideas
-
-3D Platformer game:
-
-- pull objects down, climb onto it and use the rewind mechanic to get the object back up
-
-Balancing:
-
-- falling down kills you
-- getting shot kills you
-- player can't move while rewinding but still gets affected by the environment (bullet traveling backwards kills you)
 
 ## Used sources
 
@@ -81,3 +76,7 @@ Balancing:
 - https://www.youtube.com/watch?v=RRE-F57fbXw
 - https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/#perspective-projection-into-clip-space
 - https://github.com/FlaxEngine/FlaxSamples/blob/master/FirstPersonShooterTemplate/Source/FirstPersonShooter/PlayerScript.cs
+
+```
+
+```

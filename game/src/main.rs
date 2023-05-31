@@ -25,7 +25,7 @@ use bevy_ecs::system::{Commands, Res, ResMut};
 use nalgebra::{Point3, Translation3};
 
 use game::core::application::{AppConfig, AppStage, Application};
-use game::player::{PlayerPlugin, PlayerSpawnSettings};
+use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 
 use crate::pickup_system::ray_cast;
 use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType};
@@ -116,13 +116,15 @@ impl Plugin for GamePlugin {
 fn main() {
     let _guard = setup_debugging();
 
+    // Only the main project actually loads the config from the file
     let config: AppConfig = LoadableConfig::load("./assets/config.json").into();
 
     let player_spawn_settings = PlayerSpawnSettings {
         initial_transform: TransformBuilder::new()
             .position([0.0, 1.0, 3.0].into())
             .build(),
-        controller_settings: Default::default(),
+        controller_settings: PlayerControllerSettings::default()
+            .with_sensitivity(config.mouse_sensitivity),
         free_cam_activated: false,
     };
 

@@ -74,11 +74,9 @@ impl Plugin for ShadowDemoPlugin {
 fn main() {
     let config: AppConfig = LoadableConfig::default().into();
 
-    let player_controller_settings = PlayerControllerSettings::new(5.0, 1.0, 9.81);
-
     let player_spawn_settings = PlayerSpawnSettings {
         initial_transform: Default::default(),
-        controller_settings: player_controller_settings,
+        controller_settings: Default::default(),
         free_cam_activated: true,
     };
 

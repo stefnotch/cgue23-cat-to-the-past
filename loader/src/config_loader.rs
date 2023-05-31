@@ -9,6 +9,7 @@ pub struct LoadableConfig {
     pub fullscreen: bool,
     pub refresh_rate: u32,
     pub brightness: f32,
+    pub mouse_sensitivity: f32,
 }
 
 impl LoadableConfig {
@@ -45,6 +46,7 @@ impl Default for LoadableConfig {
             fullscreen: false,
             refresh_rate: 60,
             brightness: 1.0,
+            mouse_sensitivity: 1.0,
         }
     }
 }

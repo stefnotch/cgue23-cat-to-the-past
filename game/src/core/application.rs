@@ -39,6 +39,7 @@ pub struct AppConfig {
     /// Projectors are usually very dark, this parameter should control how bright your total
     /// scene is, e.g., an illumination multiplier
     pub brightness: f32,
+    pub mouse_sensitivity: f32,
 }
 
 impl From<LoadableConfig> for AppConfig {
@@ -50,6 +51,7 @@ impl From<LoadableConfig> for AppConfig {
                 refresh_rate: config.refresh_rate,
             },
             brightness: config.brightness,
+            mouse_sensitivity: config.mouse_sensitivity,
         }
     }
 }
