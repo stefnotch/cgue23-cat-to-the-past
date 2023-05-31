@@ -14,7 +14,7 @@ pub struct Animation {
     pub duration: Duration,
 }
 
-/// An entity with a PlayingAnimation may not be time tracked.
+/// An entity with a PlayingAnimation should not be time tracked.
 #[derive(Component)]
 pub struct PlayingAnimation {
     pub animation: Animation,
