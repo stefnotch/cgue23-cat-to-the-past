@@ -102,6 +102,10 @@ impl TimeManager {
         self.level_time.as_secs_f32()
     }
 
+    pub fn level_time(&self) -> &LevelTime {
+        &self.level_time
+    }
+
     fn next_level(&mut self) {
         self.level_time = LevelTime::zero();
     }

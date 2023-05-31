@@ -2,7 +2,7 @@
 
 mod pickup_system;
 
-use animations::animation::Animation;
+use animations::animation::{Animation, PlayingAnimation};
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::{Component, EventReader, Query, With};
 use bevy_ecs::schedule::{IntoSystemConfig, IntoSystemSetConfig};
@@ -27,7 +27,7 @@ use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
 
 use crate::pickup_system::ray_cast;
-use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, RigidBodyType};
+use physics::physics_context::{BoxCollider, MovePositionTo, RigidBody, RigidBodyType};
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
 use scene::transform::{Transform, TransformBuilder};
 
@@ -71,17 +71,14 @@ pub fn spawn_moving_cube(mut commands: Commands) {
             bounds: cube.bounding_box.clone(),
         },
         RigidBody(RigidBodyType::KinematicPositionBased),
-        MoveBodyPosition {
+        MovePositionTo {
             new_position: Default::default(),
         },
         MovingBox,
     ));
 }
 
-pub fn move_cubes(
-    mut query: Query<&mut MoveBodyPosition, With<MovingBox>>,
-    time: Res<TimeManager>,
-) {
+pub fn move_cubes(mut query: Query<&mut MovePositionTo, With<MovingBox>>, time: Res<TimeManager>) {
     let origin = Point3::origin();
     for mut move_body_position in query.iter_mut() {
         let shift = Translation3::new(
@@ -95,12 +92,13 @@ pub fn move_cubes(
 
 fn door_system(
     mut collision_events: EventReader<CollisionEvent>,
-    mut query: Query<(&Animation, &mut MoveBodyPosition), With<Door>>,
+    mut query: Query<&mut PlayingAnimation, With<Door>>,
+    time: Res<TimeManager>,
 ) {
     for collision_event in collision_events.iter() {
         if let CollisionEvent::Started(_e1, _e2, CollisionEventFlags::SENSOR) = collision_event {
-            let (animation, mut door_new_position) = query.single_mut();
-            door_new_position.new_position = Some(animation.end_transform.position);
+            let mut animation = query.single_mut();
+            animation.play_forwards(time.level_time());
         }
     }
 }

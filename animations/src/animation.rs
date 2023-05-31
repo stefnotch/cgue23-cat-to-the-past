@@ -38,7 +38,7 @@ impl PlayingAnimation {
         start.lerp(&end, progress)
     }
 
-    pub fn get_progress(&self, time: LevelTime) -> f32 {
+    fn get_progress(&self, time: LevelTime) -> f32 {
         if time > self.end_time {
             return 1.0;
         }
@@ -54,5 +54,15 @@ impl PlayingAnimation {
             time + self.animation.duration,
         );
         progress
+    }
+
+    pub fn play_forwards(&mut self, time: &LevelTime) {
+        self.reverse = false;
+        self.end_time = time + self.animation.duration;
+    }
+
+    pub fn play_backwards(&mut self, time: &LevelTime) {
+        self.reverse = true;
+        self.end_time = time + self.animation.duration;
     }
 }

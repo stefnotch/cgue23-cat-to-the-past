@@ -154,7 +154,7 @@ pub(crate) fn step_physics_simulation(
 pub struct Sensor;
 
 #[derive(Component)]
-pub struct MoveBodyPosition {
+pub struct MovePositionTo {
     pub new_position: Option<Point3<f32>>,
 }
 
@@ -298,7 +298,7 @@ pub(crate) fn update_transform_system(
 
 pub(crate) fn update_move_body_position_system(
     mut physics_context: ResMut<PhysicsContext>,
-    mut query: Query<(&RapierRigidBodyHandle, &mut MoveBodyPosition), With<RigidBody>>,
+    mut query: Query<(&RapierRigidBodyHandle, &mut MovePositionTo), With<RigidBody>>,
 ) {
     for (rigid_body_handle, mut move_body_position) in query.iter_mut() {
         if let Some(position) = move_body_position.new_position {

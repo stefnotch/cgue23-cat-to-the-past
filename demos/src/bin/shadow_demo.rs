@@ -14,7 +14,7 @@ use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 use game_core::time_manager::TimeManager;
 
-use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody};
+use physics::physics_context::{BoxCollider, MovePositionTo, RigidBody};
 use scene::light::{CastShadow, Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::CpuMesh;
