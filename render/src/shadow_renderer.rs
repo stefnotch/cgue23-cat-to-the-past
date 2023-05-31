@@ -75,22 +75,13 @@ impl ShadowRenderer {
             let vs = vs::load(context.device()).unwrap();
             let fs = fs::load(context.device()).unwrap();
 
-            let mut rasterization_state = RasterizationState::new()
-                .cull_mode(CullMode::Back)
-                .polygon_mode(PolygonMode::Fill);
-            // Source: https://blogs.igalia.com/itoral/2017/10/02/working-with-lights-and-shadows-part-iii-rendering-the-shadows/
-            // rasterization_state.depth_bias = Some(DepthBiasState {
-            //     enable_dynamic: false,
-            //     bias: StateMode::Fixed(DepthBias {
-            //         constant_factor: 2.0,
-            //         clamp: 0.0,
-            //         slope_factor: 50.0,
-            //     }),
-            // });
-
             GraphicsPipeline::start()
                 .vertex_input_state(MeshVertex::per_vertex())
-                .rasterization_state(rasterization_state)
+                .rasterization_state(
+                    RasterizationState::new()
+                        .cull_mode(CullMode::Back)
+                        .polygon_mode(PolygonMode::Fill),
+                )
                 .vertex_shader(vs.entry_point("main").unwrap(), ())
                 .input_assembly_state(InputAssemblyState::new())
                 .viewport_state(ViewportState::viewport_dynamic_scissor_irrelevant())
@@ -109,28 +100,50 @@ impl ShadowRenderer {
         let framebuffers: Vec<[Arc<Framebuffer>; 6]> =
             Self::create_framebuffers(shadow_maps.clone(), render_pass.clone());
 
-        let rad_90 = std::f32::consts::FRAC_PI_2;
-        let rad_180 = std::f32::consts::PI;
-
-        let face_view_matrices = [
+        let face_view_matrices = dbg!([
             // POSITIVE_X
-            Rotation3::from_axis_angle(&Vector3::x_axis(), rad_180)
-                * Rotation3::from_axis_angle(&Vector3::y_axis(), rad_90),
+            Matrix4::from_row_slice(&[
+                0.0, 0.0, 1.0, 0.0, //
+                0.0, -1.0, 0.0, 0.0, //
+                1.0, 0.0, 0.0, 0.0, //
+                0.0, 0.0, 0.0, 1.0, //
+            ]),
             // NEGATIVE_X
-            Rotation3::from_axis_angle(&Vector3::x_axis(), rad_180)
-                * Rotation3::from_axis_angle(&Vector3::y_axis(), -rad_90),
+            Matrix4::from_row_slice(&[
+                0.0, 0.0, -1.0, 0.0, //
+                0.0, -1.0, 0.0, 0.0, //
+                -1.0, 0.0, 0.0, 0.0, //
+                0.0, 0.0, 0.0, 1.0, //
+            ]),
             // POSITIVE_Y
-            Rotation3::from_axis_angle(&Vector3::x_axis(), rad_90)
-                * Rotation3::from_axis_angle(&Vector3::y_axis(), rad_180),
+            Matrix4::from_row_slice(&[
+                -1.0, 0.0, 0.0, 0.0, //
+                0.0, 0.0, 1.0, 0.0, //
+                0.0, 1.0, 0.0, 0.0, //
+                0.0, 0.0, 0.0, 1.0, //
+            ]),
             // NEGATIVE_Y
-            Rotation3::from_axis_angle(&Vector3::x_axis(), -rad_90)
-                * Rotation3::from_axis_angle(&Vector3::y_axis(), rad_180),
+            Matrix4::from_row_slice(&[
+                -1.0, 0.0, 0.0, 0.0, //
+                0.0, 0.0, -1.0, 0.0, //
+                0.0, -1.0, 0.0, 0.0, //
+                0.0, 0.0, 0.0, 1.0, //
+            ]),
             // POSITIVE_Z
-            Rotation3::from_axis_angle(&Vector3::z_axis(), rad_180),
+            Matrix4::from_row_slice(&[
+                -1.0, 0.0, 0.0, 0.0, //
+                0.0, -1.0, 0.0, 0.0, //
+                0.0, 0.0, 1.0, 0.0, //
+                0.0, 0.0, 0.0, 1.0, //
+            ]),
             // NEGATIVE_Z
-            Rotation3::from_axis_angle(&Vector3::x_axis(), rad_180),
-        ]
-        .map(|matrix| matrix.to_homogeneous());
+            Matrix4::from_row_slice(&[
+                1.0, 0.0, 0.0, 0.0, //
+                0.0, -1.0, 0.0, 0.0, //
+                0.0, 0.0, -1.0, 0.0, //
+                0.0, 0.0, 0.0, 1.0, //
+            ]),
+        ]);
 
         const far: f32 = 50.0;
         const near: f32 = 0.5;
