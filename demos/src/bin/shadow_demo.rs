@@ -11,7 +11,7 @@ use bevy_ecs::system::{Commands, Query};
 use nalgebra::Point3;
 
 use game::core::application::{AppConfig, AppStage, Application};
-use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
+use game::player::{PlayerPlugin, PlayerSpawnSettings};
 use game_core::time_manager::TimeManager;
 
 use loader::loader::AssetServer;

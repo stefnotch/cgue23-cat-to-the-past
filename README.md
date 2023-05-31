@@ -25,8 +25,11 @@ Should make for an interesting puzzle game. Or a stealth:tm: game, because you c
 ## File structure
 
 ```text
-
-
+assets/
+    ...
+    config.json - the configuration file, automatically gets created if missing
+...
+game.exe - the game executable
 ```
 
 ## Technical Details
