@@ -13,10 +13,10 @@ use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 use game_core::time_manager::TimeManager;
 
+use loader::loader::AssetServer;
 use scene::mesh::CpuMesh;
 use scene::model::{CpuPrimitive, Model};
 use scene::transform::Transform;
-use scene_loader::loader::AssetServer;
 
 fn spawn_world(mut commands: Commands, asset_server: Res<AssetServer>) {
     let before = Instant::now();

@@ -11,11 +11,11 @@ use debug::setup_debugging;
 use game_core::level::LevelId;
 use game_core::time_manager::TimeManager;
 use game_core::{level::level_flags::LevelFlags, time::Time};
+use loader::loader::{AssetServer, Door};
 use scene::{
     mesh::CpuMesh,
     model::{CpuPrimitive, Model},
 };
-use scene_loader::loader::{AssetServer, Door};
 use std::f32::consts::PI;
 use std::sync::Arc;
 use std::time::Instant;

@@ -12,11 +12,11 @@ use angle::Deg;
 use bevy_ecs::prelude::*;
 use input::events::{KeyboardInput, MouseInput, MouseMovement};
 use input::input_map::InputMap;
+use loader::loader::AssetServer;
 use nalgebra::{Point3, UnitQuaternion};
 use render::context::Context;
 use render::{Renderer, RendererPlugin, RendererPluginSets};
 use scene::camera::{update_camera, Camera};
-use scene_loader::loader::AssetServer;
 use windowing::config::WindowConfig;
 use windowing::dpi::PhysicalSize;
 use windowing::event::{
