@@ -3,6 +3,8 @@ use std::{
     time::Duration,
 };
 
+use crate::signed_duration::SignedDuration;
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LevelTime {
     elapsed: Duration,
@@ -71,9 +73,14 @@ impl AddAssign<Duration> for LevelTime {
 }
 
 impl Sub<LevelTime> for LevelTime {
-    type Output = Duration;
+    type Output = SignedDuration;
 
-    fn sub(self, other: LevelTime) -> Duration {
-        self.elapsed - other.elapsed
+    fn sub(self, other: LevelTime) -> SignedDuration {
+        let is_negative = self.elapsed < other.elapsed;
+        if is_negative {
+            SignedDuration::new(other.elapsed - self.elapsed, is_negative)
+        } else {
+            SignedDuration::new(self.elapsed - other.elapsed, is_negative)
+        }
     }
 }

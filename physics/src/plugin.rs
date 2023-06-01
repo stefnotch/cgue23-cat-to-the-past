@@ -25,6 +25,7 @@ use crate::{
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 enum PhysicsPluginSets {
+    PickupUpdate,
     TimeRewinding,
     BeforePhysics,
     Physics,
@@ -36,6 +37,7 @@ pub struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
         app.with_resource(PhysicsContext::new())
+            .with_set(PhysicsPluginSets::PickupUpdate.before(PhysicsPluginSets::TimeRewinding))
             .with_set(PhysicsPluginSets::TimeRewinding.before(PhysicsPluginSets::BeforePhysics))
             .with_set(PhysicsPluginSets::BeforePhysics.before(PhysicsPluginSets::Physics))
             .with_set(PhysicsPluginSets::Physics.before(PhysicsPluginSets::AfterPhysics));
@@ -88,10 +90,11 @@ impl Plugin for PhysicsPlugin {
                 Events::<CollisionEvent>::update_system.in_set(PhysicsPluginSets::AfterPhysics),
             );
 
-        // Pick up logic
-        app.with_system(start_pickup.in_set(PhysicsPluginSets::BeforePhysics)) // TODO: Is BeforePhysics correct?
-            .with_system(stop_pickup.in_set(PhysicsPluginSets::BeforePhysics))
-            .with_system(update_pickup_target_position.in_set(PhysicsPluginSets::BeforePhysics))
+        // Pick up logic, most of it is pretty much independent of the physics and simply happens before it
+        app //
+            .with_system(start_pickup.in_set(PhysicsPluginSets::PickupUpdate))
+            .with_system(stop_pickup.in_set(PhysicsPluginSets::PickupUpdate))
+            .with_system(update_pickup_target_position.in_set(PhysicsPluginSets::PickupUpdate))
             .with_system(
                 update_pickup_transform
                     .in_set(PhysicsPluginSets::Physics)
