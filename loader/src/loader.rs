@@ -7,7 +7,7 @@ use gltf::texture::{MagFilter, MinFilter, WrappingMode};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
-use physics::physics_context::{BoxCollider, RigidBody, Sensor};
+use physics::physics_context::{BoxCollider, RigidBody};
 use scene::asset::AssetId;
 use scene::debug_name::DebugName;
 use scene::light::{CastShadow, Light, PointLight};
@@ -27,6 +27,8 @@ use std::{collections::HashMap, path::Path};
 
 use game_core::pickup::Pickupable;
 use physics::physics_context::RigidBodyType::{Dynamic, KinematicPositionBased};
+use scene::flag_trigger::FlagTrigger;
+use scene::level::LevelId;
 use serde::Deserialize;
 
 // scene.json -> assets
@@ -46,10 +48,17 @@ struct AnimationProperty {
     pub duration: f32,
 }
 
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+struct LevelFlagProperty {
+    pub level_id: u32,
+    pub flag_id: u32,
+}
+
 #[derive(Deserialize, Debug, Default)]
 #[serde(deny_unknown_fields)]
 struct GLTFExtras {
-    pub sensor: Option<u32>,
+    pub sensor: Option<LevelFlagProperty>,
     pub box_collider: Option<bool>,
     pub rigid_body: Option<String>,
     pub animation: Option<AnimationProperty>,
@@ -118,9 +127,12 @@ impl SceneLoader {
 
             let mut entity = commands.spawn((name, transform.clone()));
 
-            if let Some(_) = extras.sensor {
+            if let Some(sensor) = extras.sensor {
                 // and sensor component
-                entity.insert(Sensor);
+                entity.insert(FlagTrigger {
+                    level_id: LevelId::new(sensor.level_id),
+                    flag_id: sensor.flag_id as usize,
+                });
             } else {
                 // add model component
                 entity.insert(model);

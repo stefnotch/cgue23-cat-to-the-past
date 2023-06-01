@@ -4,7 +4,7 @@ use bevy_ecs::{
 };
 
 /// An event that is tied to an entity.
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct EntityEvent<T>
 where
     T: Event,

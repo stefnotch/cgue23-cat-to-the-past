@@ -17,6 +17,7 @@ use super::player_physics::PlayerCharacterController;
 use crate::physics_events::{collider2entity, handle_collision_event, CollisionEvent};
 use crate::pickup_physics::PickedUp;
 pub use rapier3d::prelude::RigidBodyType;
+use scene::flag_trigger::FlagTrigger;
 
 #[derive(Resource)]
 pub struct PhysicsContext {
@@ -152,9 +153,6 @@ pub(crate) fn step_physics_simulation(
 }
 
 #[derive(Component)]
-pub struct Sensor;
-
-#[derive(Component)]
 pub(crate) struct RapierRigidBodyHandle {
     pub handle: RigidBodyHandle,
 }
@@ -255,7 +253,7 @@ pub(crate) fn apply_rigid_body_type_change(
 
 pub(crate) fn apply_collider_sensor_change(
     mut physics_context: ResMut<PhysicsContext>,
-    mut query: Query<&RapierColliderHandle, With<Sensor>>,
+    mut query: Query<&RapierColliderHandle, With<FlagTrigger>>,
 ) {
     for RapierColliderHandle { handle } in query.iter_mut() {
         let collider = physics_context
