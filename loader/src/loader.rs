@@ -25,8 +25,10 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{collections::HashMap, path::Path};
 
+use app::entity_event::EntityEvent;
 use game_core::pickup::Pickupable;
 use physics::physics_context::RigidBodyType::{Dynamic, KinematicPositionBased};
+use physics::physics_events::CollisionEvent;
 use scene::flag_trigger::FlagTrigger;
 use scene::level::LevelId;
 use serde::Deserialize;
@@ -127,12 +129,14 @@ impl SceneLoader {
 
             let mut entity = commands.spawn((name, transform.clone()));
 
-            if let Some(sensor) = extras.sensor {
+            if let Some(flag) = extras.sensor {
                 // and sensor component
-                entity.insert(FlagTrigger {
-                    level_id: LevelId::new(sensor.level_id),
-                    flag_id: sensor.flag_id as usize,
-                });
+                entity
+                    .insert(dbg!(FlagTrigger {
+                        level_id: LevelId::new(flag.level_id),
+                        flag_id: flag.flag_id as usize,
+                    }))
+                    .insert(EntityEvent::<CollisionEvent>::default());
             } else {
                 // add model component
                 entity.insert(model);

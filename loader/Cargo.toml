@@ -10,6 +10,7 @@ gltf = { git = "https://github.com/stefnotch/gltf.git", branch = "feat/emissive_
 bevy_ecs.workspace = true
 nalgebra.workspace = true
 
+app = { path = "../app"}
 game_core = { path = "../game_core" }
 math = { path = "../math" }
 physics = { path = "../physics" }

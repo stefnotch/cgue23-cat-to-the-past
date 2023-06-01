@@ -952,6 +952,7 @@ name = "loader"
 version = "0.1.0"
 dependencies = [
  "animations",
+ "app",
  "bevy_ecs",
  "game_core",
  "gltf",

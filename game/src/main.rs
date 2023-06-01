@@ -94,7 +94,6 @@ fn flag_system(
     flag_triggers: Query<(&FlagTrigger, &EntityEvent<CollisionEvent>)>,
 ) {
     for (flag_trigger, collision_events) in flag_triggers.iter() {
-        println!("{:#?}", collision_events);
         for collision_event in collision_events.iter() {
             if let CollisionEvent::Started(_e2, CollisionEventFlags::SENSOR) = collision_event {
                 level_flags.set(flag_trigger.level_id, flag_trigger.flag_id, true);
@@ -117,21 +116,12 @@ fn door_system(
     }
 }
 
-fn setup_flag_triggers(mut commands: Commands, query: Query<Entity, With<FlagTrigger>>) {
-    for entity in query.iter() {
-        commands
-            .entity(entity)
-            .insert(EntityEvent::<CollisionEvent>::default());
-    }
-}
-
 struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
         app.with_startup_system(spawn_world)
             .with_startup_system(setup_levels)
             .with_startup_system(spawn_moving_cube)
-            .with_startup_system(setup_flag_triggers)
             .with_plugin(PickupPlugin)
             .with_system(flag_system.in_set(AppStage::Update))
             .with_system(door_system.in_set(AppStage::Update).after(flag_system))
