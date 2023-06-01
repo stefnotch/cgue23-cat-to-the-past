@@ -4,6 +4,7 @@ use rapier3d::prelude::{ColliderHandle, ColliderSet};
 
 pub use rapier3d::prelude::CollisionEventFlags;
 
+/// Would ideally be an entity bound event, but bevy_ecs doesn't really support that yet
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CollisionEvent {
     Started(Entity, Entity, CollisionEventFlags),

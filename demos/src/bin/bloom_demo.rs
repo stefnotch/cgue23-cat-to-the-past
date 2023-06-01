@@ -3,13 +3,12 @@ use std::f32::consts::PI;
 use std::sync::Arc;
 
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::schedule::IntoSystemSetConfig;
 use bevy_ecs::system::Commands;
 use loader::config_loader::LoadableConfig;
 use nalgebra::{Point3, UnitQuaternion, Vector3};
 use scene::asset::AssetId;
 
-use game::core::application::{AppConfig, AppStage, Application};
+use game::core::application::{AppConfig, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
 use scene::light::{CastShadow, Light, PointLight};
 use scene::material::CpuMaterial;

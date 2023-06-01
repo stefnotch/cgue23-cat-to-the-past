@@ -2,9 +2,8 @@
 use std::sync::Arc;
 
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::schedule::IntoSystemSetConfig;
 use bevy_ecs::system::Commands;
-use game::core::application::{AppConfig, AppStage, Application};
+use game::core::application::{AppConfig, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
 use loader::config_loader::LoadableConfig;
 use nalgebra::{Point3, Vector3};

@@ -1,7 +1,6 @@
 //#![windows_subsystem = "windows"]
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::event::EventReader;
-use bevy_ecs::schedule::IntoSystemSetConfig;
 use loader::config_loader::LoadableConfig;
 use std::sync::Arc;
 
@@ -9,7 +8,7 @@ use bevy_ecs::system::Commands;
 use nalgebra::{Point3, Vector3};
 use scene::asset::AssetId;
 
-use game::core::application::{AppConfig, AppStage, Application};
+use game::core::application::{AppConfig, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
 
 use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType, Sensor};

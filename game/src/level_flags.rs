@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 
 use bevy_ecs::system::Resource;
-
-use super::LevelId;
-
-pub type FlagId = usize;
+use scene::level::{FlagId, LevelId};
 
 #[derive(Resource)]
 pub struct LevelFlags {

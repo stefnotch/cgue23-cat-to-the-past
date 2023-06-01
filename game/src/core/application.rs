@@ -1,7 +1,6 @@
 use animations::animation::AnimationPlugin;
 use app::plugin::Plugin;
 use app::App;
-use game_core::level::level_flags::LevelFlags;
 use game_core::time::{TimePlugin, TimePluginSet};
 use input::plugin::InputPlugin;
 use loader::config_loader::LoadableConfig;
@@ -9,13 +8,14 @@ use physics::plugin::PhysicsPlugin;
 use windowing::window::{EventLoopContainer, WindowPlugin};
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
+use crate::level_flags::LevelFlags;
 use crate::pickup_system::PickupPlugin;
 use crate::player::PlayerPluginSets;
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use input::events::{KeyboardInput, MouseInput, MouseMovement};
 use input::input_map::InputMap;
-use loader::loader::AssetServer;
+use loader::loader::SceneLoader;
 use nalgebra::{Point3, UnitQuaternion};
 use render::context::Context;
 use render::{Renderer, RendererPlugin, RendererPluginSets};
@@ -153,9 +153,8 @@ impl Application {
 
         let aspect_ratio = config.window.resolution.0 as f32 / config.window.resolution.1 as f32;
 
-        let asset_server = AssetServer::new();
-        world.insert_resource(asset_server);
-        AssetServer::insert_asset_types(world);
+        let scene_loader = SceneLoader::new();
+        world.insert_resource(scene_loader);
 
         let camera = Camera::new(
             Point3::origin(), // Note: The player updates this

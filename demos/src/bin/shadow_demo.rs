@@ -1,6 +1,6 @@
 use bevy_ecs::prelude::{Component, Res, With};
 
-use bevy_ecs::schedule::{IntoSystemConfig, IntoSystemSetConfig};
+use bevy_ecs::schedule::IntoSystemConfig;
 use loader::config_loader::LoadableConfig;
 
 use std::sync::Arc;
@@ -14,14 +14,14 @@ use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
 use game_core::time_manager::TimeManager;
 
-use loader::loader::AssetServer;
+use loader::loader::SceneLoader;
 use scene::mesh::CpuMesh;
 use scene::model::{CpuPrimitive, Model};
 use scene::transform::Transform;
 
-fn spawn_world(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn spawn_world(mut commands: Commands, scene_loader: Res<SceneLoader>) {
     let before = Instant::now();
-    asset_server
+    scene_loader
         .load_default_scene(
             "./assets/scene/testing/shadow_test/shadow_test.glb",
             &mut commands,

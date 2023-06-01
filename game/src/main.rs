@@ -6,12 +6,14 @@ use bevy_ecs::prelude::{Component, EventReader, Query, With};
 use bevy_ecs::schedule::IntoSystemConfig;
 
 use debug::setup_debugging;
+use game::level_flags::LevelFlags;
 use game::pickup_system::PickupPlugin;
-use game_core::level::LevelId;
+use game_core::time::Time;
 use game_core::time_manager::TimeManager;
-use game_core::{level::level_flags::LevelFlags, time::Time};
 use loader::config_loader::LoadableConfig;
-use loader::loader::{AssetServer, Door};
+use loader::loader::{Door, SceneLoader};
+use scene::flag_trigger::FlagTrigger;
+use scene::level::LevelId;
 use scene::{
     mesh::CpuMesh,
     model::{CpuPrimitive, Model},
@@ -30,9 +32,9 @@ use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType};
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
 use scene::transform::{Transform, TransformBuilder};
 
-fn spawn_world(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn spawn_world(mut commands: Commands, scene_loader: Res<SceneLoader>) {
     let before = Instant::now();
-    asset_server
+    scene_loader
         .load_default_scene(
             "./assets/scene/testing/prototype/prototype.glb",
             &mut commands,
@@ -86,16 +88,33 @@ pub fn move_cubes(mut query: Query<&mut Transform, With<MovingBox>>, time: Res<T
     }
 }
 
-fn door_system(
+// TODO: Maybe refactor the CollisionEvents design, since it doesn't work well with the rest of Bevy ECS.
+// TODO: Maybe refactor the flags to be more type safe? Like using a struct for each flag? And maybe letting entities "subscribe" to a flag being changed?
+fn flag_system(
     mut collision_events: EventReader<CollisionEvent>,
-    mut query: Query<&mut PlayingAnimation, With<Door>>,
-    time: Res<TimeManager>,
+    mut level_flags: ResMut<LevelFlags>,
+    flag_triggers: Query<&FlagTrigger>,
 ) {
     for collision_event in collision_events.iter() {
-        if let CollisionEvent::Started(_e1, _e2, CollisionEventFlags::SENSOR) = collision_event {
-            let mut animation = query.single_mut();
-            animation.play_forwards(time.level_time());
+        if let CollisionEvent::Started(e1, e2, CollisionEventFlags::SENSOR) = collision_event {
+            if let Ok(flag_trigger) = flag_triggers
+                .get(*e1)
+                .or_else(|_err| flag_triggers.get(*e2))
+            {
+                level_flags.set(flag_trigger.level_id, flag_trigger.flag_id, true);
+            }
         }
+    }
+}
+
+fn door_system(
+    level_flags: Res<LevelFlags>,
+    time: Res<TimeManager>,
+    mut query: Query<&mut PlayingAnimation, With<Door>>,
+) {
+    if level_flags.get(LevelId::new(0), 0) {
+        let mut animation = query.single_mut();
+        animation.play_forwards(time.level_time());
     }
 }
 
@@ -106,7 +125,8 @@ impl Plugin for GamePlugin {
             .with_startup_system(setup_levels)
             .with_startup_system(spawn_moving_cube)
             .with_plugin(PickupPlugin)
-            .with_system(door_system.in_set(AppStage::Update))
+            .with_system(flag_system.in_set(AppStage::Update))
+            .with_system(door_system.in_set(AppStage::Update).after(flag_system))
             .with_system(move_cubes.in_set(AppStage::Update));
     }
 }

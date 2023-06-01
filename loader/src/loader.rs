@@ -1,6 +1,5 @@
 use animations::animation::{Animation, PlayingAnimation};
 use bevy_ecs::prelude::*;
-use game_core::level::{Level, LevelId};
 use game_core::time_manager::level_time::LevelTime;
 use game_core::time_manager::TimeTracked;
 use gltf::khr_lights_punctual::Kind;
@@ -9,7 +8,7 @@ use gltf::{import, khr_lights_punctual, Node, Semantic};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
 use physics::physics_context::{BoxCollider, RigidBody, Sensor};
-use scene::asset::{AssetId, Assets};
+use scene::asset::AssetId;
 use scene::debug_name::DebugName;
 use scene::light::{CastShadow, Light, PointLight};
 use scene::material::CpuMaterial;
@@ -54,22 +53,13 @@ struct GLTFExtras {
     pub rigid_body: Option<String>,
     pub animation: Option<AnimationProperty>,
     pub door: Option<u32>,
-    pub level: Option<u32>,
     pub pickupable: Option<bool>,
 }
 
 #[derive(Resource)]
-pub struct AssetServer {}
+pub struct SceneLoader {}
 
-impl AssetServer {
-    pub fn insert_asset_types(world: &mut World) {
-        // TODO: Those are unused, the loader doesn't add anything to them
-        world.insert_resource(Assets::<CpuTexture>::default());
-        world.insert_resource(Assets::<CpuMesh>::default());
-        world.insert_resource(Assets::<CpuMaterial>::default());
-        // world.insert_resource(Assets::<Light>::default());
-    }
-
+impl SceneLoader {
     /// loads one .gltf file
     pub fn load_default_scene<P>(
         &self,
@@ -154,12 +144,6 @@ impl AssetServer {
                 entity.insert(Door { id });
             }
 
-            if let Some(id) = extras.level {
-                entity.insert(Level {
-                    id: LevelId::new(id),
-                });
-            }
-
             if let Some(animation) = extras.animation {
                 let start_transform = transform.clone();
                 let mut end_transform = transform.clone();
@@ -193,7 +177,7 @@ impl AssetServer {
     }
 
     pub fn new() -> Self {
-        AssetServer {}
+        SceneLoader {}
     }
 
     fn read_node(
@@ -206,7 +190,7 @@ impl AssetServer {
         let global_transform = parent_transform * local_transform;
 
         for child in node.children() {
-            AssetServer::read_node(
+            SceneLoader::read_node(
                 &child,
                 scene_loading_data,
                 scene_loading_result,
