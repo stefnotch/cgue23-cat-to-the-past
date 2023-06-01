@@ -44,6 +44,7 @@ pub(super) fn apply_player_character_controller_changes(
 
     for (entity, transform, player_character_controller) in character_controller_query.iter_mut() {
         let physics_rigid_body = RigidBodyBuilder::kinematic_position_based()
+            .ccd_enabled(true)
             .translation(transform.position.coords)
             .build();
 

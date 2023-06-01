@@ -7,6 +7,10 @@ layout(push_constant) uniform PushConsts {
     mat4 model;
 } push;
 
+// lightPos
+// normalMatrix
+
+
 void main() {
     vec4 clipSpacePosition = push.projView * push.model * vec4(position, 1.0);
     gl_Position = clipSpacePosition;
