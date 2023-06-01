@@ -43,7 +43,7 @@ pub enum TimeState {
 
 #[derive(Resource)]
 pub struct TimeManager {
-    current_frame_timestamp: LevelTime,
+    level_delta_time: Duration,
     pub will_rewind_next_frame: bool,
     time_state: TimeState,
     level_time: LevelTime,
@@ -56,7 +56,7 @@ pub fn is_rewinding(time_manager: Res<TimeManager>) -> bool {
 impl TimeManager {
     fn new() -> Self {
         Self {
-            current_frame_timestamp: LevelTime::zero(),
+            level_delta_time: Duration::default(),
             will_rewind_next_frame: false,
             time_state: TimeState::Normal,
             level_time: LevelTime::zero(),
@@ -64,6 +64,8 @@ impl TimeManager {
     }
 
     pub fn start_frame(&mut self, delta: Duration) {
+        let old_level_time = self.level_time;
+
         if self.will_rewind_next_frame {
             // Rewinding
             self.level_time = self.level_time.sub_or_zero(delta);
@@ -95,7 +97,7 @@ impl TimeManager {
             }
         }
 
-        self.current_frame_timestamp = self.level_time;
+        self.level_delta_time = old_level_time - self.level_time;
     }
 
     pub fn level_time_seconds(&self) -> f32 {

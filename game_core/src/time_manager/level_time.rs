@@ -1,5 +1,5 @@
 use std::{
-    ops::{Add, AddAssign},
+    ops::{Add, AddAssign, Sub},
     time::Duration,
 };
 
@@ -67,5 +67,13 @@ impl Add<Duration> for &LevelTime {
 impl AddAssign<Duration> for LevelTime {
     fn add_assign(&mut self, other: Duration) {
         self.elapsed += other;
+    }
+}
+
+impl Sub<LevelTime> for LevelTime {
+    type Output = Duration;
+
+    fn sub(self, other: LevelTime) -> Duration {
+        self.elapsed - other.elapsed
     }
 }
