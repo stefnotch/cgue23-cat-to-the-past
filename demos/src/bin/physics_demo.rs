@@ -142,8 +142,7 @@ fn main() {
     application
         .app
         .with_plugin(PhysicsDemoPlugin)
-        .with_plugin(PlayerPlugin::new(player_spawn_settings))
-        .with_set(PlayerPlugin::system_set().in_set(AppStage::Update));
+        .with_plugin(PlayerPlugin::new(player_spawn_settings));
 
     application.run();
 }

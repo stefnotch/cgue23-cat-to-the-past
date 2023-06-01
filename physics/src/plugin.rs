@@ -93,8 +93,16 @@ impl Plugin for PhysicsPlugin {
         // Pick up logic, most of it is pretty much independent of the physics and simply happens before it
         app //
             .with_system(start_pickup.in_set(PhysicsPluginSets::PickupUpdate))
-            .with_system(stop_pickup.in_set(PhysicsPluginSets::PickupUpdate))
-            .with_system(update_pickup_target_position.in_set(PhysicsPluginSets::PickupUpdate))
+            .with_system(
+                stop_pickup
+                    .in_set(PhysicsPluginSets::PickupUpdate)
+                    .after(start_pickup),
+            )
+            .with_system(
+                update_pickup_target_position
+                    .in_set(PhysicsPluginSets::PickupUpdate)
+                    .after(start_pickup),
+            )
             .with_system(
                 update_pickup_transform
                     .in_set(PhysicsPluginSets::Physics)

@@ -9,6 +9,8 @@ use physics::plugin::PhysicsPlugin;
 use windowing::window::{EventLoopContainer, WindowPlugin};
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
+use crate::pickup_system::PickupPlugin;
+use crate::player::PlayerPluginSets;
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use input::events::{KeyboardInput, MouseInput, MouseMovement};
@@ -127,7 +129,16 @@ impl Application {
             )
             .with_plugin(WindowPlugin::new(config.window.clone()))
             .with_plugin(RendererPlugin::new())
-            .with_set(RendererPluginSets::Render.in_set(AppStage::Render));
+            .with_set(RendererPluginSets::Render.in_set(AppStage::Render))
+            // Configuring the player plugin (but not adding it)
+            .with_set(PlayerPluginSets::UpdateInput.in_set(AppStage::Update))
+            .with_set(PlayerPluginSets::Update.in_set(AppStage::Update))
+            .with_set(PlayerPluginSets::UpdateCamera.in_set(AppStage::BeforeRender))
+            .with_set(
+                PickupPlugin::system_set()
+                    .in_set(AppStage::Update)
+                    .after(PlayerPluginSets::Update),
+            );
     }
 
     pub fn run(mut self)
@@ -154,7 +165,11 @@ impl Application {
             0.01,
             100.0,
         );
-        schedule.add_system(update_camera_aspect_ratio.in_set(AppStage::EventUpdate));
+        schedule.add_system(
+            update_camera_aspect_ratio
+                .after(AppStage::EventUpdate)
+                .before(AppStage::Update),
+        );
         schedule.add_system(update_camera.in_set(AppStage::BeforeRender));
         world.insert_resource(camera);
 
