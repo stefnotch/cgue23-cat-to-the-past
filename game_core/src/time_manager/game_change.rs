@@ -97,15 +97,6 @@ where
         });
     }
 
-    // TODO: A bit of a hack IMO
-    pub fn add_rewinder_command(&mut self, command: T) {
-        assert!(
-            self.is_rewinding,
-            "Can only add rewinder commands while rewinding"
-        );
-        self.rewinder_commands.push(command);
-    }
-
     fn clear(&mut self) {
         self.history.clear();
         self.history.push_back(GameChanges {
