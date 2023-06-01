@@ -130,12 +130,11 @@ impl SceneLoader {
             let mut entity = commands.spawn((name, transform.clone()));
 
             if let Some(flag) = extras.sensor {
-                // and sensor component
                 entity
-                    .insert(dbg!(FlagTrigger {
+                    .insert(FlagTrigger {
                         level_id: LevelId::new(flag.level_id),
                         flag_id: flag.flag_id as usize,
-                    }))
+                    })
                     .insert(EntityEvent::<CollisionEvent>::default());
             } else {
                 // add model component

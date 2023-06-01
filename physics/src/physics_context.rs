@@ -148,7 +148,6 @@ pub(crate) fn step_physics_simulation(
     collision_event_query: Query<&mut EntityEvent<CollisionEvent>>,
 ) {
     let time = time.as_ref();
-
     physics_context.step_simulation(time, collision_event_query);
 }
 

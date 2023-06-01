@@ -1,8 +1,5 @@
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::{
-    prelude::Events,
-    schedule::{apply_system_buffers, IntoSystemConfig, IntoSystemSetConfig, SystemSet},
-};
+use bevy_ecs::schedule::{apply_system_buffers, IntoSystemConfig, IntoSystemSetConfig, SystemSet};
 use game_core::time_manager::game_change::{GameChangeHistoryPlugin, GameChangeHistoryPluginSet};
 
 use crate::{
@@ -16,7 +13,6 @@ use crate::{
         apply_rigid_body_type_change, apply_transform_changes, step_physics_simulation,
         write_transform_back, PhysicsContext,
     },
-    physics_events::CollisionEvent,
     pickup_physics::{
         start_pickup, stop_pickup, update_pickup_target_position, update_pickup_transform,
     },
@@ -90,11 +86,7 @@ impl Plugin for PhysicsPlugin {
 
         // Write back
         app //
-            .with_system(write_transform_back.in_set(PhysicsPluginSets::AfterPhysics))
-            .with_resource(Events::<CollisionEvent>::default())
-            .with_system(
-                Events::<CollisionEvent>::update_system.in_set(PhysicsPluginSets::AfterPhysics),
-            );
+            .with_system(write_transform_back.in_set(PhysicsPluginSets::AfterPhysics));
 
         // Pick up logic, most of it is pretty much independent of the physics and simply happens before it
         app //
