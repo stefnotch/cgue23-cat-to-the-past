@@ -107,12 +107,14 @@ fn door_system(
     time: Res<TimeManager>,
     mut query: Query<(&mut PlayingAnimation, &mut Door)>,
 ) {
-    if level_flags.get(LevelId::new(0), 0) {
-        let (mut animation, mut door) = query.single_mut();
-        if !door.is_open {
-            door.is_open = true;
-            animation.play_forwards(time.level_time());
-        }
+    let door_should_open = level_flags.get(LevelId::new(0), 0);
+    let (mut animation, mut door) = query.single_mut();
+    if door_should_open && !door.is_open {
+        door.is_open = true;
+        animation.play_forwards(time.level_time());
+    } else if !door_should_open && door.is_open {
+        door.is_open = false;
+        animation.play_backwards(time.level_time());
     }
 }
 
