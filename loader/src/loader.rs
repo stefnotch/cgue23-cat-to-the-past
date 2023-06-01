@@ -128,7 +128,7 @@ impl SceneLoader {
             let mut entity = commands.spawn((name, transform.clone()));
 
             if let Some(sensor) = extras.sensor {
-                // and sensor component
+                // add sensor component
                 entity.insert(FlagTrigger {
                     level_id: LevelId::new(sensor.level_id),
                     flag_id: sensor.flag_id as usize,

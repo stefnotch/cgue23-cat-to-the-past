@@ -1,7 +1,4 @@
-use bevy_ecs::{
-    prelude::{Component, Event},
-    system::Query,
-};
+use bevy_ecs::prelude::{Component, Event};
 
 /// An event that is tied to an entity.
 #[derive(Component, Debug)]
@@ -25,11 +22,12 @@ impl<T> EntityEvent<T>
 where
     T: Event,
 {
-    pub fn update(mut query: Query<&mut EntityEvent<T>>) {
+    /*pub fn update(mut query: Query<&mut EntityEvent<T>>) {
+        // TODO: Only cleanup old events (that have already lived for more than 1 frame)
         for mut event_holder in query.iter_mut() {
             event_holder.events.clear();
         }
-    }
+    }*/
 
     pub fn clear(&mut self) {
         self.events.clear();
