@@ -21,7 +21,7 @@ scene = { path = "../scene" }
 physics = { path = "../physics" }
 input = { path = "../input" }
 render = { path = "../render" }
-scene_loader = { path = "../scene_loader"}
+loader = { path = "../loader"}
 animations = { path = "../animations"}
 app = { path = "../app"}
 

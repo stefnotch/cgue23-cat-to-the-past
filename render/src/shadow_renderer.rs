@@ -143,8 +143,8 @@ impl ShadowRenderer {
             ]),
         ];
 
-        const far: f32 = 50.0;
-        const near: f32 = 0.5;
+        let far: f32 = 50.0;
+        let near: f32 = 0.5;
 
         let perspective_matrix = calculate_projection(1.0, Deg(90.0).into(), near, far);
 

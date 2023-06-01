@@ -14,5 +14,5 @@ app = { path = "../app" }
 game_core = { path = "../game_core" }
 physics = { path = "../physics" }
 scene = { path = "../scene" }
-scene_loader = { path = "../scene_loader" }
+loader = { path = "../loader" }
 math = { path = "../math" }

@@ -1,6 +1,7 @@
 use bevy_ecs::prelude::{Component, Res, With};
 
 use bevy_ecs::schedule::{IntoSystemConfig, IntoSystemSetConfig};
+use loader::config_loader::LoadableConfig;
 
 use std::sync::Arc;
 use std::time::Instant;
@@ -10,13 +11,13 @@ use bevy_ecs::system::{Commands, Query};
 use nalgebra::Point3;
 
 use game::core::application::{AppConfig, AppStage, Application};
-use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
+use game::player::{PlayerPlugin, PlayerSpawnSettings};
 use game_core::time_manager::TimeManager;
 
+use loader::loader::AssetServer;
 use scene::mesh::CpuMesh;
 use scene::model::{CpuPrimitive, Model};
 use scene::transform::Transform;
-use scene_loader::loader::AssetServer;
 
 fn spawn_world(mut commands: Commands, asset_server: Res<AssetServer>) {
     let before = Instant::now();
@@ -71,13 +72,11 @@ impl Plugin for ShadowDemoPlugin {
 }
 
 fn main() {
-    let config = AppConfig::default();
-
-    let player_controller_settings = PlayerControllerSettings::new(5.0, 1.0, 9.81);
+    let config: AppConfig = LoadableConfig::default().into();
 
     let player_spawn_settings = PlayerSpawnSettings {
         initial_transform: Default::default(),
-        controller_settings: player_controller_settings,
+        controller_settings: Default::default(),
         free_cam_activated: true,
     };
 
@@ -85,8 +84,7 @@ fn main() {
     application
         .app
         .with_plugin(ShadowDemoPlugin)
-        .with_plugin(PlayerPlugin::new(player_spawn_settings))
-        .with_set(PlayerPlugin::system_set().in_set(AppStage::Update));
+        .with_plugin(PlayerPlugin::new(player_spawn_settings));
 
     application.run();
 }

@@ -4,19 +4,22 @@ use app::App;
 use game_core::level::level_flags::LevelFlags;
 use game_core::time::{TimePlugin, TimePluginSet};
 use input::plugin::InputPlugin;
+use loader::config_loader::LoadableConfig;
 use physics::plugin::PhysicsPlugin;
 use windowing::window::{EventLoopContainer, WindowPlugin};
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
+use crate::pickup_system::PickupPlugin;
+use crate::player::PlayerPluginSets;
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use input::events::{KeyboardInput, MouseInput, MouseMovement};
 use input::input_map::InputMap;
+use loader::loader::AssetServer;
 use nalgebra::{Point3, UnitQuaternion};
 use render::context::Context;
 use render::{Renderer, RendererPlugin, RendererPluginSets};
 use scene::camera::{update_camera, Camera};
-use scene_loader::loader::AssetServer;
 use windowing::config::WindowConfig;
 use windowing::dpi::PhysicalSize;
 use windowing::event::{
@@ -38,17 +41,19 @@ pub struct AppConfig {
     /// Projectors are usually very dark, this parameter should control how bright your total
     /// scene is, e.g., an illumination multiplier
     pub brightness: f32,
+    pub mouse_sensitivity: f32,
 }
 
-impl Default for AppConfig {
-    fn default() -> Self {
+impl From<LoadableConfig> for AppConfig {
+    fn from(config: LoadableConfig) -> Self {
         Self {
             window: WindowConfig {
-                resolution: (1280, 720),
-                fullscreen: false,
-                refresh_rate: 60,
+                resolution: config.resolution,
+                fullscreen: config.fullscreen,
+                refresh_rate: config.refresh_rate,
             },
-            brightness: 1.0,
+            brightness: config.brightness,
+            mouse_sensitivity: config.mouse_sensitivity,
         }
     }
 }
@@ -124,7 +129,16 @@ impl Application {
             )
             .with_plugin(WindowPlugin::new(config.window.clone()))
             .with_plugin(RendererPlugin::new())
-            .with_set(RendererPluginSets::Render.in_set(AppStage::Render));
+            .with_set(RendererPluginSets::Render.in_set(AppStage::Render))
+            // Configuring the player plugin (but not adding it)
+            .with_set(PlayerPluginSets::UpdateInput.in_set(AppStage::Update))
+            .with_set(PlayerPluginSets::Update.in_set(AppStage::Update))
+            .with_set(PlayerPluginSets::UpdateCamera.in_set(AppStage::BeforeRender))
+            .with_set(
+                PickupPlugin::system_set()
+                    .in_set(AppStage::Update)
+                    .after(PlayerPluginSets::Update),
+            );
     }
 
     pub fn run(mut self)
@@ -151,7 +165,11 @@ impl Application {
             0.01,
             100.0,
         );
-        schedule.add_system(update_camera_aspect_ratio.in_set(AppStage::EventUpdate));
+        schedule.add_system(
+            update_camera_aspect_ratio
+                .after(AppStage::EventUpdate)
+                .before(AppStage::Update),
+        );
         schedule.add_system(update_camera.in_set(AppStage::BeforeRender));
         world.insert_resource(camera);
 
@@ -232,6 +250,7 @@ impl Application {
 
                 Event::RedrawEventsCleared => {
                     self.app.schedule.run(&mut self.app.world);
+                    self.app.world.clear_trackers(); // Needs to be called for "RemovedComponents" to work properly
                 }
 
                 _ => (),

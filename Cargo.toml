@@ -13,7 +13,7 @@ members = [
     "debug",
     "animations",
     "demos",
-    "scene_loader"
+    "loader"
 ]
 
 [profile.dev.package.vulkano]

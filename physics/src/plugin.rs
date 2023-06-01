@@ -1,7 +1,7 @@
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::{
     prelude::Events,
-    schedule::{IntoSystemConfig, IntoSystemSetConfig, SystemSet},
+    schedule::{apply_system_buffers, IntoSystemConfig, IntoSystemSetConfig, SystemSet},
 };
 use game_core::time_manager::game_change::{GameChangeHistoryPlugin, GameChangeHistoryPluginSet};
 
@@ -9,7 +9,7 @@ use crate::{
     physics_change::{
         time_manager_rewind_rigid_body_type, time_manager_rewind_rigid_body_velocity,
         time_manager_track_rigid_body_type, time_manager_track_rigid_body_velocity,
-        RigidBodyTypeChange, VelocityChange,
+        RigidBodyTypeChange, RigidBodyTypes, VelocityChange,
     },
     physics_context::{
         apply_collider_changes, apply_collider_sensor_change, apply_rigid_body_added,
@@ -25,6 +25,7 @@ use crate::{
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 enum PhysicsPluginSets {
+    PickupUpdate,
     TimeRewinding,
     BeforePhysics,
     Physics,
@@ -36,29 +37,35 @@ pub struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
         app.with_resource(PhysicsContext::new())
+            .with_set(PhysicsPluginSets::PickupUpdate.before(PhysicsPluginSets::TimeRewinding))
             .with_set(PhysicsPluginSets::TimeRewinding.before(PhysicsPluginSets::BeforePhysics))
             .with_set(PhysicsPluginSets::BeforePhysics.before(PhysicsPluginSets::Physics))
             .with_set(PhysicsPluginSets::Physics.before(PhysicsPluginSets::AfterPhysics));
 
+        // Make sure that all command buffers have been applied
+        app.with_system(apply_system_buffers.before(PhysicsPluginSets::PickupUpdate));
+
         // Time rewinding happens before all physics (we recreate a snapshot of what the physics world looked like before we step it)
-        app.with_plugin(
-            GameChangeHistoryPlugin::<VelocityChange>::new()
-                .with_tracker(time_manager_track_rigid_body_velocity)
-                .with_rewinder(time_manager_rewind_rigid_body_velocity),
-        )
-        .with_set(
-            GameChangeHistoryPluginSet::<VelocityChange>::Update
-                .in_set(PhysicsPluginSets::TimeRewinding),
-        )
-        .with_plugin(
-            GameChangeHistoryPlugin::<RigidBodyTypeChange>::new()
-                .with_tracker(time_manager_track_rigid_body_type)
-                .with_rewinder(time_manager_rewind_rigid_body_type),
-        )
-        .with_set(
-            GameChangeHistoryPluginSet::<RigidBodyTypeChange>::Update
-                .in_set(PhysicsPluginSets::TimeRewinding),
-        );
+        app //
+            .with_resource(RigidBodyTypes::default())
+            .with_plugin(
+                GameChangeHistoryPlugin::<VelocityChange>::new()
+                    .with_tracker(time_manager_track_rigid_body_velocity)
+                    .with_rewinder(time_manager_rewind_rigid_body_velocity),
+            )
+            .with_set(
+                GameChangeHistoryPluginSet::<VelocityChange>::Update
+                    .in_set(PhysicsPluginSets::TimeRewinding),
+            )
+            .with_plugin(
+                GameChangeHistoryPlugin::<RigidBodyTypeChange>::new()
+                    .with_tracker(time_manager_track_rigid_body_type)
+                    .with_rewinder(time_manager_rewind_rigid_body_type),
+            )
+            .with_set(
+                GameChangeHistoryPluginSet::<RigidBodyTypeChange>::Update
+                    .in_set(PhysicsPluginSets::TimeRewinding),
+            );
 
         // Keep ECS and physics world in sync, do note that we should probably do this after update and before physics.
         app //
@@ -88,10 +95,19 @@ impl Plugin for PhysicsPlugin {
                 Events::<CollisionEvent>::update_system.in_set(PhysicsPluginSets::AfterPhysics),
             );
 
-        // Pick up logic
-        app.with_system(start_pickup.in_set(PhysicsPluginSets::BeforePhysics)) // TODO: Is BeforePhysics correct?
-            .with_system(stop_pickup.in_set(PhysicsPluginSets::BeforePhysics))
-            .with_system(update_pickup_target_position.in_set(PhysicsPluginSets::BeforePhysics))
+        // Pick up logic, most of it is pretty much independent of the physics and simply happens before it
+        app //
+            .with_system(start_pickup.in_set(PhysicsPluginSets::PickupUpdate))
+            .with_system(
+                stop_pickup
+                    .in_set(PhysicsPluginSets::PickupUpdate)
+                    .after(start_pickup),
+            )
+            .with_system(
+                update_pickup_target_position
+                    .in_set(PhysicsPluginSets::PickupUpdate)
+                    .after(start_pickup),
+            )
             .with_system(
                 update_pickup_transform
                     .in_set(PhysicsPluginSets::Physics)
