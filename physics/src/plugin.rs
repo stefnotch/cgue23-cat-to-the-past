@@ -43,24 +43,25 @@ impl Plugin for PhysicsPlugin {
             .with_set(PhysicsPluginSets::Physics.before(PhysicsPluginSets::AfterPhysics));
 
         // Time rewinding happens before all physics (we recreate a snapshot of what the physics world looked like before we step it)
-        app.with_plugin(
-            GameChangeHistoryPlugin::<VelocityChange>::new()
-                .with_tracker(time_manager_track_rigid_body_velocity)
-                .with_rewinder(time_manager_rewind_rigid_body_velocity),
-        )
-        .with_set(
-            GameChangeHistoryPluginSet::<VelocityChange>::Update
-                .in_set(PhysicsPluginSets::TimeRewinding),
-        )
-        .with_plugin(
-            GameChangeHistoryPlugin::<RigidBodyTypeChange>::new()
-                .with_tracker(time_manager_track_rigid_body_type)
-                .with_rewinder(time_manager_rewind_rigid_body_type),
-        )
-        .with_set(
-            GameChangeHistoryPluginSet::<RigidBodyTypeChange>::Update
-                .in_set(PhysicsPluginSets::TimeRewinding),
-        );
+        app //
+            .with_plugin(
+                GameChangeHistoryPlugin::<VelocityChange>::new()
+                    .with_tracker(time_manager_track_rigid_body_velocity)
+                    .with_rewinder(time_manager_rewind_rigid_body_velocity),
+            )
+            .with_set(
+                GameChangeHistoryPluginSet::<VelocityChange>::Update
+                    .in_set(PhysicsPluginSets::TimeRewinding),
+            )
+            .with_plugin(
+                GameChangeHistoryPlugin::<RigidBodyTypeChange>::new()
+                    .with_tracker(time_manager_track_rigid_body_type)
+                    .with_rewinder(time_manager_rewind_rigid_body_type),
+            )
+            .with_set(
+                GameChangeHistoryPluginSet::<RigidBodyTypeChange>::Update
+                    .in_set(PhysicsPluginSets::TimeRewinding),
+            );
 
         // Keep ECS and physics world in sync, do note that we should probably do this after update and before physics.
         app //

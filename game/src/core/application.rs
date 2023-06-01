@@ -250,6 +250,7 @@ impl Application {
 
                 Event::RedrawEventsCleared => {
                     self.app.schedule.run(&mut self.app.world);
+                    self.app.world.clear_trackers(); // Needs to be called for "RemovedComponents" to work properly
                 }
 
                 _ => (),
