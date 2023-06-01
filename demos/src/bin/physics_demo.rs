@@ -1,10 +1,10 @@
+use app::entity_event::EntityEvent;
 //#![windows_subsystem = "windows"]
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::event::EventReader;
 use loader::config_loader::LoadableConfig;
 use std::sync::Arc;
 
-use bevy_ecs::system::Commands;
+use bevy_ecs::system::{Commands, Query};
 use nalgebra::{Point3, Vector3};
 use scene::asset::AssetId;
 
@@ -114,9 +114,11 @@ fn spawn_world(mut commands: Commands) {
     ));
 }
 
-fn display_collision_events(mut collision_events: EventReader<CollisionEvent>) {
-    for collision_event in collision_events.iter() {
-        println!("Received collision event: {collision_event:?}");
+fn display_collision_events(collision_events: Query<&EntityEvent<CollisionEvent>>) {
+    for event_holder in collision_events.iter() {
+        for collision_event in event_holder.iter() {
+            println!("Received collision event: {collision_event:?}");
+        }
     }
 }
 

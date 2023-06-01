@@ -1,4 +1,4 @@
-use bevy_ecs::event::EventWriter;
+use app::entity_event::EntityEvent;
 use game_core::time::Time;
 
 use bevy_ecs::prelude::{Added, Commands, Component, Entity, Query, Res, ResMut, Resource, With};
@@ -83,7 +83,7 @@ impl PhysicsContext {
     pub fn step_simulation(
         &mut self,
         time: &Time,
-        mut collision_events: EventWriter<CollisionEvent>,
+        mut collision_event_query: Query<&mut EntityEvent<CollisionEvent>>,
     ) {
         self.integration_parameters.dt = (time.delta_seconds() as Real) / (self.substeps as Real);
 
@@ -107,8 +107,12 @@ impl PhysicsContext {
             &event_handler,
         );
 
+        for mut event in collision_event_query.iter_mut() {
+            event.clear();
+        }
+
         while let Ok(collision_event) = collision_recv.try_recv() {
-            handle_collision_event(&self.colliders, collision_event, &mut collision_events);
+            handle_collision_event(&self.colliders, collision_event, &mut collision_event_query);
         }
 
         while let Ok(contact_force_event) = contact_force_recv.try_recv() {
@@ -140,11 +144,11 @@ impl PhysicsContext {
 pub(crate) fn step_physics_simulation(
     mut physics_context: ResMut<PhysicsContext>,
     time: Res<Time>,
-    collision_events: EventWriter<CollisionEvent>,
+    collision_event_query: Query<&mut EntityEvent<CollisionEvent>>,
 ) {
     let time = time.as_ref();
 
-    physics_context.step_simulation(time, collision_events);
+    physics_context.step_simulation(time, collision_event_query);
 }
 
 #[derive(Component)]

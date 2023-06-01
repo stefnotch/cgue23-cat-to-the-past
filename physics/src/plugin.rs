@@ -32,6 +32,7 @@ enum PhysicsPluginSets {
     AfterPhysics,
 }
 
+// We could improve the physics timestep stuff using https://gafferongames.com/post/fix_your_timestep/
 pub struct PhysicsPlugin;
 
 impl Plugin for PhysicsPlugin {

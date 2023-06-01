@@ -35,7 +35,8 @@ use serde::Deserialize;
 
 #[derive(Component)]
 pub struct Door {
-    pub id: u32,
+    /// true if the door is open *or if it is opening*
+    pub is_open: bool,
 }
 
 #[derive(Deserialize, Debug)]
@@ -52,7 +53,7 @@ struct GLTFExtras {
     pub box_collider: Option<bool>,
     pub rigid_body: Option<String>,
     pub animation: Option<AnimationProperty>,
-    pub door: Option<u32>,
+    pub door: Option<bool>,
     pub pickupable: Option<bool>,
 }
 
@@ -140,8 +141,8 @@ impl SceneLoader {
                 }
             }
 
-            if let Some(id) = extras.door {
-                entity.insert(Door { id });
+            if let Some(is_open) = extras.door {
+                entity.insert(Door { is_open });
             }
 
             if let Some(animation) = extras.animation {

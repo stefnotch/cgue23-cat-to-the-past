@@ -1,8 +1,9 @@
 //#![windows_subsystem = "windows"]
 
 use animations::animation::PlayingAnimation;
+use app::entity_event::EntityEvent;
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::prelude::{Component, EventReader, Query, With};
+use bevy_ecs::prelude::{Component, Query, With};
 use bevy_ecs::schedule::IntoSystemConfig;
 
 use debug::setup_debugging;
@@ -88,19 +89,13 @@ pub fn move_cubes(mut query: Query<&mut Transform, With<MovingBox>>, time: Res<T
     }
 }
 
-// TODO: Maybe refactor the CollisionEvents design, since it doesn't work well with the rest of Bevy ECS.
-// TODO: Maybe refactor the flags to be more type safe? Like using a struct for each flag? And maybe letting entities "subscribe" to a flag being changed?
 fn flag_system(
-    mut collision_events: EventReader<CollisionEvent>,
     mut level_flags: ResMut<LevelFlags>,
-    flag_triggers: Query<&FlagTrigger>,
+    flag_triggers: Query<(&FlagTrigger, &EntityEvent<CollisionEvent>)>,
 ) {
-    for collision_event in collision_events.iter() {
-        if let CollisionEvent::Started(e1, e2, CollisionEventFlags::SENSOR) = collision_event {
-            if let Ok(flag_trigger) = flag_triggers
-                .get(*e1)
-                .or_else(|_err| flag_triggers.get(*e2))
-            {
+    for (flag_trigger, collision_events) in flag_triggers.iter() {
+        for collision_event in collision_events.iter() {
+            if let CollisionEvent::Started(_e2, CollisionEventFlags::SENSOR) = collision_event {
                 level_flags.set(flag_trigger.level_id, flag_trigger.flag_id, true);
             }
         }
@@ -110,11 +105,14 @@ fn flag_system(
 fn door_system(
     level_flags: Res<LevelFlags>,
     time: Res<TimeManager>,
-    mut query: Query<&mut PlayingAnimation, With<Door>>,
+    mut query: Query<(&mut PlayingAnimation, &mut Door)>,
 ) {
     if level_flags.get(LevelId::new(0), 0) {
-        let mut animation = query.single_mut();
-        animation.play_forwards(time.level_time());
+        let (mut animation, mut door) = query.single_mut();
+        if !door.is_open {
+            door.is_open = true;
+            animation.play_forwards(time.level_time());
+        }
     }
 }
 
