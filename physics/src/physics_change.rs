@@ -66,6 +66,11 @@ pub(super) fn time_manager_rewind_rigid_body_velocity(
     mut history: ResMut<GameChangeHistory<VelocityChange>>,
     query: Query<(&TimeTracked, &RapierRigidBodyHandle)>,
 ) {
+    // Only rewind the velocity at the very end of the rewind. Kinda questionable, but eh
+    if time_manager.time_state() != TimeState::StopRewinding {
+        return;
+    }
+
     // The code below makes it kinematic
     let entities: HashMap<_, _> = query
         .into_iter()
@@ -86,8 +91,6 @@ pub(super) fn time_manager_rewind_rigid_body_velocity(
             }
         }
     }
-
-    // TODO: Interpolation logic
 }
 
 pub(super) struct RigidBodyTypeChange {

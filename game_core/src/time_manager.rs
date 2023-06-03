@@ -36,7 +36,7 @@ impl TimeTracked {
 }
 
 /// The 4 time states to cycle through
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TimeState {
     Normal,
     StartRewinding,
@@ -134,8 +134,8 @@ impl TimeManager {
         }
     }
 
-    pub fn time_state(&self) -> &TimeState {
-        &self.time_state
+    pub fn time_state(&self) -> TimeState {
+        self.time_state
     }
 
     pub fn is_interpolating(&self) -> bool {
