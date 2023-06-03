@@ -17,10 +17,10 @@ pub struct Animation {
 /// An entity with a PlayingAnimation should not be time tracked.
 #[derive(Component)]
 pub struct PlayingAnimation {
-    pub animation: Animation,
-    pub end_time: LevelTime,
+    animation: Animation,
+    end_time: LevelTime,
     /// Also can be used to keep the animation frozen at the start.
-    pub reverse: bool,
+    reverse: bool,
 }
 
 impl PlayingAnimation {

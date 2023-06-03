@@ -360,7 +360,8 @@ impl Plugin for PlayerPlugin {
             .with_system(
                 update_player_camera
                     .in_set(PlayerPluginSets::UpdateCamera)
-                    .run_if(not(has_free_camera_activated)),
+                    .run_if(not(has_free_camera_activated))
+                    .ambiguous_with(update_camera_position),
             );
     }
 }

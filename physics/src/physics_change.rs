@@ -81,7 +81,7 @@ pub(super) fn time_manager_rewind_rigid_body_velocity(
                     .rigid_bodies
                     .get_mut(v.handle)
                     .expect("RigidBody not found in physics context");
-                rigidbody.set_linvel(command.linvel, false);
+                rigidbody.set_linvel(command.linvel, true);
                 rigidbody.set_angvel(command.angvel, true);
             }
         }

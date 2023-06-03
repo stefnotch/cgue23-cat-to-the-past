@@ -46,15 +46,6 @@ impl Plugin for PhysicsPlugin {
         app //
             .with_resource(RigidBodyTypes::default())
             .with_plugin(
-                GameChangeHistoryPlugin::<VelocityChange>::new()
-                    .with_tracker(time_manager_track_rigid_body_velocity)
-                    .with_rewinder(time_manager_rewind_rigid_body_velocity),
-            )
-            .with_set(
-                GameChangeHistoryPlugin::<VelocityChange>::system_set()
-                    .in_set(PhysicsPluginSets::TimeRewinding),
-            )
-            .with_plugin(
                 GameChangeHistoryPlugin::<RigidBodyTypeChange>::new()
                     .with_tracker(time_manager_track_rigid_body_type)
                     .with_rewinder(time_manager_rewind_rigid_body_type),
@@ -62,18 +53,46 @@ impl Plugin for PhysicsPlugin {
             .with_set(
                 GameChangeHistoryPlugin::<RigidBodyTypeChange>::system_set()
                     .in_set(PhysicsPluginSets::TimeRewinding),
+            )
+            .with_plugin(
+                GameChangeHistoryPlugin::<VelocityChange>::new()
+                    .with_tracker(time_manager_track_rigid_body_velocity)
+                    .with_rewinder(time_manager_rewind_rigid_body_velocity),
+            )
+            .with_set(
+                GameChangeHistoryPlugin::<VelocityChange>::system_set()
+                    .in_set(PhysicsPluginSets::TimeRewinding)
+                    .after(GameChangeHistoryPlugin::<RigidBodyTypeChange>::system_set()),
             );
 
         // Keep ECS and physics world in sync, do note that we should probably do this after update and before physics.
         app //
             .with_system(apply_collider_changes.in_set(PhysicsPluginSets::BeforePhysics))
-            .with_system(apply_rigid_body_added.in_set(PhysicsPluginSets::BeforePhysics))
-            .with_system(apply_rigid_body_type_change.in_set(PhysicsPluginSets::BeforePhysics))
-            .with_system(apply_collider_sensor_change.in_set(PhysicsPluginSets::BeforePhysics))
             .with_system(
-                apply_player_character_controller_changes.in_set(PhysicsPluginSets::BeforePhysics),
+                apply_rigid_body_added
+                    .in_set(PhysicsPluginSets::BeforePhysics)
+                    .after(apply_collider_changes),
             )
-            .with_system(apply_transform_changes.in_set(PhysicsPluginSets::BeforePhysics));
+            .with_system(
+                apply_rigid_body_type_change
+                    .in_set(PhysicsPluginSets::BeforePhysics)
+                    .after(apply_rigid_body_added),
+            )
+            .with_system(
+                apply_collider_sensor_change
+                    .in_set(PhysicsPluginSets::BeforePhysics)
+                    .after(apply_rigid_body_type_change),
+            )
+            .with_system(
+                apply_player_character_controller_changes
+                    .in_set(PhysicsPluginSets::BeforePhysics)
+                    .after(apply_collider_sensor_change),
+            )
+            .with_system(
+                apply_transform_changes
+                    .in_set(PhysicsPluginSets::BeforePhysics)
+                    .after(apply_player_character_controller_changes),
+            );
 
         // Physics step
         app //
@@ -104,7 +123,8 @@ impl Plugin for PhysicsPlugin {
             .with_system(
                 update_pickup_transform
                     .in_set(PhysicsPluginSets::Physics)
-                    .after(step_physics_simulation),
+                    .after(step_physics_simulation)
+                    .after(step_character_controllers),
             );
     }
 }

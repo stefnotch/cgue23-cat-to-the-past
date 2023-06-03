@@ -10,7 +10,7 @@ use windowing::window::{EventLoopContainer, WindowPlugin};
 use crate::input::events::{WindowFocusChanged, WindowResize};
 use crate::level_flags::LevelFlagsPlugin;
 use crate::pickup_system::PickupPlugin;
-use crate::player::PlayerPluginSets;
+use crate::player::{PlayerPlugin, PlayerPluginSets};
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use input::events::{KeyboardInput, MouseInput, MouseMovement};
@@ -62,6 +62,8 @@ impl From<LoadableConfig> for AppConfig {
 pub enum AppStage {
     StartFrame,
     EventUpdate,
+    /// for engine logic that depends on events
+    BeforeUpdate,
     /// for game logic
     Update,
     UpdatePhysics,
@@ -83,6 +85,7 @@ impl Application {
             (
                 AppStage::StartFrame,
                 AppStage::EventUpdate,
+                AppStage::BeforeUpdate,
                 AppStage::Update,
                 AppStage::UpdatePhysics,
                 AppStage::BeforeRender,
@@ -109,17 +112,9 @@ impl Application {
             .with_plugin(InputPlugin)
             .with_set(InputPlugin::system_set().in_set(AppStage::EventUpdate))
             .with_plugin(AnimationPlugin)
-            .with_set(
-                AnimationPlugin::system_set()
-                    .after(AppStage::EventUpdate)
-                    .before(AppStage::Update),
-            )
+            .with_set(AnimationPlugin::system_set().in_set(AppStage::BeforeUpdate))
             .with_plugin(LevelFlagsPlugin)
-            .with_set(
-                LevelFlagsPlugin::system_set()
-                    .after(AppStage::EventUpdate)
-                    .before(AppStage::Update),
-            )
+            .with_set(LevelFlagsPlugin::system_set().in_set(AppStage::BeforeUpdate))
             .with_plugin(PhysicsPlugin)
             .with_set(PhysicsPlugin::system_set().in_set(AppStage::UpdatePhysics))
             // Transform tracking
@@ -175,7 +170,11 @@ impl Application {
                 .after(AppStage::EventUpdate)
                 .before(AppStage::Update),
         );
-        schedule.add_system(update_camera.in_set(AppStage::BeforeRender));
+        schedule.add_system(
+            update_camera
+                .in_set(AppStage::BeforeRender)
+                .after(PlayerPlugin::system_set()),
+        );
         world.insert_resource(camera);
 
         world.insert_resource(Events::<WindowResize>::default());
@@ -187,7 +186,7 @@ impl Application {
 
         schedule.add_system(read_input.in_set(AppStage::EndFrame));
 
-        schedule.add_system(lock_mouse.after(AppStage::EventUpdate));
+        schedule.add_system(lock_mouse.in_set(AppStage::BeforeUpdate));
 
         self.app.run_startup();
 
