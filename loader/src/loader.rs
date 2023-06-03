@@ -172,11 +172,7 @@ impl SceneLoader {
                     duration: Duration::from_secs_f32(animation.duration),
                 };
 
-                let playing_animation = PlayingAnimation {
-                    animation,
-                    end_time: LevelTime::zero(),
-                    reverse: true,
-                };
+                let playing_animation = PlayingAnimation::new_frozen(animation);
 
                 entity.insert(playing_animation);
 

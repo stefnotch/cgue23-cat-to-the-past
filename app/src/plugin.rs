@@ -69,7 +69,9 @@ impl<'app> PluginAppAccess<'app> {
     where
         T: Plugin,
     {
-        //  self.schedule.configure_set(T::system_set().after(CoreStage::StartFrame).before(CoreStage::EndFrame));
+        self.app
+            .schedule
+            .configure_set(T::system_set().in_set(self.system_set.clone()));
         self.app.with_plugin(plugin);
         self
     }

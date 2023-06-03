@@ -100,7 +100,7 @@ impl TimeManager {
             }
         }
 
-        self.level_delta_time = old_level_time - self.level_time;
+        self.level_delta_time = self.level_time - old_level_time;
     }
 
     pub fn level_time_seconds(&self) -> f32 {
@@ -109,6 +109,16 @@ impl TimeManager {
 
     pub fn level_time(&self) -> &LevelTime {
         &self.level_time
+    }
+
+    pub fn last_level_time(&self) -> LevelTime {
+        if !self.level_delta_time.is_negative() {
+            // expands to "level_time - (level_time - old_level_time)"
+            self.level_time
+                .sub_or_zero(self.level_delta_time.duration())
+        } else {
+            self.level_time + self.level_delta_time.duration()
+        }
     }
 
     fn next_level(&mut self) {

@@ -8,7 +8,7 @@ use physics::plugin::PhysicsPlugin;
 use windowing::window::{EventLoopContainer, WindowPlugin};
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
-use crate::level_flags::LevelFlags;
+use crate::level_flags::LevelFlagsPlugin;
 use crate::pickup_system::PickupPlugin;
 use crate::player::PlayerPluginSets;
 use angle::Deg;
@@ -33,7 +33,7 @@ use windowing::window::CursorGrabMode;
 use crate::core::transform_change::{
     time_manager_rewind_transform, time_manager_track_transform, TransformChange,
 };
-use game_core::time_manager::game_change::{GameChangeHistoryPlugin, GameChangeHistoryPluginSet};
+use game_core::time_manager::game_change::GameChangeHistoryPlugin;
 use game_core::time_manager::{TimeManager, TimeManagerPlugin, TimeManagerPluginSet};
 
 pub struct AppConfig {
@@ -111,8 +111,14 @@ impl Application {
             .with_plugin(AnimationPlugin)
             .with_set(
                 AnimationPlugin::system_set()
-                    .before(AppStage::Update)
-                    .after(AppStage::EventUpdate),
+                    .after(AppStage::EventUpdate)
+                    .before(AppStage::Update),
+            )
+            .with_plugin(LevelFlagsPlugin)
+            .with_set(
+                LevelFlagsPlugin::system_set()
+                    .after(AppStage::EventUpdate)
+                    .before(AppStage::Update),
             )
             .with_plugin(PhysicsPlugin)
             .with_set(PhysicsPlugin::system_set().in_set(AppStage::UpdatePhysics))
@@ -123,7 +129,7 @@ impl Application {
                     .with_rewinder(time_manager_rewind_transform),
             )
             .with_set(
-                GameChangeHistoryPluginSet::<TransformChange>::Update
+                GameChangeHistoryPlugin::<TransformChange>::system_set()
                     .after(AppStage::Update)
                     .before(AppStage::UpdatePhysics),
             )
@@ -171,8 +177,6 @@ impl Application {
         );
         schedule.add_system(update_camera.in_set(AppStage::BeforeRender));
         world.insert_resource(camera);
-
-        world.insert_resource(LevelFlags::new());
 
         world.insert_resource(Events::<WindowResize>::default());
         schedule.add_system(Events::<WindowResize>::update_system.in_set(AppStage::EventUpdate));

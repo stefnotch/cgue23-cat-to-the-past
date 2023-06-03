@@ -16,4 +16,12 @@ impl SignedDuration {
             is_negative,
         }
     }
+
+    pub fn duration(&self) -> Duration {
+        self.duration
+    }
+
+    pub fn is_negative(&self) -> bool {
+        self.is_negative
+    }
 }

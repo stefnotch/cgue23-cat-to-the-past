@@ -3,14 +3,14 @@
 use animations::animation::PlayingAnimation;
 use app::entity_event::EntityEvent;
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::prelude::{Component, Entity, Query, With};
+use bevy_ecs::prelude::{Component, Query, With};
 use bevy_ecs::schedule::IntoSystemConfig;
 
 use debug::setup_debugging;
-use game::level_flags::LevelFlags;
+use game::level_flags::{FlagChange, LevelFlags};
 use game::pickup_system::PickupPlugin;
 use game_core::time::Time;
-use game_core::time_manager::TimeManager;
+use game_core::time_manager::{game_change, TimeManager};
 use loader::config_loader::LoadableConfig;
 use loader::loader::{Door, SceneLoader};
 use scene::flag_trigger::FlagTrigger;
@@ -47,8 +47,11 @@ fn spawn_world(mut commands: Commands, scene_loader: Res<SceneLoader>) {
     );
 }
 
-fn setup_levels(mut level_flags: ResMut<LevelFlags>) {
-    level_flags.set_count(LevelId::new(0), 1);
+fn setup_levels(
+    mut level_flags: ResMut<LevelFlags>,
+    mut game_changes: ResMut<game_change::GameChangeHistory<FlagChange>>,
+) {
+    level_flags.set_count(LevelId::new(0), 1, &mut game_changes);
 }
 
 fn _print_fps(time: Res<Time>) {
@@ -91,12 +94,18 @@ pub fn move_cubes(mut query: Query<&mut Transform, With<MovingBox>>, time: Res<T
 
 fn flag_system(
     mut level_flags: ResMut<LevelFlags>,
+    mut game_changes: ResMut<game_change::GameChangeHistory<FlagChange>>,
     flag_triggers: Query<(&FlagTrigger, &EntityEvent<CollisionEvent>)>,
 ) {
     for (flag_trigger, collision_events) in flag_triggers.iter() {
         for collision_event in collision_events.iter() {
             if let CollisionEvent::Started(_e2, CollisionEventFlags::SENSOR) = collision_event {
-                level_flags.set(flag_trigger.level_id, flag_trigger.flag_id, true);
+                level_flags.set_and_record(
+                    flag_trigger.level_id,
+                    flag_trigger.flag_id,
+                    true,
+                    &mut game_changes,
+                );
             }
         }
     }
@@ -111,10 +120,10 @@ fn door_system(
     let (mut animation, mut door) = query.single_mut();
     if door_should_open && !door.is_open {
         door.is_open = true;
-        animation.play_forwards(time.level_time());
+        animation.play_forwards(*time.level_time());
     } else if !door_should_open && door.is_open {
         door.is_open = false;
-        animation.play_backwards(time.level_time());
+        animation.play_backwards(*time.level_time());
     }
 }
 

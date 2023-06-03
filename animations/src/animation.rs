@@ -24,6 +24,14 @@ pub struct PlayingAnimation {
 }
 
 impl PlayingAnimation {
+    pub fn new_frozen(animation: Animation) -> Self {
+        Self {
+            animation,
+            end_time: LevelTime::zero(),
+            reverse: true,
+        }
+    }
+
     pub fn get_transform(&self, time: LevelTime) -> Transform {
         let progress = self.get_progress(time);
 
@@ -39,10 +47,10 @@ impl PlayingAnimation {
             )
         };
 
-        start.lerp(&end, progress)
+        start.lerp(&end, progress as f32)
     }
 
-    fn get_progress(&self, time: LevelTime) -> f32 {
+    fn get_progress(&self, time: LevelTime) -> f64 {
         if time > self.end_time {
             return 1.0;
         }
@@ -60,14 +68,25 @@ impl PlayingAnimation {
         progress
     }
 
-    pub fn play_forwards(&mut self, time: &LevelTime) {
+    pub fn play_forwards(&mut self, time: LevelTime) {
+        let remaining_progress = if self.reverse {
+            self.get_progress(time)
+        } else {
+            1.0 - self.get_progress(time)
+        };
+
         self.reverse = false;
-        self.end_time = time + self.animation.duration;
+        self.end_time = time + self.animation.duration.mul_f64(remaining_progress);
     }
 
-    pub fn play_backwards(&mut self, time: &LevelTime) {
+    pub fn play_backwards(&mut self, time: LevelTime) {
+        let remaining_progress = if self.reverse {
+            1.0 - self.get_progress(time)
+        } else {
+            self.get_progress(time)
+        };
         self.reverse = true;
-        self.end_time = time + self.animation.duration;
+        self.end_time = time + self.animation.duration.mul_f64(remaining_progress);
     }
 }
 

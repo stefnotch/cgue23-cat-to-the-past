@@ -147,7 +147,8 @@ where
             assert!(previous.timestamp <= top.timestamp);
             let factor = previous
                 .timestamp
-                .inverse_lerp(&top.timestamp, time_manager.level_time);
+                .inverse_lerp(&top.timestamp, time_manager.level_time)
+                as f32;
             Some(GameChangeInterpolation {
                 from: previous,
                 to: top,
@@ -200,8 +201,10 @@ fn clear_on_next_level<T>(
 }
 
 #[derive(SystemSet)]
-pub enum GameChangeHistoryPluginSet<T> {
-    Update,
+enum GameChangeHistoryPluginSet<T> {
+    UpdateInfo,
+    Track,
+    Rewind,
     // Well that's not very elegant
     _Marker(std::convert::Infallible, std::marker::PhantomData<T>),
 }
@@ -209,8 +212,10 @@ pub enum GameChangeHistoryPluginSet<T> {
 impl<T> std::fmt::Debug for GameChangeHistoryPluginSet<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            GameChangeHistoryPluginSet::Update => write!(f, "GameChangeHistoryPluginSet::Update"),
-            GameChangeHistoryPluginSet::_Marker(_, _) => {
+            Self::UpdateInfo => write!(f, "GameChangeHistoryPluginSet::UpdateInfo"),
+            Self::Track => write!(f, "GameChangeHistoryPluginSet::Track"),
+            Self::Rewind => write!(f, "GameChangeHistoryPluginSet::Rewind"),
+            Self::_Marker(_, _) => {
                 write!(f, "GameChangeHistoryPluginSet::_Impossible")
             }
         }
@@ -219,7 +224,9 @@ impl<T> std::fmt::Debug for GameChangeHistoryPluginSet<T> {
 impl<T> Clone for GameChangeHistoryPluginSet<T> {
     fn clone(&self) -> Self {
         match self {
-            Self::Update => Self::Update,
+            Self::UpdateInfo => Self::UpdateInfo,
+            Self::Track => Self::Track,
+            Self::Rewind => Self::Rewind,
             Self::_Marker(_arg0, _arg1) => panic!("d"),
         }
     }
@@ -227,7 +234,9 @@ impl<T> Clone for GameChangeHistoryPluginSet<T> {
 impl<T> PartialEq for GameChangeHistoryPluginSet<T> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Update, Self::Update) => true,
+            (Self::UpdateInfo, Self::UpdateInfo) => true,
+            (Self::Track, Self::Track) => true,
+            (Self::Rewind, Self::Rewind) => true,
             (Self::_Marker(_arg0, _arg1), Self::_Marker(_arg0_other, _arg1_other)) => {
                 panic!("e")
             }
@@ -244,7 +253,9 @@ where
 {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
-            Self::Update => std::any::TypeId::of::<T>().hash(state),
+            Self::UpdateInfo => std::any::TypeId::of::<T>().hash(state),
+            Self::Track => std::any::TypeId::of::<T>().hash(state),
+            Self::Rewind => std::any::TypeId::of::<T>().hash(state),
             Self::_Marker(_arg0, _arg1) => panic!("a"),
         }
     }
@@ -270,9 +281,7 @@ where
     }
 
     pub fn with_tracker<Params>(self, system: impl IntoSystemConfig<Params>) -> Self {
-        let system_config = system
-            .run_if(not(is_rewinding))
-            .in_set(GameChangeHistoryPluginSet::<T>::Update);
+        let system_config = system.in_set(GameChangeHistoryPluginSet::<T>::Track);
 
         let mut systems = self.systems;
         systems.push(system_config);
@@ -284,9 +293,7 @@ where
     }
 
     pub fn with_rewinder<Params>(self, system: impl IntoSystemConfig<Params>) -> Self {
-        let system_config = system
-            .run_if(is_rewinding)
-            .in_set(GameChangeHistoryPluginSet::<T>::Update);
+        let system_config = system.in_set(GameChangeHistoryPluginSet::<T>::Rewind);
 
         let mut systems = self.systems;
         systems.push(system_config);
@@ -304,25 +311,36 @@ where
     GameChangeHistoryPluginSet<T>: SystemSet, // Wait, it accepts this?
 {
     fn build(&mut self, app: &mut PluginAppAccess) {
-        let systems = std::mem::take(&mut self.systems);
+        let systems = self.systems.drain(..);
         for system in systems {
             app.with_system(system);
         }
 
-        app.with_resource(GameChangeHistory::<T>::new())
-            .with_system(
-                clear_on_next_level::<T>
-                    .before(GameChangeHistoryPluginSet::<T>::Update)
-                    .before(read_timestamp::<T>)
-                    .after(TimeManagerPluginSet::StartFrame),
-            )
-            .with_system(
-                read_timestamp::<T>
-                    .before(GameChangeHistoryPluginSet::<T>::Update)
-                    .after(TimeManagerPluginSet::StartFrame),
+        app //
+            .with_resource(GameChangeHistory::<T>::new())
+            .with_set(GameChangeHistoryPluginSet::<T>::Track.run_if(not(is_rewinding)))
+            .with_set(GameChangeHistoryPluginSet::<T>::Rewind.run_if(is_rewinding))
+            .with_set(
+                TimeManagerPluginSet::StartFrame
+                    .before(GameChangeHistoryPluginSet::<T>::UpdateInfo),
             )
             .with_set(
-                TimeManagerPluginSet::StartFrame.before(GameChangeHistoryPluginSet::<T>::Update),
-            );
+                GameChangeHistoryPluginSet::<T>::UpdateInfo
+                    .before(GameChangeHistoryPluginSet::<T>::Track),
+            )
+            .with_set(
+                GameChangeHistoryPluginSet::<T>::UpdateInfo
+                    .before(GameChangeHistoryPluginSet::<T>::Rewind),
+            )
+            .with_set(
+                GameChangeHistoryPluginSet::<T>::Track
+                    .ambiguous_with(GameChangeHistoryPluginSet::<T>::Rewind),
+            )
+            .with_system(
+                clear_on_next_level::<T>
+                    .in_set(GameChangeHistoryPluginSet::<T>::UpdateInfo)
+                    .before(read_timestamp::<T>),
+            )
+            .with_system(read_timestamp::<T>.in_set(GameChangeHistoryPluginSet::<T>::UpdateInfo));
     }
 }

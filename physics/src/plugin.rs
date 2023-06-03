@@ -1,6 +1,6 @@
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::schedule::{apply_system_buffers, IntoSystemConfig, IntoSystemSetConfig, SystemSet};
-use game_core::time_manager::game_change::{GameChangeHistoryPlugin, GameChangeHistoryPluginSet};
+use game_core::time_manager::game_change::GameChangeHistoryPlugin;
 
 use crate::{
     physics_change::{
@@ -51,7 +51,7 @@ impl Plugin for PhysicsPlugin {
                     .with_rewinder(time_manager_rewind_rigid_body_velocity),
             )
             .with_set(
-                GameChangeHistoryPluginSet::<VelocityChange>::Update
+                GameChangeHistoryPlugin::<VelocityChange>::system_set()
                     .in_set(PhysicsPluginSets::TimeRewinding),
             )
             .with_plugin(
@@ -60,7 +60,7 @@ impl Plugin for PhysicsPlugin {
                     .with_rewinder(time_manager_rewind_rigid_body_type),
             )
             .with_set(
-                GameChangeHistoryPluginSet::<RigidBodyTypeChange>::Update
+                GameChangeHistoryPlugin::<RigidBodyTypeChange>::system_set()
                     .in_set(PhysicsPluginSets::TimeRewinding),
             );
 

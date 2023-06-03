@@ -20,19 +20,19 @@ impl LevelTime {
         self.elapsed.as_secs_f32()
     }
 
-    pub fn lerp(&self, other: &Self, t: f32) -> Self {
+    pub fn lerp(&self, other: &Self, t: f64) -> Self {
         let a = self.elapsed.as_secs_f64();
         let b = other.elapsed.as_secs_f64();
         LevelTime {
-            elapsed: Duration::from_secs_f64(a + (b - a) * (t as f64)),
+            elapsed: Duration::from_secs_f64(a + (b - a) * t),
         }
     }
 
-    pub fn inverse_lerp(&self, other: &Self, value: LevelTime) -> f32 {
+    pub fn inverse_lerp(&self, other: &Self, value: LevelTime) -> f64 {
         let a = self.elapsed.as_secs_f64();
         let b = other.elapsed.as_secs_f64();
         let v = value.elapsed.as_secs_f64();
-        ((v - a) / (b - a)) as f32
+        (v - a) / (b - a)
     }
 
     pub fn sub_or_zero(&self, delta: Duration) -> LevelTime {
