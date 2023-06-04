@@ -19,6 +19,7 @@ use scene::camera::Camera;
 use scene::light::{CastShadow, Light};
 use scene::transform::Transform;
 use std::sync::Arc;
+use time::time_manager::TimeManager;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::device::Device;
@@ -86,6 +87,7 @@ impl Renderer {
             swapchain_image_count,
             memory_allocator.clone(),
             command_buffer_allocator.clone(),
+            descriptor_set_allocator.clone(),
         );
 
         let scene_renderer = SceneRenderer::new(
@@ -179,6 +181,7 @@ pub fn render(
     mut renderer: NonSendMut<Renderer>,
     context: Res<Context>,
     camera: Res<Camera>,
+    time_manager: Res<TimeManager>,
     query_models: Query<(&Transform, &GpuModel)>,
     query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
     query_shadow_light: Query<&Transform, (With<CastShadow>, With<Light>)>,
@@ -284,7 +287,14 @@ pub fn render(
     let future = if *counter > 2 {
         renderer
             .shadow_renderer
-            .render(&context, &models, nearest_shadow_light, future, image_index)
+            .render(
+                &context,
+                time_manager.as_ref(),
+                &models,
+                nearest_shadow_light,
+                future,
+                image_index,
+            )
             .boxed()
     } else {
         future.boxed()
@@ -295,6 +305,7 @@ pub fn render(
     let future = renderer.scene_renderer.render(
         &context,
         camera.as_ref(),
+        time_manager.as_ref(),
         models,
         lights,
         future,

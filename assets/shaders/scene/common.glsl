@@ -11,6 +11,7 @@ layout(set = 0, binding = 0) uniform Scene {
     PointLight pointLights[MAX_NUM_TOTAL_LIGHTS];
     int numLights;
     vec3 nearestShadowLight;
+    float rewindTime;
 } scene;
 
 layout(set = 0, binding = 1) uniform samplerCubeShadow shadowMap;

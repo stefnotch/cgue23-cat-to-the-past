@@ -8,6 +8,7 @@ use scene::camera::Camera;
 use scene::light::{Light, PointLight};
 use scene::transform::Transform;
 use std::sync::Arc;
+use time::time_manager::TimeManager;
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
 use vulkano::buffer::BufferUsage;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -250,6 +251,7 @@ impl SceneRenderer {
         &self,
         context: &Context,
         camera: &Camera,
+        time_manager: &TimeManager,
         models: Vec<(&Transform, &GpuModel)>,
         lights: Vec<(&Transform, &Light)>,
         future: F,
@@ -314,10 +316,17 @@ impl SceneRenderer {
 
             point_lights[..src_point_lights.len()].copy_from_slice(src_point_lights.as_slice());
 
+            let rewind_time = if time_manager.is_rewinding() {
+                time_manager.level_time().as_secs_f32()
+            } else {
+                0.0
+            };
+
             let uniform_data = vs::Scene {
                 pointLights: point_lights,
                 numLights: num_lights.into(),
                 nearestShadowLight: nearest_shadow_light.position.into(),
+                rewindTime: rewind_time.into(),
             };
 
             let subbuffer = self.buffer_allocator.allocate_sized().unwrap();

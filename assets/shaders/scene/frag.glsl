@@ -114,6 +114,7 @@ void main() {
     vec3 worldPos = v_position;
 
     vec3 n = normalize(v_normal);
+    
     vec3 v = normalize(camera.position - worldPos); // world space
 
     vec3 albedo = texture(baseColorTexture, v_uv).rgb * material.baseColor;
@@ -141,4 +142,7 @@ void main() {
     f_color = vec4(color + material.emissivity, 1.0);
 
 //    f_color = vec4(vec3(1.0) * computeShadowFactor(l), 1.0);
+
+    
+    //scene.rewindTime
 }

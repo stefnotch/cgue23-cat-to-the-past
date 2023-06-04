@@ -3,15 +3,20 @@ use crate::custom_storage_image::CustomStorageImage;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::GpuModel;
 use angle::Deg;
-use nalgebra::{Matrix4, Rotation3, Translation3, Vector3};
+use nalgebra::{Matrix4, Translation3};
 use scene::camera::calculate_projection;
 use scene::transform::Transform;
 use std::sync::Arc;
+use time::time_manager::TimeManager;
+use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
+use vulkano::buffer::BufferUsage;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, RenderPassBeginInfo,
     SubpassContents,
 };
+use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
+use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 
 use vulkano::format::{ClearValue, Format};
 use vulkano::image::view::{ImageView, ImageViewCreateInfo};
@@ -25,7 +30,7 @@ use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::rasterization::{CullMode, PolygonMode, RasterizationState};
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
-use vulkano::pipeline::{GraphicsPipeline, Pipeline};
+use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::sync::GpuFuture;
 
@@ -40,6 +45,9 @@ pub struct ShadowRenderer {
 
     memory_allocator: Arc<StandardMemoryAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
+    descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
+
+    buffer_allocator: SubbufferAllocator,
 
     face_view_matrices: [Matrix4<f32>; 6],
     perspective_matrix: Matrix4<f32>,
@@ -51,6 +59,7 @@ impl ShadowRenderer {
         image_count: u32,
         memory_allocator: Arc<StandardMemoryAllocator>,
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
+        descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     ) -> Self {
         let render_pass = vulkano::single_pass_renderpass!(
             context.device(),
@@ -68,6 +77,15 @@ impl ShadowRenderer {
             }
         )
         .unwrap();
+
+        // TODO: consider setting the initial size of the arena
+        let buffer_allocator = SubbufferAllocator::new(
+            memory_allocator.clone(),
+            SubbufferAllocatorCreateInfo {
+                buffer_usage: BufferUsage::UNIFORM_BUFFER,
+                ..Default::default()
+            },
+        );
 
         let pipeline = {
             let vs = vs::load(context.device()).unwrap();
@@ -156,6 +174,8 @@ impl ShadowRenderer {
             shadow_maps_views,
             memory_allocator,
             command_buffer_allocator,
+            descriptor_set_allocator,
+            buffer_allocator,
             face_view_matrices,
             perspective_matrix,
         }
@@ -179,6 +199,7 @@ impl ShadowRenderer {
     pub fn render<F>(
         &self,
         context: &Context,
+        time_manager: &TimeManager,
         models: &Vec<(&Transform, &GpuModel)>,
         nearest_shadow_light: &Transform,
         future: F,
@@ -214,6 +235,36 @@ impl ShadowRenderer {
                 .unwrap()
                 .set_viewport(0, [viewport.clone()])
                 .bind_pipeline_graphics(self.pipeline.clone());
+
+            let scene_set_layout = self.pipeline.layout().set_layouts().get(0).unwrap();
+            let uniform_subbuffer_scene = {
+                let rewind_time = if time_manager.is_rewinding() {
+                    time_manager.level_time().as_secs_f32()
+                } else {
+                    0.0
+                };
+
+                let uniform_data = vs::Scene {
+                    rewindTime: rewind_time.into(),
+                };
+
+                let subbuffer = self.buffer_allocator.allocate_sized().unwrap();
+                *subbuffer.write().unwrap() = uniform_data;
+
+                subbuffer
+            };
+            let scene_descriptor_set = PersistentDescriptorSet::new(
+                &self.descriptor_set_allocator,
+                scene_set_layout.clone(),
+                [WriteDescriptorSet::buffer(0, uniform_subbuffer_scene)],
+            )
+            .unwrap();
+            builder.bind_descriptor_sets(
+                PipelineBindPoint::Graphics,
+                self.pipeline.layout().clone(),
+                0,
+                scene_descriptor_set.clone(),
+            );
 
             let view_matrix = self.face_view_matrices[face_index];
 
