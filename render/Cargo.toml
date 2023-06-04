@@ -18,4 +18,5 @@ bevy_ecs.workspace = true
 math = { path = "../math" }
 scene = { path = "../scene" }
 app = { path = "../app" }
+time = { path = "../time" }
 windowing = { path = "../windowing" }

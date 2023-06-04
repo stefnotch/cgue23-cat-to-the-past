@@ -6,10 +6,10 @@ use bevy_ecs::{
     schedule::IntoSystemConfig,
     system::{Query, Res},
 };
-use game_core::time_manager::{
+use scene::transform::Transform;
+use time::time_manager::{
     game_change::GameChangeHistoryPlugin, level_time::LevelTime, TimeManager, TimeTrackedId,
 };
-use scene::transform::Transform;
 
 use crate::animation_change::{animations_rewind, animations_track, PlayingAnimationChange};
 

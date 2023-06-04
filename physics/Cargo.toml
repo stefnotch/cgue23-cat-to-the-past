@@ -11,7 +11,7 @@ nalgebra.workspace = true
 rapier3d = { version = "0.17.2", features = [ "simd-stable", "debug-render" ] }
 crossbeam = "0.8.2"
 
-game_core = { path = "../game_core" }
+time = { path = "../time" }
 math = { path = "../math" }
 scene = { path = "../scene" }
 app = { path = "../app" }

@@ -9,8 +9,6 @@ use bevy_ecs::schedule::IntoSystemConfig;
 use debug::setup_debugging;
 use game::level_flags::{FlagChange, LevelFlags};
 use game::pickup_system::PickupPlugin;
-use game_core::time::Time;
-use game_core::time_manager::{game_change, is_rewinding, TimeManager};
 use loader::config_loader::LoadableConfig;
 use loader::loader::{Door, SceneLoader};
 use scene::flag_trigger::FlagTrigger;
@@ -22,6 +20,8 @@ use scene::{
 use std::f32::consts::PI;
 use std::sync::Arc;
 use std::time::Instant;
+use time::time::Time;
+use time::time_manager::{game_change, TimeManager};
 
 use bevy_ecs::system::{Commands, Res, ResMut};
 use nalgebra::{Point3, Translation3};

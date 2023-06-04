@@ -1,10 +1,10 @@
 use animations::animation::AnimationPlugin;
 use app::plugin::Plugin;
 use app::App;
-use game_core::time::{TimePlugin, TimePluginSet};
 use input::plugin::InputPlugin;
 use loader::config_loader::LoadableConfig;
 use physics::plugin::PhysicsPlugin;
+use time::time::{TimePlugin, TimePluginSet};
 use windowing::window::{EventLoopContainer, WindowPlugin};
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
@@ -33,8 +33,8 @@ use windowing::window::CursorGrabMode;
 use crate::core::transform_change::{
     time_manager_rewind_transform, time_manager_track_transform, TransformChange,
 };
-use game_core::time_manager::game_change::GameChangeHistoryPlugin;
-use game_core::time_manager::{TimeManager, TimeManagerPlugin, TimeManagerPluginSet};
+use time::time_manager::game_change::GameChangeHistoryPlugin;
+use time::time_manager::{TimeManager, TimeManagerPlugin, TimeManagerPluginSet};
 
 pub struct AppConfig {
     pub window: WindowConfig,

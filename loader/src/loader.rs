@@ -1,6 +1,5 @@
 use animations::animation::{Animation, PlayingAnimation};
 use bevy_ecs::prelude::*;
-use game_core::time_manager::TimeTracked;
 use gltf::khr_lights_punctual::Kind;
 use gltf::texture::{MagFilter, MinFilter, WrappingMode};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
@@ -13,6 +12,7 @@ use scene::light::{CastShadow, Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::{CpuMesh, CpuMeshVertex};
 use scene::model::{CpuPrimitive, Model};
+use scene::pickup::Pickupable;
 use scene::texture::{
     AddressMode, BytesTextureData, CpuTexture, Filter, SamplerInfo, TextureFormat,
 };
@@ -23,9 +23,9 @@ use std::ops::Add;
 use std::sync::Arc;
 use std::time::Duration;
 use std::{collections::HashMap, path::Path};
+use time::time_manager::TimeTracked;
 
 use app::entity_event::EntityEvent;
-use game_core::pickup::Pickupable;
 use physics::physics_context::RigidBodyType::{Dynamic, KinematicPositionBased};
 use physics::physics_events::CollisionEvent;
 use scene::flag_trigger::FlagTrigger;

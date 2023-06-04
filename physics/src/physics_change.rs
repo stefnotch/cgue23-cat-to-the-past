@@ -8,12 +8,10 @@ use bevy_ecs::{
 use nalgebra::Vector3;
 use rapier3d::prelude::RigidBodyType;
 
-use game_core::{
-    pickup::Pickupable,
-    time_manager::{
-        game_change::{GameChange, GameChangeHistory, InterpolationType},
-        TimeManager, TimeState, TimeTracked, TimeTrackedId,
-    },
+use scene::pickup::Pickupable;
+use time::time_manager::{
+    game_change::{GameChange, GameChangeHistory, InterpolationType},
+    TimeManager, TimeState, TimeTracked, TimeTrackedId,
 };
 
 use super::physics_context::{PhysicsContext, RapierRigidBodyHandle, RigidBody};

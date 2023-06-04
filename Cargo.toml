@@ -3,7 +3,7 @@
 members = [
     "app",
     "scene",
-    "game_core",
+    "time",
     "physics",
     "math",
     "windowing",

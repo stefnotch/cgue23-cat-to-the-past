@@ -1,5 +1,5 @@
 use app::entity_event::EntityEvent;
-use game_core::time::Time;
+use time::time::Time;
 
 use bevy_ecs::prelude::{Added, Commands, Component, Entity, Query, Res, ResMut, Resource, With};
 use bevy_ecs::query::{Changed, Without};

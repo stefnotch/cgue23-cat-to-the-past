@@ -3,13 +3,13 @@ use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
 use bevy_ecs::system::ResMut;
 use bevy_ecs::world::Mut;
-use game_core::time_manager::game_change::GameChange;
-use game_core::time_manager::game_change::GameChangeHistory;
-use game_core::time_manager::game_change::InterpolationType;
-use game_core::time_manager::level_time::LevelTime;
-use game_core::time_manager::TimeManager;
-use game_core::time_manager::TimeTrackedId;
 use std::collections::HashMap;
+use time::time_manager::game_change::GameChange;
+use time::time_manager::game_change::GameChangeHistory;
+use time::time_manager::game_change::InterpolationType;
+use time::time_manager::level_time::LevelTime;
+use time::time_manager::TimeManager;
+use time::time_manager::TimeTrackedId;
 
 use crate::animation::PlayingAnimation;
 

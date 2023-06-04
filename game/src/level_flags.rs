@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::system::{Res, ResMut, Resource};
-use game_core::time_manager::{
+use scene::level::{FlagId, LevelId};
+use time::time_manager::{
     game_change::{GameChange, GameChangeHistory, GameChangeHistoryPlugin, InterpolationType},
     TimeManager,
 };
-use scene::level::{FlagId, LevelId};
 
 #[derive(Resource)]
 pub struct LevelFlags {

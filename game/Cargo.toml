@@ -15,7 +15,7 @@ uuid.workspace = true
 
 math = { path = "../math" }
 windowing = { path = "../windowing" }
-game_core = { path = "../game_core" }
+time = { path = "../time" }
 debug = { path = "../debug" }
 scene = { path = "../scene" }
 physics = { path = "../physics" }

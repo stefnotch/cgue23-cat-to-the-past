@@ -1,16 +1,16 @@
 use app::plugin::{Plugin, PluginAppAccess};
-use game_core::time::Time;
+use time::time::Time;
 
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
-use game_core::time_manager::is_rewinding;
 use input::events::{KeyboardInput, MouseMovement};
 use input::input_map::InputMap;
 use nalgebra::{UnitQuaternion, Vector3};
 use physics::player_physics::PlayerCharacterController;
 use scene::camera::Camera;
 use scene::transform::Transform;
+use time::time_manager::is_rewinding;
 use windowing::event::ElementState;
 use windowing::event::VirtualKeyCode;
 

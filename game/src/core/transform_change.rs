@@ -7,7 +7,7 @@ use bevy_ecs::{
 
 use scene::transform::Transform;
 
-use game_core::time_manager::{
+use time::time_manager::{
     game_change::{GameChange, GameChangeHistory, InterpolationType},
     TimeManager, TimeTracked,
 };

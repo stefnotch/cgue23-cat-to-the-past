@@ -1,12 +1,12 @@
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::{not, Commands, Entity, EventReader, Query, Res, With};
 use bevy_ecs::schedule::IntoSystemConfig;
-use game_core::pickup::Pickupable;
-use game_core::time_manager::is_rewinding;
 use input::events::{ElementState, MouseButton, MouseInput};
 use physics::physics_context::{PhysicsContext, QueryFilter, Ray};
 use physics::pickup_physics::PickedUp;
 use scene::camera::Camera;
+use scene::pickup::Pickupable;
+use time::time_manager::is_rewinding;
 
 fn ray_cast(
     mut commands: Commands,

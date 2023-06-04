@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 bevy_ecs.workspace = true
 scene = { path = "../scene" }
-game_core = { path = "../game_core" }
+time = { path = "../time" }
 app = { path = "../app" }

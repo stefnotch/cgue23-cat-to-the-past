@@ -1,6 +1,6 @@
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::schedule::{apply_system_buffers, IntoSystemConfig, IntoSystemSetConfig, SystemSet};
-use game_core::time_manager::game_change::GameChangeHistoryPlugin;
+use time::time_manager::game_change::GameChangeHistoryPlugin;
 
 use crate::{
     physics_change::{

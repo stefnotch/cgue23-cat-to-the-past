@@ -12,7 +12,7 @@ use nalgebra::Point3;
 
 use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
-use game_core::time_manager::TimeManager;
+use time::time_manager::TimeManager;
 
 use loader::loader::SceneLoader;
 use scene::mesh::CpuMesh;
