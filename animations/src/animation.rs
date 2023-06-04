@@ -3,10 +3,15 @@ use std::time::Duration;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::{
     prelude::Component,
+    schedule::IntoSystemConfig,
     system::{Query, Res},
 };
-use game_core::time_manager::{level_time::LevelTime, TimeManager};
+use game_core::time_manager::{
+    game_change::GameChangeHistoryPlugin, level_time::LevelTime, TimeManager, TimeTrackedId,
+};
 use scene::transform::Transform;
+
+use crate::animation_change::{animations_rewind, animations_track, PlayingAnimationChange};
 
 pub struct Animation {
     pub start_transform: Transform,
@@ -14,18 +19,20 @@ pub struct Animation {
     pub duration: Duration,
 }
 
-/// An entity with a PlayingAnimation should not be time tracked.
+/// An entity with a PlayingAnimation should not have a TimeTracked component!
 #[derive(Component)]
 pub struct PlayingAnimation {
+    pub(crate) id: TimeTrackedId,
     animation: Animation,
-    end_time: LevelTime,
+    pub(crate) end_time: LevelTime,
     /// Also can be used to keep the animation frozen at the start.
-    reverse: bool,
+    pub(crate) reverse: bool,
 }
 
 impl PlayingAnimation {
     pub fn new_frozen(animation: Animation) -> Self {
         Self {
+            id: TimeTrackedId::new_v4(),
             animation,
             end_time: LevelTime::zero(),
             reverse: true,
@@ -93,7 +100,16 @@ impl PlayingAnimation {
 pub struct AnimationPlugin;
 impl Plugin for AnimationPlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
-        app.with_system(play_animations);
+        app //
+            .with_plugin(
+                GameChangeHistoryPlugin::<PlayingAnimationChange>::new()
+                    .with_tracker(animations_track)
+                    .with_rewinder(animations_rewind),
+            )
+            .with_system(
+                play_animations
+                    .after(GameChangeHistoryPlugin::<PlayingAnimationChange>::system_set()),
+            );
     }
 }
 

@@ -10,7 +10,7 @@ use debug::setup_debugging;
 use game::level_flags::{FlagChange, LevelFlags};
 use game::pickup_system::PickupPlugin;
 use game_core::time::Time;
-use game_core::time_manager::{game_change, TimeManager};
+use game_core::time_manager::{game_change, is_rewinding, TimeManager};
 use loader::config_loader::LoadableConfig;
 use loader::loader::{Door, SceneLoader};
 use scene::flag_trigger::FlagTrigger;

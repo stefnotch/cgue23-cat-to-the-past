@@ -111,10 +111,14 @@ impl Application {
             )
             .with_plugin(InputPlugin)
             .with_set(InputPlugin::system_set().in_set(AppStage::EventUpdate))
-            .with_plugin(AnimationPlugin)
-            .with_set(AnimationPlugin::system_set().in_set(AppStage::BeforeUpdate))
             .with_plugin(LevelFlagsPlugin)
             .with_set(LevelFlagsPlugin::system_set().in_set(AppStage::BeforeUpdate))
+            .with_plugin(AnimationPlugin)
+            .with_set(
+                AnimationPlugin::system_set()
+                    .after(AppStage::Update)
+                    .before(AppStage::UpdatePhysics),
+            )
             .with_plugin(PhysicsPlugin)
             .with_set(PhysicsPlugin::system_set().in_set(AppStage::UpdatePhysics))
             // Transform tracking
@@ -126,6 +130,7 @@ impl Application {
             .with_set(
                 GameChangeHistoryPlugin::<TransformChange>::system_set()
                     .after(AppStage::Update)
+                    .after(AnimationPlugin::system_set())
                     .before(AppStage::UpdatePhysics),
             )
             .with_plugin(WindowPlugin::new(config.window.clone()))

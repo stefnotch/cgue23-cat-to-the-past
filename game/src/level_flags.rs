@@ -113,7 +113,6 @@ impl Plugin for LevelFlagsPlugin {
             .with_resource(LevelFlags::new())
             .with_plugin(
                 GameChangeHistoryPlugin::<FlagChange>::new().with_rewinder(level_flags_rewind),
-            )
-            .with_set(GameChangeHistoryPlugin::<FlagChange>::system_set());
+            );
     }
 }

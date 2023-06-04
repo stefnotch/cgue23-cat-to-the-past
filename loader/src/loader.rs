@@ -1,6 +1,5 @@
 use animations::animation::{Animation, PlayingAnimation};
 use bevy_ecs::prelude::*;
-use game_core::time_manager::level_time::LevelTime;
 use game_core::time_manager::TimeTracked;
 use gltf::khr_lights_punctual::Kind;
 use gltf::texture::{MagFilter, MinFilter, WrappingMode};
