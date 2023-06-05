@@ -79,6 +79,8 @@ where bloom_demo can be replaced with the name of any demo project in the `demos
 - https://www.youtube.com/watch?v=RRE-F57fbXw
 - https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/#perspective-projection-into-clip-space
 - https://github.com/FlaxEngine/FlaxSamples/blob/master/FirstPersonShooterTemplate/Source/FirstPersonShooter/PlayerScript.cs
+- https://madebyevan.com/shaders/grid/
+- https://www.shadertoy.com/view/MscSDf
 
 ```
 

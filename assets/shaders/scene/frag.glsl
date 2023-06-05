@@ -110,6 +110,37 @@ vec3 pbr(PointLight pointLight, vec3 n, vec3 v, vec3 worldPos, vec3 albedo, vec3
     return pbr_common(lightIntensity, l, n, v, albedo, f0);
 }
 
+
+float computeGrid(vec3 worldPos, vec3 n) {
+    // From https://madebyevan.com/shaders/grid/
+    vec3 coord = worldPos.xyz;
+    // Compute anti-aliased world-space grid lines
+    vec3 grid = abs(fract(coord - 0.5) - 0.5) / fwidth(coord);
+    // When grid is almost zero, we draw a line
+    // Use the normal vector to blur grid lines that aren't relevant
+    grid += abs(n);
+    float line = min(min(grid.x, grid.y), grid.z);
+
+    // Just visualize the grid lines directly
+    float gridColor = 1.0 - min(line, 1.0);
+
+    // Apply gamma correction
+    gridColor = pow(gridColor, 1.0 / 2.2);
+    return gridColor;
+}
+
+vec3 computeGridColor(vec3 worldPos, float time) {
+    // Triangle wave
+    // abs(fract(worldPos.xz - 0.5) - 0.5)
+    // More interesting
+    vec2 uv = sin(worldPos.xz);
+    return vec3(
+        uv.x * 0.5 + 0.5 * sin(time),
+        uv.y * 0.5 + 0.5 * cos(time),
+        pow(cos(time), 4.0)
+    );
+}
+
 void main() {
     vec3 worldPos = v_position;
 
@@ -139,10 +170,14 @@ void main() {
 
     vec3 color = Lo * computeShadowFactor(l)  + ambient;
 
-    f_color = vec4(color + material.emissivity, 1.0);
+    float gridBlendFactor = min(scene.rewindTime * 0.4, 0.2);
+    vec3 gridColor = computeGridColor(worldPos.xyz, scene.rewindTime) * computeGrid(worldPos.xyz, n.xyz);
 
+    f_color = vec4(mix(color + material.emissivity, gridColor, gridBlendFactor), 1.0);
+
+// Shadow debugging
 //    f_color = vec4(vec3(1.0) * computeShadowFactor(l), 1.0);
 
-    
-    //scene.rewindTime
+// Grid debugging
+//    f_color = vec4(gridColor, 1.0);
 }
