@@ -186,6 +186,7 @@ pub fn render(
     query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
     query_shadow_light: Query<&Transform, (With<CastShadow>, With<Light>)>,
     mut counter: Local<u32>,
+    mut rewind_start_time: Local<f32>,
 ) {
     // On Windows, this can occur from minimizing the application.
     let surface = context.surface();
@@ -284,12 +285,19 @@ pub fn render(
         })
         .expect("at least one shadow light is required");
 
+    let rewind_time = if time_manager.is_rewinding() {
+        *rewind_start_time - time_manager.level_time().as_secs_f32()
+    } else {
+        *rewind_start_time = time_manager.level_time().as_secs_f32();
+        0.0
+    };
+
     let future = if *counter > 2 {
         renderer
             .shadow_renderer
             .render(
                 &context,
-                time_manager.as_ref(),
+                rewind_time,
                 &models,
                 nearest_shadow_light,
                 future,
@@ -305,7 +313,7 @@ pub fn render(
     let future = renderer.scene_renderer.render(
         &context,
         camera.as_ref(),
-        time_manager.as_ref(),
+        rewind_time,
         models,
         lights,
         future,

@@ -7,7 +7,6 @@ use nalgebra::{Matrix4, Translation3};
 use scene::camera::calculate_projection;
 use scene::transform::Transform;
 use std::sync::Arc;
-use time::time_manager::TimeManager;
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
 use vulkano::buffer::BufferUsage;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -199,7 +198,7 @@ impl ShadowRenderer {
     pub fn render<F>(
         &self,
         context: &Context,
-        time_manager: &TimeManager,
+        rewind_time: f32,
         models: &Vec<(&Transform, &GpuModel)>,
         nearest_shadow_light: &Transform,
         future: F,
@@ -238,12 +237,6 @@ impl ShadowRenderer {
 
             let scene_set_layout = self.pipeline.layout().set_layouts().get(0).unwrap();
             let uniform_subbuffer_scene = {
-                let rewind_time = if time_manager.is_rewinding() {
-                    time_manager.level_time().as_secs_f32()
-                } else {
-                    0.0
-                };
-
                 let uniform_data = vs::Scene {
                     rewindTime: rewind_time.into(),
                 };
