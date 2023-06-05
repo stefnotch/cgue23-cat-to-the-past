@@ -1,10 +1,7 @@
 use std::collections::VecDeque;
 
 use bevy_ecs::{
-    schedule::{
-        ExecutorKind, IntoSystemConfig, IntoSystemSetConfig, LogLevel, Schedule,
-        ScheduleBuildSettings,
-    },
+    schedule::{ExecutorKind, IntoSystemSetConfig, LogLevel, Schedule, ScheduleBuildSettings},
     world::World,
 };
 
@@ -69,9 +66,9 @@ impl App {
 
         let mut startup_schedule = Schedule::default();
         startup_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
-        schedule.set_apply_final_buffers(true);
-        schedule.set_build_settings(ScheduleBuildSettings {
-            ambiguity_detection: LogLevel::Warn,
+        startup_schedule.set_apply_final_buffers(true);
+        startup_schedule.set_build_settings(ScheduleBuildSettings {
+            ambiguity_detection: LogLevel::Error,
             ..Default::default()
         });
 
@@ -89,12 +86,6 @@ impl App {
     {
         self.plugins
             .push_back(Box::new(PluginContainer::new(plugin)));
-        self
-    }
-
-    // TODO: Get rid of this
-    pub fn with_system<Params>(&mut self, system: impl IntoSystemConfig<Params>) -> &mut Self {
-        self.schedule.add_system(system);
         self
     }
 

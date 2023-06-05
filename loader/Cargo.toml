@@ -1,5 +1,5 @@
 [package]
-name = "scene_loader"
+name = "loader"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,7 +10,8 @@ gltf = { git = "https://github.com/stefnotch/gltf.git", branch = "feat/emissive_
 bevy_ecs.workspace = true
 nalgebra.workspace = true
 
-game_core = { path = "../game_core" }
+app = { path = "../app"}
+time = { path = "../time" }
 math = { path = "../math" }
 physics = { path = "../physics" }
 scene = { path = "../scene" }

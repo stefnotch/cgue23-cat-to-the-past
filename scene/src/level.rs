@@ -1,12 +1,3 @@
-use bevy_ecs::prelude::Component;
-
-pub mod level_flags;
-
-#[derive(Component)]
-pub struct Level {
-    pub id: LevelId,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LevelId {
     id: u32,
@@ -17,3 +8,6 @@ impl LevelId {
         Self { id }
     }
 }
+
+// For now the level flags are purely number based. (No enums yet)
+pub type FlagId = usize;

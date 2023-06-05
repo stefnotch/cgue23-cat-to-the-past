@@ -1,0 +1,10 @@
+{
+  "resolution": [
+    1280,
+    720
+  ],
+  "fullscreen": false,
+  "refresh_rate": 60,
+  "brightness": 1.0,
+  "mouse_sensitivity": 1.0
+}

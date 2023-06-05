@@ -1,14 +1,11 @@
-use bevy_ecs::event::EventWriter;
-use game_core::time::Time;
+use app::entity_event::EntityEvent;
+use time::time::Time;
 
-use bevy_ecs::prelude::{
-    Added, Commands, Component, DetectChanges, Entity, Query, Res, ResMut, Resource, With,
-};
+use bevy_ecs::prelude::{Added, Commands, Component, Entity, Query, Res, ResMut, Resource, With};
 use bevy_ecs::query::{Changed, Without};
 
-use game_core::time_manager::TimeTracked;
 use math::bounding_box::BoundingBox;
-use nalgebra::{Point3, UnitQuaternion};
+use nalgebra::UnitQuaternion;
 use rapier3d::na::Vector3;
 pub use rapier3d::prelude::QueryFilter;
 pub use rapier3d::prelude::Ray;
@@ -20,6 +17,7 @@ use super::player_physics::PlayerCharacterController;
 use crate::physics_events::{collider2entity, handle_collision_event, CollisionEvent};
 use crate::pickup_physics::PickedUp;
 pub use rapier3d::prelude::RigidBodyType;
+use scene::flag_trigger::FlagTrigger;
 
 #[derive(Resource)]
 pub struct PhysicsContext {
@@ -86,7 +84,7 @@ impl PhysicsContext {
     pub fn step_simulation(
         &mut self,
         time: &Time,
-        mut collision_events: EventWriter<CollisionEvent>,
+        mut collision_event_query: Query<&mut EntityEvent<CollisionEvent>>,
     ) {
         self.integration_parameters.dt = (time.delta_seconds() as Real) / (self.substeps as Real);
 
@@ -110,8 +108,12 @@ impl PhysicsContext {
             &event_handler,
         );
 
+        for mut event in collision_event_query.iter_mut() {
+            event.clear();
+        }
+
         while let Ok(collision_event) = collision_recv.try_recv() {
-            handle_collision_event(&self.colliders, collision_event, &mut collision_events);
+            handle_collision_event(&self.colliders, collision_event, &mut collision_event_query);
         }
 
         while let Ok(contact_force_event) = contact_force_recv.try_recv() {
@@ -143,19 +145,10 @@ impl PhysicsContext {
 pub(crate) fn step_physics_simulation(
     mut physics_context: ResMut<PhysicsContext>,
     time: Res<Time>,
-    collision_events: EventWriter<CollisionEvent>,
+    collision_event_query: Query<&mut EntityEvent<CollisionEvent>>,
 ) {
     let time = time.as_ref();
-
-    physics_context.step_simulation(time, collision_events);
-}
-
-#[derive(Component)]
-pub struct Sensor;
-
-#[derive(Component)]
-pub struct MoveBodyPosition {
-    pub new_position: Option<Point3<f32>>,
+    physics_context.step_simulation(time, collision_event_query);
 }
 
 #[derive(Component)]
@@ -259,7 +252,7 @@ pub(crate) fn apply_rigid_body_type_change(
 
 pub(crate) fn apply_collider_sensor_change(
     mut physics_context: ResMut<PhysicsContext>,
-    mut query: Query<&RapierColliderHandle, With<Sensor>>,
+    mut query: Query<&RapierColliderHandle, With<FlagTrigger>>,
 ) {
     for RapierColliderHandle { handle } in query.iter_mut() {
         let collider = physics_context
@@ -272,7 +265,7 @@ pub(crate) fn apply_collider_sensor_change(
     }
 }
 
-pub(crate) fn update_transform_system(
+pub(crate) fn write_transform_back(
     physics_context: Res<PhysicsContext>,
     mut query: Query<
         (&mut Transform, &RapierRigidBodyHandle),
@@ -280,9 +273,6 @@ pub(crate) fn update_transform_system(
     >,
 ) {
     for (mut transform, body_handle) in query.iter_mut() {
-        if transform.is_changed() {
-            // println!("Warning: Transform changed illegally");
-        }
         let body = physics_context
             .rigid_bodies
             .get(body_handle.handle)
@@ -296,43 +286,20 @@ pub(crate) fn update_transform_system(
     }
 }
 
-pub(crate) fn update_move_body_position_system(
+pub(crate) fn apply_transform_changes(
     mut physics_context: ResMut<PhysicsContext>,
-    mut query: Query<(&RapierRigidBodyHandle, &mut MoveBodyPosition), With<RigidBody>>,
+    query: Query<(&RapierRigidBodyHandle, &Transform), (With<RigidBody>, Without<PickedUp>)>,
 ) {
-    for (rigid_body_handle, mut move_body_position) in query.iter_mut() {
-        if let Some(position) = move_body_position.new_position {
-            let rigid_body = physics_context
-                .rigid_bodies
-                .get_mut(rigid_body_handle.handle)
-                .unwrap();
-
-            rigid_body.set_next_kinematic_translation(position.coords);
-            move_body_position.new_position = None;
-        }
-    }
-}
-// TODO: time_manager_rewind_transform and update_transform_system already do stuff like this, so we could remove this
-// *if* we remove the MoveBodyPosition
-pub(crate) fn time_rewinding_move_body_transform(
-    mut physics_context: ResMut<PhysicsContext>,
-    query: Query<(&RapierRigidBodyHandle, &Transform), (With<RigidBody>, With<TimeTracked>)>,
-) {
-    for (
-        rigid_body_handle,
-        Transform {
-            position,
-            rotation,
-            scale: _,
-        },
-    ) in query.iter()
-    {
-        // We aren't using the MoveBodyPosition for this, since if we did, we might mess up entities that already have a MoveBodyPosition
+    for (rigid_body_handle, transform) in query.iter() {
         let rigid_body = physics_context
             .rigid_bodies
             .get_mut(rigid_body_handle.handle)
             .unwrap();
-        rigid_body.set_next_kinematic_translation(position.coords);
-        rigid_body.set_next_kinematic_rotation(rotation.clone());
+
+        if rigid_body.is_kinematic() {
+            rigid_body.set_next_kinematic_position(transform.to_isometry());
+        } else {
+            // we ignore it
+        }
     }
 }

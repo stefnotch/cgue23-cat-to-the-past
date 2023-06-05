@@ -1,16 +1,15 @@
 use std::collections::HashMap;
 
-use bevy_ecs::prelude::Without;
 use bevy_ecs::{
-    query::Changed,
-    system::{Query, Res, ResMut},
+    query::{Changed, Without},
+    system::{Query, Res, ResMut, Resource},
     world::Mut,
 };
-use game_core::pickup::Pickupable;
 use nalgebra::Vector3;
 use rapier3d::prelude::RigidBodyType;
 
-use game_core::time_manager::{
+use scene::pickup::Pickupable;
+use time::time_manager::{
     game_change::{GameChange, GameChangeHistory, InterpolationType},
     TimeManager, TimeState, TimeTracked, TimeTrackedId,
 };
@@ -65,6 +64,11 @@ pub(super) fn time_manager_rewind_rigid_body_velocity(
     mut history: ResMut<GameChangeHistory<VelocityChange>>,
     query: Query<(&TimeTracked, &RapierRigidBodyHandle)>,
 ) {
+    // Only rewind the velocity at the very end of the rewind. Kinda questionable, but eh
+    if time_manager.time_state() != TimeState::StopRewinding {
+        return;
+    }
+
     // The code below makes it kinematic
     let entities: HashMap<_, _> = query
         .into_iter()
@@ -80,13 +84,11 @@ pub(super) fn time_manager_rewind_rigid_body_velocity(
                     .rigid_bodies
                     .get_mut(v.handle)
                     .expect("RigidBody not found in physics context");
-                rigidbody.set_linvel(command.linvel, false);
+                rigidbody.set_linvel(command.linvel, true);
                 rigidbody.set_angvel(command.angvel, true);
             }
         }
     }
-
-    // TODO: Interpolation logic
 }
 
 pub(super) struct RigidBodyTypeChange {
@@ -114,11 +116,17 @@ pub(super) fn time_manager_track_rigid_body_type(
     }
 }
 
-// TODO: I'm not sure if this is the most elegant way to do this.
+#[derive(Resource, Default)]
+pub(super) struct RigidBodyTypes {
+    pub previous_types: HashMap<TimeTrackedId, RigidBodyType>,
+}
+
+// Doesn't handle RigidBodies that have been inserted at runtime
 pub(super) fn time_manager_rewind_rigid_body_type(
     time_manager: Res<TimeManager>,
     mut history: ResMut<GameChangeHistory<RigidBodyTypeChange>>,
     mut query: Query<(&TimeTracked, &mut RigidBody)>,
+    mut previous_types: ResMut<RigidBodyTypes>,
 ) {
     match time_manager.time_state() {
         TimeState::Normal => return,
@@ -126,8 +134,9 @@ pub(super) fn time_manager_rewind_rigid_body_type(
             // We note down the type of the rigid body
             // and then make it kinematic
             for (time_tracked, mut rigidbody) in query.iter_mut() {
-                history.add_rewinder_command(RigidBodyTypeChange::new(time_tracked, rigidbody.0));
-
+                previous_types
+                    .previous_types
+                    .insert(time_tracked.id(), rigidbody.0);
                 rigidbody.0 = RigidBodyType::KinematicPositionBased;
             }
         }
@@ -137,6 +146,14 @@ pub(super) fn time_manager_rewind_rigid_body_type(
                 .iter_mut()
                 .map(|(time_tracked, rigidbody)| (time_tracked.id(), rigidbody))
                 .collect();
+
+            // We restore the type of the rigid body
+            for old_type in previous_types.previous_types.iter() {
+                if let Some(v) = entities.get_mut(&old_type.0) {
+                    v.0 = old_type.1.clone();
+                }
+            }
+            previous_types.previous_types.clear();
 
             let (commands, _interpolation) =
                 history.take_commands_to_apply(&time_manager, InterpolationType::None);

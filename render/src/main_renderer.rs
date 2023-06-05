@@ -8,14 +8,18 @@ use crate::scene::mesh::Mesh;
 use crate::scene::model::GpuModel;
 use crate::scene::texture::Texture;
 use crate::scene_renderer::SceneRenderer;
+use crate::shadow_renderer::ShadowRenderer;
 use app::plugin::{Plugin, PluginAppAccess};
+use bevy_ecs::prelude::Local;
+use bevy_ecs::query::With;
 use bevy_ecs::schedule::{IntoSystemConfig, SystemSet};
 use bevy_ecs::system::{NonSendMut, Query, Res};
 use scene::asset::Assets;
 use scene::camera::Camera;
-use scene::light::Light;
+use scene::light::{CastShadow, Light};
 use scene::transform::Transform;
 use std::sync::Arc;
+use time::time_manager::TimeManager;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::device::Device;
@@ -40,6 +44,7 @@ pub struct Renderer {
     // TODO: Huh, this doesn't need to be an option?
     previous_frame_end: Option<Box<dyn GpuFuture>>,
     swapchain: SwapchainContainer,
+    shadow_renderer: ShadowRenderer,
     scene_renderer: SceneRenderer,
     bloom_renderer: BloomRenderer,
     quad_renderer: QuadRenderer,
@@ -77,8 +82,17 @@ impl Renderer {
         let dimensions = swapchain.swapchain.image_extent();
         let swapchain_image_count = swapchain.swapchain.image_count();
 
+        let shadow_renderer = ShadowRenderer::new(
+            context,
+            swapchain_image_count,
+            memory_allocator.clone(),
+            command_buffer_allocator.clone(),
+            descriptor_set_allocator.clone(),
+        );
+
         let scene_renderer = SceneRenderer::new(
             context,
+            shadow_renderer.get_shadow_cube_maps(),
             dimensions,
             swapchain_image_count,
             memory_allocator.clone(),
@@ -108,6 +122,7 @@ impl Renderer {
             recreate_swapchain: false,
             previous_frame_end,
             swapchain,
+            shadow_renderer,
             scene_renderer,
             bloom_renderer,
             quad_renderer,
@@ -136,7 +151,7 @@ impl RendererPlugin {
 impl Plugin for RendererPlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
         let context = Context::new(
-            app.world_hack_mut()
+            app.world_hack_access()
                 .get_resource::<WindowManager>()
                 .unwrap()
                 .window
@@ -166,8 +181,12 @@ pub fn render(
     mut renderer: NonSendMut<Renderer>,
     context: Res<Context>,
     camera: Res<Camera>,
+    time_manager: Res<TimeManager>,
     query_models: Query<(&Transform, &GpuModel)>,
     query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
+    query_shadow_light: Query<&Transform, (With<CastShadow>, With<Light>)>,
+    mut counter: Local<u32>,
+    mut rewind_start_time: Local<f32>,
 ) {
     // On Windows, this can occur from minimizing the application.
     let surface = context.surface();
@@ -206,7 +225,13 @@ pub fn render(
 
         // https://doc.rust-lang.org/nomicon/borrow-splitting.html
         let renderer = renderer.as_mut();
-        renderer.scene_renderer.resize(&renderer.swapchain.images);
+        renderer
+            .shadow_renderer
+            .resize(renderer.swapchain.images.len() as u32);
+        renderer.scene_renderer.resize(
+            &renderer.swapchain.images,
+            renderer.shadow_renderer.get_shadow_cube_maps(),
+        );
         renderer
             .bloom_renderer
             .resize(renderer.scene_renderer.output_images().clone());
@@ -251,12 +276,48 @@ pub fn render(
     let models = query_models.iter().collect();
     let lights = query_lights.iter().collect();
 
+    let nearest_shadow_light = query_shadow_light
+        .iter()
+        .min_by(|transform_a, transform_b| {
+            let distance_a = (camera.position - transform_a.position).norm_squared();
+            let distance_b = (camera.position - transform_b.position).norm_squared();
+            distance_a.total_cmp(&distance_b)
+        })
+        .expect("at least one shadow light is required");
+
+    let rewind_time = if time_manager.is_rewinding() {
+        *rewind_start_time - time_manager.level_time().as_secs_f32()
+    } else {
+        *rewind_start_time = time_manager.level_time().as_secs_f32();
+        0.0
+    };
+
+    let future = if *counter > 2 {
+        renderer
+            .shadow_renderer
+            .render(
+                &context,
+                rewind_time,
+                &models,
+                nearest_shadow_light,
+                future,
+                image_index,
+            )
+            .boxed()
+    } else {
+        future.boxed()
+    };
+
+    *counter += 1;
+
     let future = renderer.scene_renderer.render(
         &context,
         camera.as_ref(),
+        rewind_time,
         models,
         lights,
         future,
+        nearest_shadow_light,
         image_index,
         &renderer.viewport,
     );

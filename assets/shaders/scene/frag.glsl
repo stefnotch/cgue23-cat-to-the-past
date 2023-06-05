@@ -17,6 +17,26 @@ vec3 ambientLightColor = vec3(1.0, 1.0, 1.0);
 // v: normalized view vector pointing to the camera
 // h: normalized half-way vector between v and l
 
+float vectorToDepthValue(vec3 direction) {
+    vec3 absDirection = abs(direction);
+    float localZ = max(absDirection.x, max(absDirection.y, absDirection.z));
+
+    const float far = 50.0;
+    const float near = 0.5;
+    float normalizedZ =  (1.0 - (near / localZ)) / ((far - near) / far);
+    return normalizedZ;
+}
+
+float computeShadowFactor(vec3 l) {
+    vec3 lightDirection = normalize(l);
+    vec3 normal = normalize(v_normal);
+    
+    float bias = max(0.08 * (1.0 - dot(normal, lightDirection)), 0.005);
+
+    float shadow = texture(shadowMap, vec4(l, vectorToDepthValue(l - l * bias))).r;
+    return shadow;
+}
+
 float distributionGGXTrowbridgeReitz(vec3 n, vec3 h, float alpha) {
     float alphaSquared = alpha * alpha;
 
@@ -90,10 +110,42 @@ vec3 pbr(PointLight pointLight, vec3 n, vec3 v, vec3 worldPos, vec3 albedo, vec3
     return pbr_common(lightIntensity, l, n, v, albedo, f0);
 }
 
+
+float computeGrid(vec3 worldPos, vec3 n) {
+    // From https://madebyevan.com/shaders/grid/
+    vec3 coord = worldPos.xyz;
+    // Compute anti-aliased world-space grid lines
+    vec3 grid = abs(fract(coord - 0.5) - 0.5) / fwidth(coord);
+    // When grid is almost zero, we draw a line
+    // Use the normal vector to blur grid lines that aren't relevant
+    grid += abs(n);
+    float line = min(min(grid.x, grid.y), grid.z);
+
+    // Just visualize the grid lines directly
+    float gridColor = 1.0 - min(line, 1.0);
+
+    // Apply gamma correction
+    gridColor = pow(gridColor, 1.0 / 2.2);
+    return gridColor;
+}
+
+vec3 computeGridColor(vec3 worldPos, float time) {
+    // Triangle wave
+    // abs(fract(worldPos.xz - 0.5) - 0.5)
+    // More interesting
+    vec2 uv = sin(worldPos.xz);
+    return vec3(
+        uv.x * 0.5 + 0.5 * sin(time),
+        uv.y * 0.5 + 0.5 * cos(time),
+        pow(cos(time), 4.0)
+    );
+}
+
 void main() {
     vec3 worldPos = v_position;
 
     vec3 n = normalize(v_normal);
+    
     vec3 v = normalize(camera.position - worldPos); // world space
 
     vec3 albedo = texture(baseColorTexture, v_uv).rgb * material.baseColor;
@@ -113,7 +165,19 @@ void main() {
     float ka = 0.03;
     vec3 ambient = (ambientLightColor * ka) * albedo;
 
-    vec3 color = Lo + ambient;
+    vec3 positionToNearestShadowLight = scene.nearestShadowLight - worldPos;
+    vec3 l = positionToNearestShadowLight;
 
-    f_color = vec4(color + material.emissivity, 1.0);
+    vec3 color = Lo * computeShadowFactor(l)  + ambient;
+
+    float gridBlendFactor = min(scene.rewindTime * 0.4, 0.2);
+    vec3 gridColor = computeGridColor(worldPos.xyz, scene.rewindTime) * computeGrid(worldPos.xyz, n.xyz);
+
+    f_color = vec4(mix(color + material.emissivity, gridColor, gridBlendFactor), 1.0);
+
+// Shadow debugging
+//    f_color = vec4(vec3(1.0) * computeShadowFactor(l), 1.0);
+
+// Grid debugging
+//    f_color = vec4(gridColor, 1.0);
 }

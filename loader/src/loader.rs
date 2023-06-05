@@ -1,19 +1,18 @@
-use animations::animation::Animation;
+use animations::animation::{Animation, PlayingAnimation};
 use bevy_ecs::prelude::*;
-use game_core::level::{Level, LevelId};
-use game_core::time_manager::TimeTracked;
 use gltf::khr_lights_punctual::Kind;
 use gltf::texture::{MagFilter, MinFilter, WrappingMode};
 use gltf::{import, khr_lights_punctual, Node, Semantic};
 use math::bounding_box::BoundingBox;
 use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
-use physics::physics_context::{BoxCollider, MoveBodyPosition, RigidBody, Sensor};
-use scene::asset::{AssetId, Assets};
+use physics::physics_context::{BoxCollider, RigidBody};
+use scene::asset::AssetId;
 use scene::debug_name::DebugName;
-use scene::light::{Light, PointLight};
+use scene::light::{CastShadow, Light, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::{CpuMesh, CpuMeshVertex};
 use scene::model::{CpuPrimitive, Model};
+use scene::pickup::Pickupable;
 use scene::texture::{
     AddressMode, BytesTextureData, CpuTexture, Filter, SamplerInfo, TextureFormat,
 };
@@ -24,9 +23,13 @@ use std::ops::Add;
 use std::sync::Arc;
 use std::time::Duration;
 use std::{collections::HashMap, path::Path};
+use time::time_manager::TimeTracked;
 
-use game_core::pickup::Pickupable;
+use app::entity_event::EntityEvent;
 use physics::physics_context::RigidBodyType::{Dynamic, KinematicPositionBased};
+use physics::physics_events::CollisionEvent;
+use scene::flag_trigger::FlagTrigger;
+use scene::level::LevelId;
 use serde::Deserialize;
 
 // scene.json -> assets
@@ -35,7 +38,8 @@ use serde::Deserialize;
 
 #[derive(Component)]
 pub struct Door {
-    pub id: u32,
+    /// true if the door is open *or if it is opening*
+    pub is_open: bool,
 }
 
 #[derive(Deserialize, Debug)]
@@ -45,30 +49,28 @@ struct AnimationProperty {
     pub duration: f32,
 }
 
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+struct LevelFlagProperty {
+    pub level_id: u32,
+    pub flag_id: u32,
+}
+
 #[derive(Deserialize, Debug, Default)]
 #[serde(deny_unknown_fields)]
 struct GLTFExtras {
-    pub sensor: Option<u32>,
+    pub sensor: Option<LevelFlagProperty>,
     pub box_collider: Option<bool>,
     pub rigid_body: Option<String>,
     pub animation: Option<AnimationProperty>,
-    pub door: Option<u32>,
-    pub level: Option<u32>,
+    pub door: Option<bool>,
     pub pickupable: Option<bool>,
 }
 
 #[derive(Resource)]
-pub struct AssetServer {}
+pub struct SceneLoader {}
 
-impl AssetServer {
-    pub fn insert_asset_types(world: &mut World) {
-        // TODO: Those are unused, the loader doesn't add anything to them
-        world.insert_resource(Assets::<CpuTexture>::default());
-        world.insert_resource(Assets::<CpuMesh>::default());
-        world.insert_resource(Assets::<CpuMaterial>::default());
-        // world.insert_resource(Assets::<Light>::default());
-    }
-
+impl SceneLoader {
     /// loads one .gltf file
     pub fn load_default_scene<P>(
         &self,
@@ -108,6 +110,7 @@ impl AssetServer {
             commands.spawn((
                 name,
                 light,
+                CastShadow,
                 Model {
                     primitives: vec![CpuPrimitive {
                         mesh: sphere.clone(),
@@ -125,9 +128,13 @@ impl AssetServer {
 
             let mut entity = commands.spawn((name, transform.clone()));
 
-            if let Some(_) = extras.sensor {
-                // and sensor component
-                entity.insert(Sensor);
+            if let Some(flag) = extras.sensor {
+                entity
+                    .insert(FlagTrigger {
+                        level_id: LevelId::new(flag.level_id),
+                        flag_id: flag.flag_id as usize,
+                    })
+                    .insert(EntityEvent::<CollisionEvent>::default());
             } else {
                 // add model component
                 entity.insert(model);
@@ -140,11 +147,7 @@ impl AssetServer {
 
             if let Some(str) = extras.rigid_body {
                 if str == "kinematic" {
-                    entity.insert((
-                        MoveBodyPosition { new_position: None },
-                        RigidBody(KinematicPositionBased),
-                        TimeTracked::new(),
-                    ));
+                    entity.insert((RigidBody(KinematicPositionBased), TimeTracked::new()));
                 } else if str == "dynamic" {
                     entity.insert((RigidBody(Dynamic), TimeTracked::new()));
                 } else {
@@ -152,14 +155,8 @@ impl AssetServer {
                 }
             }
 
-            if let Some(id) = extras.door {
-                entity.insert(Door { id });
-            }
-
-            if let Some(id) = extras.level {
-                entity.insert(Level {
-                    id: LevelId::new(id),
-                });
+            if let Some(is_open) = extras.door {
+                entity.insert(Door { is_open });
             }
 
             if let Some(animation) = extras.animation {
@@ -174,7 +171,12 @@ impl AssetServer {
                     duration: Duration::from_secs_f32(animation.duration),
                 };
 
-                entity.insert(animation);
+                let playing_animation = PlayingAnimation::new_frozen(animation);
+
+                entity.insert(playing_animation);
+
+                // May not have a time tracked if it's animated
+                entity.remove::<TimeTracked>();
             }
 
             if let Some(true) = extras.pickupable {
@@ -186,7 +188,7 @@ impl AssetServer {
     }
 
     pub fn new() -> Self {
-        AssetServer {}
+        SceneLoader {}
     }
 
     fn read_node(
@@ -199,7 +201,7 @@ impl AssetServer {
         let global_transform = parent_transform * local_transform;
 
         for child in node.children() {
-            AssetServer::read_node(
+            SceneLoader::read_node(
                 &child,
                 scene_loading_data,
                 scene_loading_result,

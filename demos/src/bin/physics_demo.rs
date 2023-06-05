@@ -1,16 +1,17 @@
+use app::entity_event::EntityEvent;
 //#![windows_subsystem = "windows"]
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::event::EventReader;
+use loader::config_loader::LoadableConfig;
 use std::sync::Arc;
 
-use bevy_ecs::system::Commands;
+use bevy_ecs::system::{Commands, Query};
 use nalgebra::{Point3, Vector3};
 use scene::asset::AssetId;
 
 use game::core::application::{AppConfig, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
 
-use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType, Sensor};
+use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType};
 use physics::physics_events::CollisionEvent;
 use scene::light::{Light, PointLight};
 use scene::material::CpuMaterial;
@@ -55,6 +56,7 @@ fn spawn_world(mut commands: Commands) {
         BoxCollider {
             bounds: bounding_box.clone(),
         },
+        EntityEvent::<CollisionEvent>::default(),
         TransformBuilder::new()
             .position([0.0, -1.0, 0.0].into())
             .scale([30.0, 1.0, 20.0].into())
@@ -71,7 +73,6 @@ fn spawn_world(mut commands: Commands) {
         BoxCollider {
             bounds: bounding_box.clone(),
         },
-        Sensor,
         TransformBuilder::new()
             .position([0.0, 1.0, -3.0].into())
             .build(),
@@ -113,9 +114,11 @@ fn spawn_world(mut commands: Commands) {
     ));
 }
 
-fn display_collision_events(mut collision_events: EventReader<CollisionEvent>) {
-    for collision_event in collision_events.iter() {
-        println!("Received collision event: {collision_event:?}");
+fn display_collision_events(collision_events: Query<&EntityEvent<CollisionEvent>>) {
+    for event_holder in collision_events.iter() {
+        for collision_event in event_holder.iter() {
+            println!("Received collision event: {collision_event:?}");
+        }
     }
 }
 
@@ -128,7 +131,7 @@ impl Plugin for PhysicsDemoPlugin {
 }
 
 fn main() {
-    let config = AppConfig::default();
+    let config: AppConfig = LoadableConfig::default().into();
 
     let player_spawn_settings = PlayerSpawnSettings {
         initial_transform: Default::default(),

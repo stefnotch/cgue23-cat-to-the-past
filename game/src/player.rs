@@ -1,16 +1,16 @@
 use app::plugin::{Plugin, PluginAppAccess};
-use game_core::time::Time;
+use time::time::Time;
 
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
-use game_core::time_manager::is_rewinding;
 use input::events::{KeyboardInput, MouseMovement};
 use input::input_map::InputMap;
 use nalgebra::{UnitQuaternion, Vector3};
 use physics::player_physics::PlayerCharacterController;
 use scene::camera::Camera;
 use scene::transform::Transform;
+use time::time_manager::is_rewinding;
 use windowing::event::ElementState;
 use windowing::event::VirtualKeyCode;
 
@@ -60,6 +60,11 @@ impl PlayerControllerSettings {
             jump_force: 6.0,
             camera_smoothing: 20.0,
         }
+    }
+
+    pub fn with_sensitivity(mut self, sensitivity: f32) -> Self {
+        self.sensitivity = sensitivity;
+        self
     }
 }
 
@@ -307,6 +312,8 @@ pub struct PlayerPlugin {
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PlayerPluginSets {
+    /// This set is used for the input handling.
+    UpdateInput,
     /// This set is used to update the player position and velocity. Should run before physics.
     Update,
     /// This set is used to update the camera position after the player has moved. Should run after physics.
@@ -323,10 +330,13 @@ impl PlayerPlugin {
 
 impl Plugin for PlayerPlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
-        app.with_resource(self.player_spawn_settings.take().unwrap())
+        app //
+            .with_resource(self.player_spawn_settings.take().unwrap())
+            .with_set(PlayerPluginSets::UpdateInput.before(PlayerPluginSets::Update))
+            .with_set(PlayerPluginSets::Update.before(PlayerPluginSets::UpdateCamera))
             .with_startup_system(setup_player)
-            .with_system(handle_mouse_movement.in_set(PlayerPluginSets::Update))
-            .with_system(free_cam_toggle_system.in_set(PlayerPluginSets::Update))
+            .with_system(handle_mouse_movement.in_set(PlayerPluginSets::UpdateInput))
+            .with_system(free_cam_toggle_system.in_set(PlayerPluginSets::UpdateInput))
             .with_system(
                 update_player
                     .in_set(PlayerPluginSets::Update)
@@ -339,20 +349,20 @@ impl Plugin for PlayerPlugin {
                     .in_set(PlayerPluginSets::Update)
                     .after(free_cam_toggle_system)
                     .run_if(not(has_free_camera_activated))
-                    .run_if(is_rewinding),
+                    .run_if(is_rewinding)
+                    .ambiguous_with(update_player),
             )
             .with_system(
                 update_camera_position
-                    .in_set(PlayerPluginSets::Update)
-                    .after(free_cam_toggle_system)
+                    .in_set(PlayerPluginSets::UpdateCamera)
                     .run_if(has_free_camera_activated),
             )
             .with_system(
                 update_player_camera
                     .in_set(PlayerPluginSets::UpdateCamera)
-                    .run_if(not(has_free_camera_activated)),
-            )
-            .with_set((PlayerPluginSets::Update).before(PlayerPluginSets::UpdateCamera));
+                    .run_if(not(has_free_camera_activated))
+                    .ambiguous_with(update_camera_position),
+            );
     }
 }
 

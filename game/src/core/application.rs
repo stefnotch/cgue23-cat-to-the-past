@@ -1,22 +1,25 @@
+use animations::animation::AnimationPlugin;
 use app::plugin::Plugin;
 use app::App;
-use game_core::level::level_flags::LevelFlags;
-use game_core::time::{TimePlugin, TimePluginSet};
-use input::plugin::{InputPlugin, InputPluginSet};
+use input::plugin::InputPlugin;
+use loader::config_loader::LoadableConfig;
 use physics::plugin::PhysicsPlugin;
+use time::time::{TimePlugin, TimePluginSet};
 use windowing::window::{EventLoopContainer, WindowPlugin};
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
+use crate::level_flags::LevelFlagsPlugin;
+use crate::pickup_system::PickupPlugin;
+use crate::player::{PlayerPlugin, PlayerPluginSets};
 use angle::Deg;
 use bevy_ecs::prelude::*;
-use game_core::application::AppStage;
 use input::events::{KeyboardInput, MouseInput, MouseMovement};
 use input::input_map::InputMap;
+use loader::loader::SceneLoader;
 use nalgebra::{Point3, UnitQuaternion};
 use render::context::Context;
 use render::{Renderer, RendererPlugin, RendererPluginSets};
 use scene::camera::{update_camera, Camera};
-use scene_loader::loader::AssetServer;
 use windowing::config::WindowConfig;
 use windowing::dpi::PhysicalSize;
 use windowing::event::{
@@ -30,28 +33,46 @@ use windowing::window::CursorGrabMode;
 use crate::core::transform_change::{
     time_manager_rewind_transform, time_manager_track_transform, TransformChange,
 };
-use game_core::time_manager::game_change::{GameChangeHistoryPlugin, GameChangeHistoryPluginSet};
-use game_core::time_manager::{TimeManager, TimeManagerPlugin, TimeManagerPluginSet};
+use time::time_manager::game_change::GameChangeHistoryPlugin;
+use time::time_manager::{TimeManager, TimeManagerPlugin, TimeManagerPluginSet};
 
 pub struct AppConfig {
     pub window: WindowConfig,
     /// Projectors are usually very dark, this parameter should control how bright your total
     /// scene is, e.g., an illumination multiplier
     pub brightness: f32,
+    pub mouse_sensitivity: f32,
 }
 
-impl Default for AppConfig {
-    fn default() -> Self {
+impl From<LoadableConfig> for AppConfig {
+    fn from(config: LoadableConfig) -> Self {
         Self {
             window: WindowConfig {
-                resolution: (1280, 720),
-                fullscreen: false,
-                refresh_rate: 60,
+                resolution: config.resolution,
+                fullscreen: config.fullscreen,
+                refresh_rate: config.refresh_rate,
             },
-            brightness: 1.0,
+            brightness: config.brightness,
+            mouse_sensitivity: config.mouse_sensitivity,
         }
     }
 }
+
+#[derive(SystemSet, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum AppStage {
+    StartFrame,
+    EventUpdate,
+    /// for engine logic that depends on events
+    BeforeUpdate,
+    /// for game logic
+    Update,
+    UpdatePhysics,
+    /// after physics
+    BeforeRender,
+    Render,
+    EndFrame,
+}
+
 pub struct Application {
     config: AppConfig,
     pub app: App,
@@ -64,6 +85,7 @@ impl Application {
             (
                 AppStage::StartFrame,
                 AppStage::EventUpdate,
+                AppStage::BeforeUpdate,
                 AppStage::Update,
                 AppStage::UpdatePhysics,
                 AppStage::BeforeRender,
@@ -88,7 +110,15 @@ impl Application {
                     .after(TimePluginSet::UpdateTime),
             )
             .with_plugin(InputPlugin)
-            .with_set(InputPluginSet::UpdateInput.in_set(AppStage::EventUpdate))
+            .with_set(InputPlugin::system_set().in_set(AppStage::EventUpdate))
+            .with_plugin(LevelFlagsPlugin)
+            .with_set(LevelFlagsPlugin::system_set().in_set(AppStage::BeforeUpdate))
+            .with_plugin(AnimationPlugin)
+            .with_set(
+                AnimationPlugin::system_set()
+                    .after(AppStage::Update)
+                    .before(AppStage::UpdatePhysics),
+            )
             .with_plugin(PhysicsPlugin)
             .with_set(PhysicsPlugin::system_set().in_set(AppStage::UpdatePhysics))
             // Transform tracking
@@ -98,13 +128,23 @@ impl Application {
                     .with_rewinder(time_manager_rewind_transform),
             )
             .with_set(
-                GameChangeHistoryPluginSet::<TransformChange>::Update
+                GameChangeHistoryPlugin::<TransformChange>::system_set()
                     .after(AppStage::Update)
+                    .after(AnimationPlugin::system_set())
                     .before(AppStage::UpdatePhysics),
             )
             .with_plugin(WindowPlugin::new(config.window.clone()))
             .with_plugin(RendererPlugin::new())
-            .with_set(RendererPluginSets::Render.in_set(AppStage::Render));
+            .with_set(RendererPluginSets::Render.in_set(AppStage::Render))
+            // Configuring the player plugin (but not adding it)
+            .with_set(PlayerPluginSets::UpdateInput.in_set(AppStage::Update))
+            .with_set(PlayerPluginSets::Update.in_set(AppStage::Update))
+            .with_set(PlayerPluginSets::UpdateCamera.in_set(AppStage::BeforeRender))
+            .with_set(
+                PickupPlugin::system_set()
+                    .in_set(AppStage::Update)
+                    .after(PlayerPluginSets::Update),
+            );
     }
 
     pub fn run(mut self)
@@ -114,14 +154,13 @@ impl Application {
         self.app.build_plugins();
 
         let config: &AppConfig = &self.config;
-        let mut world = &mut self.app.world;
+        let world = &mut self.app.world;
         let schedule = &mut self.app.schedule;
 
         let aspect_ratio = config.window.resolution.0 as f32 / config.window.resolution.1 as f32;
 
-        let asset_server = AssetServer::new();
-        world.insert_resource(asset_server);
-        AssetServer::insert_asset_types(world);
+        let scene_loader = SceneLoader::new();
+        world.insert_resource(scene_loader);
 
         let camera = Camera::new(
             Point3::origin(), // Note: The player updates this
@@ -131,11 +170,17 @@ impl Application {
             0.01,
             100.0,
         );
-        schedule.add_system(update_camera_aspect_ratio.in_set(AppStage::EventUpdate));
-        schedule.add_system(update_camera.in_set(AppStage::BeforeRender));
+        schedule.add_system(
+            update_camera_aspect_ratio
+                .after(AppStage::EventUpdate)
+                .before(AppStage::Update),
+        );
+        schedule.add_system(
+            update_camera
+                .in_set(AppStage::BeforeRender)
+                .after(PlayerPlugin::system_set()),
+        );
         world.insert_resource(camera);
-
-        world.insert_resource(LevelFlags::new());
 
         world.insert_resource(Events::<WindowResize>::default());
         schedule.add_system(Events::<WindowResize>::update_system.in_set(AppStage::EventUpdate));
@@ -144,9 +189,9 @@ impl Application {
         schedule
             .add_system(Events::<WindowFocusChanged>::update_system.in_set(AppStage::EventUpdate));
 
-        schedule.add_system(read_input.in_set(AppStage::Update));
+        schedule.add_system(read_input.in_set(AppStage::EndFrame));
 
-        schedule.add_system(lock_mouse);
+        schedule.add_system(lock_mouse.in_set(AppStage::BeforeUpdate));
 
         self.app.run_startup();
 
@@ -212,6 +257,7 @@ impl Application {
 
                 Event::RedrawEventsCleared => {
                     self.app.schedule.run(&mut self.app.world);
+                    self.app.world.clear_trackers(); // Needs to be called for "RemovedComponents" to work properly
                 }
 
                 _ => (),

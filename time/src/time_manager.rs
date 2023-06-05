@@ -1,7 +1,10 @@
 pub mod game_change;
 pub mod level_time;
 
-use crate::time::{Time, TimePluginSet};
+use crate::{
+    signed_duration::SignedDuration,
+    time::{Time, TimePluginSet},
+};
 use std::time::Duration;
 
 use crate::events::NextLevel;
@@ -33,7 +36,7 @@ impl TimeTracked {
 }
 
 /// The 4 time states to cycle through
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TimeState {
     Normal,
     StartRewinding,
@@ -43,7 +46,7 @@ pub enum TimeState {
 
 #[derive(Resource)]
 pub struct TimeManager {
-    current_frame_timestamp: LevelTime,
+    level_delta_time: SignedDuration,
     pub will_rewind_next_frame: bool,
     time_state: TimeState,
     level_time: LevelTime,
@@ -56,7 +59,7 @@ pub fn is_rewinding(time_manager: Res<TimeManager>) -> bool {
 impl TimeManager {
     fn new() -> Self {
         Self {
-            current_frame_timestamp: LevelTime::zero(),
+            level_delta_time: Default::default(),
             will_rewind_next_frame: false,
             time_state: TimeState::Normal,
             level_time: LevelTime::zero(),
@@ -64,6 +67,8 @@ impl TimeManager {
     }
 
     pub fn start_frame(&mut self, delta: Duration) {
+        let old_level_time = self.level_time;
+
         if self.will_rewind_next_frame {
             // Rewinding
             self.level_time = self.level_time.sub_or_zero(delta);
@@ -95,11 +100,25 @@ impl TimeManager {
             }
         }
 
-        self.current_frame_timestamp = self.level_time;
+        self.level_delta_time = self.level_time - old_level_time;
     }
 
     pub fn level_time_seconds(&self) -> f32 {
         self.level_time.as_secs_f32()
+    }
+
+    pub fn level_time(&self) -> &LevelTime {
+        &self.level_time
+    }
+
+    pub fn last_level_time(&self) -> LevelTime {
+        if !self.level_delta_time.is_negative() {
+            // expands to "level_time - (level_time - old_level_time)"
+            self.level_time
+                .sub_or_zero(self.level_delta_time.duration())
+        } else {
+            self.level_time + self.level_delta_time.duration()
+        }
     }
 
     fn next_level(&mut self) {
@@ -115,8 +134,8 @@ impl TimeManager {
         }
     }
 
-    pub fn time_state(&self) -> &TimeState {
-        &self.time_state
+    pub fn time_state(&self) -> TimeState {
+        self.time_state
     }
 
     pub fn is_interpolating(&self) -> bool {
@@ -150,11 +169,15 @@ impl Plugin for TimeManagerPlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
         app.with_resource(TimeManager::new())
             .with_system(
+                next_level
+                    .in_set(TimeManagerPluginSet::StartFrame)
+                    .before(start_frame),
+            )
+            .with_system(
                 start_frame
                     .in_set(TimeManagerPluginSet::StartFrame)
                     .after(TimePluginSet::UpdateTime),
             )
-            .with_resource(Events::<NextLevel>::default())
-            .with_system(next_level.in_set(TimeManagerPluginSet::StartFrame));
+            .with_resource(Events::<NextLevel>::default());
     }
 }

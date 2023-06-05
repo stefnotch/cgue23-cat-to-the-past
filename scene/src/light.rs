@@ -22,3 +22,6 @@ impl Default for PointLight {
         }
     }
 }
+
+#[derive(Component)]
+pub struct CastShadow;

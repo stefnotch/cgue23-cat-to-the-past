@@ -69,7 +69,9 @@ impl<'app> PluginAppAccess<'app> {
     where
         T: Plugin,
     {
-        //  self.schedule.configure_set(T::system_set().after(CoreStage::StartFrame).before(CoreStage::EndFrame));
+        self.app
+            .schedule
+            .configure_set(T::system_set().in_set(self.system_set.clone()));
         self.app.with_plugin(plugin);
         self
     }
@@ -88,7 +90,7 @@ impl<'app> PluginAppAccess<'app> {
     }
 
     /// TODO: This is a hack to get access to the world. We should probably have a better way to do this.
-    pub fn world_hack_mut(&mut self) -> &mut bevy_ecs::world::World {
-        &mut self.app.world
+    pub fn world_hack_access(&mut self) -> &bevy_ecs::world::World {
+        &self.app.world
     }
 }
