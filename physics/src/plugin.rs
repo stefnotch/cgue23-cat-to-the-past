@@ -4,9 +4,8 @@ use time::time_manager::game_change::GameChangeHistoryPlugin;
 
 use crate::{
     physics_change::{
-        time_manager_rewind_rigid_body_type, time_manager_rewind_rigid_body_velocity,
-        time_manager_track_rigid_body_type, time_manager_track_rigid_body_velocity,
-        RigidBodyTypeChange, RigidBodyTypes, VelocityChange,
+        time_manager_rewind_rigid_body_type, time_manager_track_rigid_body_type,
+        RigidBodyTypeChange, RigidBodyTypes,
     },
     physics_context::{
         apply_collider_changes, apply_collider_sensor_change, apply_rigid_body_added,
@@ -87,18 +86,18 @@ impl Plugin for PhysicsPlugin {
                 apply_transform_changes
                     .in_set(PhysicsPluginSets::BeforePhysics)
                     .after(apply_player_character_controller_changes),
-            )
-            // The velocity change direcly modifies the physics world, so we need to do it after we have applied the rigid body type change
-            .with_plugin(
-                GameChangeHistoryPlugin::<VelocityChange>::new()
-                    .with_tracker(time_manager_track_rigid_body_velocity)
-                    .with_rewinder(time_manager_rewind_rigid_body_velocity),
-            )
-            .with_set(
-                GameChangeHistoryPlugin::<VelocityChange>::system_set()
-                    .in_set(PhysicsPluginSets::BeforePhysics)
-                    .after(apply_transform_changes),
             );
+        // The velocity change direcly modifies the physics world, so we need to do it after we have applied the rigid body type change
+        // .with_plugin(
+        //     GameChangeHistoryPlugin::<VelocityChange>::new()
+        //         .with_tracker(time_manager_track_rigid_body_velocity)
+        //         .with_rewinder(time_manager_rewind_rigid_body_velocity),
+        // )
+        // .with_set(
+        //     GameChangeHistoryPlugin::<VelocityChange>::system_set()
+        //         .in_set(PhysicsPluginSets::BeforePhysics)
+        //         .after(apply_transform_changes),
+        // );
 
         // Physics step
         app //

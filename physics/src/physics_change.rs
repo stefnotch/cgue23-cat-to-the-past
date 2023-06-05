@@ -5,7 +5,6 @@ use bevy_ecs::{
     system::{Query, Res, ResMut, Resource},
     world::Mut,
 };
-use nalgebra::Vector3;
 use rapier3d::prelude::RigidBodyType;
 
 use scene::pickup::Pickupable;
@@ -14,82 +13,7 @@ use time::time_manager::{
     TimeManager, TimeState, TimeTracked, TimeTrackedId,
 };
 
-use super::physics_context::{PhysicsContext, RapierRigidBodyHandle, RigidBody};
-
-pub(super) struct VelocityChange {
-    id: TimeTrackedId,
-    linvel: Vector3<f32>,
-    angvel: Vector3<f32>,
-}
-
-impl VelocityChange {
-    pub fn new(time_tracked: &TimeTracked, linvel: Vector3<f32>, angvel: Vector3<f32>) -> Self {
-        Self {
-            id: time_tracked.id(),
-            linvel,
-            angvel,
-        }
-    }
-}
-
-impl GameChange for VelocityChange {}
-
-pub(super) fn time_manager_track_rigid_body_velocity(
-    physics_context: Res<PhysicsContext>,
-    mut history: ResMut<GameChangeHistory<VelocityChange>>,
-    query: Query<(&TimeTracked, &RapierRigidBodyHandle)>,
-) {
-    for (time_tracked, rigid_body_handle) in &query {
-        let rigidbody = physics_context
-            .rigid_bodies
-            .get(rigid_body_handle.handle)
-            .unwrap();
-
-        // Probably a valid optimization to skip sleeping bodies.
-        if rigidbody.is_sleeping() {
-            continue;
-        }
-
-        history.add_command(VelocityChange::new(
-            time_tracked,
-            rigidbody.linvel().clone(),
-            rigidbody.angvel().clone(),
-        ));
-    }
-}
-
-pub(super) fn time_manager_rewind_rigid_body_velocity(
-    mut physics_context: ResMut<PhysicsContext>,
-    time_manager: Res<TimeManager>,
-    mut history: ResMut<GameChangeHistory<VelocityChange>>,
-    query: Query<(&TimeTracked, &RapierRigidBodyHandle)>,
-) {
-    // Only rewind the velocity at the very end of the rewind. Kinda questionable, but eh
-    if time_manager.time_state() != TimeState::StopRewinding {
-        return;
-    }
-
-    // The code below makes it kinematic
-    let entities: HashMap<_, _> = query
-        .into_iter()
-        .map(|(time_tracked, handle)| (time_tracked.id(), handle))
-        .collect();
-
-    let (commands, _interpolation) =
-        history.take_commands_to_apply(&time_manager, InterpolationType::None);
-    for command_collection in commands {
-        for command in command_collection.commands {
-            if let Some(v) = entities.get(&command.id) {
-                let rigidbody = physics_context
-                    .rigid_bodies
-                    .get_mut(v.handle)
-                    .expect("RigidBody not found in physics context");
-                rigidbody.set_linvel(command.linvel, true);
-                rigidbody.set_angvel(command.angvel, true);
-            }
-        }
-    }
-}
+use super::physics_context::RigidBody;
 
 pub(super) struct RigidBodyTypeChange {
     id: TimeTrackedId,
