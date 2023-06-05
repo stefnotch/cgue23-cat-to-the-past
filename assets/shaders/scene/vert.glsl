@@ -13,7 +13,7 @@ layout(location = 2) out vec2 v_uv;
 
 void main() {
     vec4 worldPos = entity.model * vec4(position, 1.0); // world space
-    worldPos = vec4(timeRewindPosition(worldPos.xyz), worldPos.w);
+    worldPos = vec4(timeRewindPosition(worldPos.xyz, camera.position), worldPos.w);
 
     vec3 n = mat3(entity.normalMatrix) * normal; // world space
 

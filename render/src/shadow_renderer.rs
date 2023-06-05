@@ -4,7 +4,7 @@ use crate::scene::mesh::MeshVertex;
 use crate::scene::model::GpuModel;
 use angle::Deg;
 use nalgebra::{Matrix4, Translation3};
-use scene::camera::calculate_projection;
+use scene::camera::{calculate_projection, Camera};
 use scene::transform::Transform;
 use std::sync::Arc;
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
@@ -201,6 +201,7 @@ impl ShadowRenderer {
         rewind_time: f32,
         models: &Vec<(&Transform, &GpuModel)>,
         nearest_shadow_light: &Transform,
+        camera: &Camera,
         future: F,
         swapchain_frame_index: u32,
     ) -> CommandBufferExecFuture<F>
@@ -239,6 +240,7 @@ impl ShadowRenderer {
             let uniform_subbuffer_scene = {
                 let uniform_data = vs::Scene {
                     rewindTime: rewind_time.into(),
+                    cameraPosition: camera.position.into(),
                 };
 
                 let subbuffer = self.buffer_allocator.allocate_sized().unwrap();

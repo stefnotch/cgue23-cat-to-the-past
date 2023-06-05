@@ -300,6 +300,7 @@ pub fn render(
                 rewind_time,
                 &models,
                 nearest_shadow_light,
+                camera.as_ref(),
                 future,
                 image_index,
             )

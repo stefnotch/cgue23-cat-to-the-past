@@ -11,6 +11,7 @@ layout(push_constant) uniform PushConsts {
 
 layout(set = 0, binding = 0) uniform Scene {
     float rewindTime;
+    vec3 cameraPosition;
 } scene;
 
 // lightPos
@@ -20,7 +21,7 @@ layout(set = 0, binding = 0) uniform Scene {
 
 void main() {
     vec4 worldPos = push.model * vec4(position, 1.0); // world space
-    worldPos = vec4(timeRewindPosition(worldPos.xyz), worldPos.w);
+    worldPos = vec4(timeRewindPosition(worldPos.xyz, scene.cameraPosition), worldPos.w);
 
     vec4 clipSpacePosition = push.projView * worldPos;
     gl_Position = clipSpacePosition;
