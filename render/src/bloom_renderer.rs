@@ -5,6 +5,7 @@ use std::sync::Arc;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, CopyImageInfo,
+    PrimaryAutoCommandBuffer,
 };
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
@@ -21,6 +22,7 @@ use vulkano::sync::GpuFuture;
 pub struct BloomRenderer {
     downsample_pipeline: Arc<ComputePipeline>,
     upsample_pipeline: Arc<ComputePipeline>,
+    cached_command_buffer: Vec<Option<Arc<PrimaryAutoCommandBuffer>>>,
 
     input_images: Vec<Arc<ImageView<AttachmentImage>>>,
     output_images: Vec<ImageWithMipViews>,
@@ -87,6 +89,7 @@ impl BloomRenderer {
         BloomRenderer {
             downsample_pipeline,
             upsample_pipeline,
+            cached_command_buffer: vec![None; input_images.len()],
             sampler,
 
             input_images,
@@ -106,10 +109,11 @@ impl BloomRenderer {
                 ImageWithMipViews::new(input_image.clone(), self.memory_allocator.clone())
             })
             .collect();
+        self.cached_command_buffer = vec![None; input_images.len()];
     }
 
     pub fn render<F>(
-        &self,
+        &mut self,
         context: &Context,
         future: F,
         image_index: u32,
@@ -117,10 +121,16 @@ impl BloomRenderer {
     where
         F: GpuFuture + 'static,
     {
+        if let Some(command_buffer) = self.cached_command_buffer[image_index as usize].clone() {
+            return future
+                .then_execute(context.queue(), command_buffer)
+                .unwrap();
+        }
+
         let mut builder = AutoCommandBufferBuilder::primary(
             &self.command_buffer_allocator,
             context.queue_family_index(),
-            CommandBufferUsage::OneTimeSubmit,
+            CommandBufferUsage::MultipleSubmit,
         )
         .unwrap();
 
@@ -166,16 +176,8 @@ impl BloomRenderer {
             )
             .unwrap();
 
-            let input_size = work_image
-                .image
-                .dimensions()
-                .mip_level_dimensions(input_miplevel)
-                .unwrap();
-            let output_size = work_image
-                .image
-                .dimensions()
-                .mip_level_dimensions(output_miplevel)
-                .unwrap();
+            let input_size = work_image.get_mip_dimensions(input_miplevel);
+            let output_size = work_image.get_mip_dimensions(output_miplevel);
 
             let downsample_pass = cs::downsample::Pass {
                 inputTexelSize: input_size.width_height().map(|v| 1.0 / (v as f32)),
@@ -232,16 +234,8 @@ impl BloomRenderer {
             )
             .unwrap();
 
-            let input_size = work_image
-                .image
-                .dimensions()
-                .mip_level_dimensions(input_miplevel)
-                .unwrap();
-            let output_size = work_image
-                .image
-                .dimensions()
-                .mip_level_dimensions(output_miplevel)
-                .unwrap();
+            let input_size = work_image.get_mip_dimensions(input_miplevel);
+            let output_size = work_image.get_mip_dimensions(output_miplevel);
 
             let upsample_pass = cs::upsample::Pass {
                 inputTexelSize: input_size.width_height().map(|v| 1.0 / (v as f32)),
@@ -259,7 +253,8 @@ impl BloomRenderer {
                 .dispatch(output_size.width_height_depth())
                 .unwrap();
         }
-        let command_buffer = builder.build().unwrap();
+        let command_buffer = Arc::new(builder.build().unwrap());
+        self.cached_command_buffer[image_index as usize] = Some(command_buffer.clone());
 
         future
             .then_execute(context.queue(), command_buffer)
@@ -356,8 +351,15 @@ impl ImageWithMipViews {
             .collect()
     }
 
-    fn get_mip_view(&self, output_miplevel: u32) -> Arc<ImageView<CustomStorageImage>> {
-        self.mip_views[output_miplevel as usize].clone()
+    fn get_mip_view(&self, mip_level: u32) -> Arc<ImageView<CustomStorageImage>> {
+        self.mip_views[mip_level as usize].clone()
+    }
+
+    fn get_mip_dimensions(&self, mip_level: u32) -> ImageDimensions {
+        self.image
+            .dimensions()
+            .mip_level_dimensions(mip_level)
+            .unwrap()
     }
 }
 
