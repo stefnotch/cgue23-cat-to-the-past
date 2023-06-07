@@ -4,7 +4,7 @@ use app::App;
 use input::plugin::InputPlugin;
 use loader::config_loader::LoadableConfig;
 use physics::plugin::PhysicsPlugin;
-use time::time::{TimePlugin, TimePluginSet};
+use time::time::{Time, TimePlugin, TimePluginSet};
 use windowing::window::{EventLoopContainer, WindowPlugin};
 
 use crate::input::events::{WindowFocusChanged, WindowResize};
@@ -194,6 +194,8 @@ impl Application {
         schedule.add_system(lock_mouse.in_set(AppStage::BeforeUpdate));
 
         self.app.run_startup();
+        // Reset time after startup
+        self.app.world.get_resource_mut::<Time>().unwrap().update();
 
         self.app
             .world
