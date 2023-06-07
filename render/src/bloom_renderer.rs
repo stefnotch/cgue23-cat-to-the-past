@@ -10,8 +10,8 @@ use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::image::view::{ImageView, ImageViewCreateInfo, ImageViewCreationError};
 use vulkano::image::{
-    AttachmentImage, ImageAccess, ImageCreateFlags, ImageDimensions, ImageSubresourceRange,
-    ImageUsage, ImageViewAbstract,
+    AttachmentImage, ImageAccess, ImageCreateFlags, ImageDimensions, ImageLayout,
+    ImageSubresourceRange, ImageUsage, ImageViewAbstract,
 };
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::{ComputePipeline, Pipeline, PipelineBindPoint};
@@ -304,6 +304,7 @@ fn create_output_images(
                 6,
                 ImageUsage::TRANSFER_DST | ImageUsage::STORAGE | ImageUsage::SAMPLED,
                 ImageCreateFlags::empty(),
+                ImageLayout::General,
             )
             .unwrap();
 

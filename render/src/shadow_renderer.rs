@@ -21,7 +21,7 @@ use vulkano::format::{ClearValue, Format};
 use vulkano::image::view::{ImageView, ImageViewCreateInfo};
 use vulkano::image::ImageDimensions::Dim2d;
 use vulkano::image::{
-    ImageAccess, ImageCreateFlags, ImageSubresourceRange, ImageUsage, ImageViewType,
+    ImageAccess, ImageCreateFlags, ImageSubresourceRange, ImageUsage, ImageViewType, ImageLayout,
 };
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
@@ -313,6 +313,7 @@ impl ShadowRenderer {
                     1,
                     ImageUsage::SAMPLED | ImageUsage::DEPTH_STENCIL_ATTACHMENT,
                     ImageCreateFlags::CUBE_COMPATIBLE,
+                    ImageLayout::DepthStencilAttachmentOptimal
                 )
                 .unwrap()
             })
