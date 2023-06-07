@@ -134,7 +134,7 @@ impl Application {
                     .before(AppStage::UpdatePhysics),
             )
             .with_plugin(WindowPlugin::new(config.window.clone()))
-            .with_plugin(RendererPlugin::new())
+            .with_plugin(RendererPlugin::new(config.brightness))
             .with_set(RendererPluginSets::Render.in_set(AppStage::Render))
             // Configuring the player plugin (but not adding it)
             .with_set(PlayerPluginSets::UpdateInput.in_set(AppStage::Update))

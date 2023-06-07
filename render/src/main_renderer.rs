@@ -36,6 +36,9 @@ use vulkano::sync;
 use vulkano::sync::{FlushError, GpuFuture};
 use windowing::window::WindowManager;
 
+use crate::overlay_renderer::OverlayRenderer;
+use crate::scene::ui_component::UIComponent;
+use crate::ui_renderer::UIRenderer;
 use windowing::window::Window;
 
 /// Responsible for keeping the swapchain up-to-date and calling the sub-rendersystems
@@ -47,7 +50,7 @@ pub struct Renderer {
     shadow_renderer: ShadowRenderer,
     scene_renderer: SceneRenderer,
     bloom_renderer: BloomRenderer,
-    quad_renderer: QuadRenderer,
+    overlay_renderer: OverlayRenderer,
     viewport: Viewport,
 }
 
@@ -58,7 +61,7 @@ struct SwapchainContainer {
 }
 
 impl Renderer {
-    pub fn new(context: &Context) -> Renderer {
+    pub fn new(context: &Context, brightness: f32) -> Renderer {
         let previous_frame_end = Some(sync::now(context.device()).boxed());
 
         let swapchain = SwapchainContainer::new(context.device(), context.surface());
@@ -108,14 +111,20 @@ impl Renderer {
             descriptor_set_allocator.clone(),
         );
 
-        let quad_renderer = QuadRenderer::new(
+        let mut overlay_renderer = OverlayRenderer::new(
             context,
-            bloom_renderer.output_images(),
             &swapchain.images,
             swapchain.swapchain.image_format(),
             memory_allocator.clone(),
             command_buffer_allocator.clone(),
             descriptor_set_allocator.clone(),
+            brightness,
+        );
+
+        overlay_renderer.pre_record_command_buffer_quad(
+            context,
+            bloom_renderer.output_images(),
+            &viewport,
         );
 
         Renderer {
@@ -125,7 +134,7 @@ impl Renderer {
             shadow_renderer,
             scene_renderer,
             bloom_renderer,
-            quad_renderer,
+            overlay_renderer,
             viewport,
         }
     }
@@ -140,11 +149,13 @@ pub enum RendererPluginSets {
     Render,
 }
 
-pub struct RendererPlugin;
+pub struct RendererPlugin {
+    brightness: f32,
+}
 
 impl RendererPlugin {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(brightness: f32) -> Self {
+        Self { brightness }
     }
 }
 
@@ -157,7 +168,7 @@ impl Plugin for RendererPlugin {
                 .window
                 .clone(),
         );
-        let renderer = Renderer::new(&context);
+        let renderer = Renderer::new(&context, self.brightness);
         let model_uploading_allocator = ModelUploaderAllocator::new(context.device());
         let sampler_info_map = SamplerInfoMap::new();
 
@@ -185,6 +196,7 @@ pub fn render(
     query_models: Query<(&Transform, &GpuModel)>,
     query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
     query_shadow_light: Query<&Transform, (With<CastShadow>, With<Light>)>,
+    query_ui_components: Query<&UIComponent>,
     mut counter: Local<u32>,
     mut rewind_start_time: Local<f32>,
 ) {
@@ -223,6 +235,9 @@ pub fn render(
 
         renderer.viewport.dimensions = renderer.swapchain.dimensions.map(|i| i as f32);
 
+        let dimensions = renderer.swapchain.swapchain.image_extent();
+        let swapchain_image_count = renderer.swapchain.swapchain.image_count();
+
         // https://doc.rust-lang.org/nomicon/borrow-splitting.html
         let renderer = renderer.as_mut();
         renderer
@@ -235,9 +250,13 @@ pub fn render(
         renderer
             .bloom_renderer
             .resize(renderer.scene_renderer.output_images().clone());
-        renderer.quad_renderer.resize(
-            &renderer.swapchain.images,
+
+        renderer.overlay_renderer.resize(&renderer.swapchain.images);
+
+        renderer.overlay_renderer.pre_record_command_buffer_quad(
+            &context,
             renderer.bloom_renderer.output_images(),
+            &renderer.viewport,
         );
 
         renderer.recreate_swapchain = false;
@@ -275,6 +294,7 @@ pub fn render(
 
     let models = query_models.iter().collect();
     let lights = query_lights.iter().collect();
+    let ui_components = query_ui_components.iter().collect();
 
     let nearest_shadow_light = query_shadow_light
         .iter()
@@ -327,9 +347,13 @@ pub fn render(
         .bloom_renderer
         .render(&context, future, image_index);
 
-    let future = renderer
-        .quad_renderer
-        .render(&context, future, image_index, &renderer.viewport);
+    let future = renderer.overlay_renderer.render(
+        &context,
+        ui_components,
+        future,
+        image_index,
+        &renderer.viewport,
+    );
 
     let future = future
         .then_swapchain_present(
