@@ -64,11 +64,10 @@ void main() {
     // one invocation for every texel in the output image
     // (output image has half the size as the input image)
     ivec2 texel_output = ivec2(gl_GlobalInvocationID.xy);
-    ivec2 tile_top_left_corner = ivec2(gl_WorkGroupID) * GROUP_SIZE - FILTER_RADIUS;
-
     // uv coordinates in the input image, hence the 2x
     // plus 0.5 to read the pixel from the center
-    vec2 top_left_uv = (2.0 * vec2(tile_top_left_corner) + vec2(0.5)) * pass.inputTexelSize;
+    ivec2 tile_top_left_corner = 2 * ivec2(gl_WorkGroupID) * GROUP_SIZE - FILTER_RADIUS;
+    vec2 top_left_uv = (vec2(tile_top_left_corner) + vec2(0.5)) * pass.inputTexelSize;
 
     for (int i = int(gl_LocalInvocationIndex); i < TILE_PIXEL_COUNT; i += GROUP_THREAD_COUNT) {
         vec2 offset = vec2(i % TILE_SIZE, i / TILE_SIZE);
@@ -77,7 +76,7 @@ void main() {
         store_sample(i, color);
     }
 
-    memoryBarrier();
+    memoryBarrierShared();
     barrier();
 
     uint center_index = (gl_LocalInvocationID.y + FILTER_RADIUS) * TILE_SIZE
@@ -146,7 +145,7 @@ void main() {
 
    // vec2 uvxx = vec2(2 * texel_output + 0.5) * vec2(pass.inputTexelSize);
    // downsample = textureSample(uvxx, vec2( 0, 0));
-  // downsample = e;
+   downsample = e;
 
 
     imageStore(outputImage, texel_output, vec4(downsample, 1.0));

@@ -38,7 +38,7 @@ void main() {
         store_sample(i, color);
     }
 
-    memoryBarrier();
+    memoryBarrierShared();
     barrier();
 
     uint center_index = (gl_LocalInvocationID.y + FILTER_RADIUS) * TILE_SIZE
