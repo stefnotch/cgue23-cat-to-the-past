@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Computergraphics Project at the TU Vienna - Release build",
   "scripts": {
-    "build": "cargo build && npm run copy",
+    "build": "cargo build --release && npm run copy",
     "copy": "npm run copyAssets && npm run copyExes && npm run copyReadme",
     "copyAssets": "node -e \"require('fs').cpSync('./assets', './target/packaged/assets', {recursive: true});\"",
     "copyExes": "node -e \"const fs = require('fs'); const files = fs.readdirSync('./target/release'); files.forEach(f => f.endsWith('.exe') ? fs.cpSync('./target/release/' + f, './target/packaged/' + f) : null);\"",

@@ -149,19 +149,8 @@ impl BloomRenderer {
             let input_miplevel = i;
             let output_miplevel = i + 1;
 
-            let input_size = work_image
-                .image
-                .dimensions()
-                .mip_level_dimensions(input_miplevel)
-                .unwrap();
-            let output_size = work_image
-                .image
-                .dimensions()
-                .mip_level_dimensions(output_miplevel)
-                .unwrap();
-
-            let output_image_view = work_image.mip_views[output_miplevel as usize].clone();
-            let input_image_view = work_image.mip_views[input_miplevel as usize].clone();
+            let output_image_view = work_image.get_mip_view(output_miplevel);
+            let input_image_view = work_image.get_mip_view(input_miplevel);
 
             let downsample_descriptor_set = PersistentDescriptorSet::new(
                 &self.descriptor_set_allocator,
@@ -177,9 +166,19 @@ impl BloomRenderer {
             )
             .unwrap();
 
+            let input_size = work_image
+                .image
+                .dimensions()
+                .mip_level_dimensions(input_miplevel)
+                .unwrap();
+            let output_size = work_image
+                .image
+                .dimensions()
+                .mip_level_dimensions(output_miplevel)
+                .unwrap();
+
             let downsample_pass = cs::downsample::Pass {
                 inputTexelSize: input_size.width_height().map(|v| 1.0 / (v as f32)),
-
                 isFirstPass: (input_miplevel == 0) as u32,
                 threshold: 1.0, // TODO: make this configurable
                 knee: 0.1,
@@ -216,19 +215,8 @@ impl BloomRenderer {
             let input_miplevel = i + 1;
             let output_miplevel = i;
 
-            let input_size = work_image
-                .image
-                .dimensions()
-                .mip_level_dimensions(input_miplevel)
-                .unwrap();
-            let output_size = work_image
-                .image
-                .dimensions()
-                .mip_level_dimensions(output_miplevel)
-                .unwrap();
-
-            let output_image_view = work_image.mip_views[output_miplevel as usize].clone();
-            let input_image_view = work_image.mip_views[input_miplevel as usize].clone();
+            let output_image_view = work_image.get_mip_view(output_miplevel);
+            let input_image_view = work_image.get_mip_view(input_miplevel);
 
             let upsample_descriptor_set = PersistentDescriptorSet::new(
                 &self.descriptor_set_allocator,
@@ -244,9 +232,19 @@ impl BloomRenderer {
             )
             .unwrap();
 
+            let input_size = work_image
+                .image
+                .dimensions()
+                .mip_level_dimensions(input_miplevel)
+                .unwrap();
+            let output_size = work_image
+                .image
+                .dimensions()
+                .mip_level_dimensions(output_miplevel)
+                .unwrap();
+
             let upsample_pass = cs::upsample::Pass {
                 inputTexelSize: input_size.width_height().map(|v| 1.0 / (v as f32)),
-
                 intensity: 1.0, // TODO: make this configurable
             };
 
@@ -356,6 +354,10 @@ impl ImageWithMipViews {
         (0..image.mip_levels())
             .map(|i| single_miplevel_imageview(image.clone(), i).unwrap())
             .collect()
+    }
+
+    fn get_mip_view(&self, output_miplevel: u32) -> Arc<ImageView<CustomStorageImage>> {
+        self.mip_views[output_miplevel as usize].clone()
     }
 }
 
