@@ -23,7 +23,7 @@ pub struct BloomRenderer {
     upsample_pipeline: Arc<ComputePipeline>,
 
     input_images: Vec<Arc<ImageView<AttachmentImage>>>,
-    output_images: Vec<Arc<ImageView<CustomStorageImage>>>,
+    output_images: Vec<ImageWithMipViews>,
 
     sampler: Arc<Sampler>,
 
@@ -66,7 +66,12 @@ impl BloomRenderer {
             .unwrap()
         };
 
-        let output_images = create_output_images(input_images.clone(), memory_allocator.clone());
+        let output_images = input_images
+            .iter()
+            .map(|input_image| {
+                ImageWithMipViews::new(input_image.clone(), memory_allocator.clone())
+            })
+            .collect();
 
         let sampler = Sampler::new(
             context.device(),
@@ -95,7 +100,12 @@ impl BloomRenderer {
 
     pub fn resize(&mut self, input_images: Vec<Arc<ImageView<AttachmentImage>>>) {
         self.input_images = input_images.clone();
-        self.output_images = create_output_images(input_images, self.memory_allocator.clone());
+        self.output_images = input_images
+            .iter()
+            .map(|input_image| {
+                ImageWithMipViews::new(input_image.clone(), self.memory_allocator.clone())
+            })
+            .collect();
     }
 
     pub fn render<F>(
@@ -115,13 +125,13 @@ impl BloomRenderer {
         .unwrap();
 
         let scene_image = self.input_images[image_index as usize].image().clone();
-        let work_image = self.output_images[image_index as usize].image().clone();
+        let work_image = &self.output_images[image_index as usize];
 
         // copy scene image to work image
         builder
             .copy_image(CopyImageInfo::images(
                 scene_image.clone(),
-                work_image.clone(),
+                work_image.get_image(),
             ))
             .unwrap();
 
@@ -135,24 +145,23 @@ impl BloomRenderer {
             .get(0)
             .unwrap();
 
-        for i in 0..(work_image.mip_levels() - 1) {
+        for i in 0..(work_image.get_image().mip_levels() - 1) {
             let input_miplevel = i;
             let output_miplevel = i + 1;
 
             let input_size = work_image
+                .image
                 .dimensions()
                 .mip_level_dimensions(input_miplevel)
                 .unwrap();
             let output_size = work_image
+                .image
                 .dimensions()
                 .mip_level_dimensions(output_miplevel)
                 .unwrap();
 
-            let output_image_view =
-                single_miplevel_imageview(work_image.clone(), output_miplevel).unwrap();
-
-            let input_image_view =
-                single_miplevel_imageview(work_image.clone(), input_miplevel).unwrap();
+            let output_image_view = work_image.mip_views[output_miplevel as usize].clone();
+            let input_image_view = work_image.mip_views[input_miplevel as usize].clone();
 
             let downsample_descriptor_set = PersistentDescriptorSet::new(
                 &self.descriptor_set_allocator,
@@ -203,24 +212,23 @@ impl BloomRenderer {
             .get(0)
             .unwrap();
 
-        for i in (0..(work_image.mip_levels() - 1)).rev() {
+        for i in (0..(work_image.get_image().mip_levels() - 1)).rev() {
             let input_miplevel = i + 1;
             let output_miplevel = i;
 
             let input_size = work_image
+                .image
                 .dimensions()
                 .mip_level_dimensions(input_miplevel)
                 .unwrap();
             let output_size = work_image
+                .image
                 .dimensions()
                 .mip_level_dimensions(output_miplevel)
                 .unwrap();
 
-            let output_image_view =
-                single_miplevel_imageview(work_image.clone(), output_miplevel).unwrap();
-
-            let input_image_view =
-                single_miplevel_imageview(work_image.clone(), input_miplevel).unwrap();
+            let output_image_view = work_image.mip_views[output_miplevel as usize].clone();
+            let input_image_view = work_image.mip_views[input_miplevel as usize].clone();
 
             let upsample_descriptor_set = PersistentDescriptorSet::new(
                 &self.descriptor_set_allocator,
@@ -260,8 +268,11 @@ impl BloomRenderer {
             .unwrap()
     }
 
-    pub fn output_images(&self) -> &Vec<Arc<ImageView<CustomStorageImage>>> {
-        &self.output_images
+    pub fn output_images(&self) -> Vec<Arc<ImageView<CustomStorageImage>>> {
+        self.output_images
+            .iter()
+            .map(|image| image.image.clone())
+            .collect()
     }
 }
 
@@ -285,44 +296,67 @@ where
     )
 }
 
-fn create_output_images(
-    input_images: Vec<Arc<ImageView<AttachmentImage>>>,
-    memory_allocator: Arc<StandardMemoryAllocator>,
-) -> Vec<Arc<ImageView<CustomStorageImage>>> {
-    input_images
-        .iter()
-        .map(|image| {
-            let [width, height] = image.dimensions().width_height();
-            let storage_image = CustomStorageImage::uninitialized(
-                &memory_allocator,
-                ImageDimensions::Dim2d {
-                    width,
-                    height,
-                    array_layers: 1,
-                },
-                image.image().format(),
-                6,
-                ImageUsage::TRANSFER_DST | ImageUsage::STORAGE | ImageUsage::SAMPLED,
-                ImageCreateFlags::empty(),
-                ImageLayout::General,
-            )
-            .unwrap();
+struct ImageWithMipViews {
+    image: Arc<ImageView<CustomStorageImage>>,
+    mip_views: Vec<Arc<ImageView<CustomStorageImage>>>,
+}
 
-            let view = ImageView::new(
-                storage_image.clone(),
-                ImageViewCreateInfo {
-                    format: Some(storage_image.format()),
-                    subresource_range: ImageSubresourceRange {
-                        mip_levels: 0..1,
-                        ..storage_image.subresource_range()
-                    },
-                    ..ImageViewCreateInfo::default()
+impl ImageWithMipViews {
+    fn new(
+        input_image: Arc<ImageView<AttachmentImage>>,
+        memory_allocator: Arc<StandardMemoryAllocator>,
+    ) -> Self {
+        let image = Self::create_output_image(input_image, memory_allocator);
+        let mip_views = Self::create_mip_image_views(image.image().clone());
+        Self { image, mip_views }
+    }
+
+    fn create_output_image(
+        input_image: Arc<ImageView<AttachmentImage>>,
+        memory_allocator: Arc<StandardMemoryAllocator>,
+    ) -> Arc<ImageView<CustomStorageImage>> {
+        let [width, height] = input_image.dimensions().width_height();
+        let storage_image = CustomStorageImage::uninitialized(
+            &memory_allocator,
+            ImageDimensions::Dim2d {
+                width,
+                height,
+                array_layers: 1,
+            },
+            input_image.image().format(),
+            6,
+            ImageUsage::TRANSFER_DST | ImageUsage::STORAGE | ImageUsage::SAMPLED,
+            ImageCreateFlags::empty(),
+            ImageLayout::General,
+        )
+        .unwrap();
+
+        let view = ImageView::new(
+            storage_image.clone(),
+            ImageViewCreateInfo {
+                format: Some(storage_image.format()),
+                subresource_range: ImageSubresourceRange {
+                    mip_levels: 0..1,
+                    ..storage_image.subresource_range()
                 },
-            )
-            .unwrap();
-            view
-        })
-        .collect()
+                ..ImageViewCreateInfo::default()
+            },
+        )
+        .unwrap();
+        view
+    }
+
+    fn get_image(&self) -> Arc<CustomStorageImage> {
+        self.image.image().clone()
+    }
+
+    fn create_mip_image_views(
+        image: Arc<CustomStorageImage>,
+    ) -> Vec<Arc<ImageView<CustomStorageImage>>> {
+        (0..image.mip_levels())
+            .map(|i| single_miplevel_imageview(image.clone(), i).unwrap())
+            .collect()
+    }
 }
 
 mod cs {

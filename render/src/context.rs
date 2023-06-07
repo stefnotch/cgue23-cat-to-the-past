@@ -256,7 +256,6 @@ fn create_logical_device(
 }
 
 /// Source https://github.com/vulkano-rs/vulkano/blob/bb7990fd491bed13746c8b85408097b5f0799c50/vulkano-win/src/winit.rs#L17
-/// TODO: Ask if that should always be exposed
 pub fn required_extensions(library: &VulkanLibrary) -> InstanceExtensions {
     let ideal = InstanceExtensions {
         khr_surface: true,
