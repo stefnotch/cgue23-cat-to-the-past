@@ -55,7 +55,11 @@ fn setup_levels(
 }
 
 fn _print_fps(time: Res<Time>) {
-    println!("{}", 1.0 / time.delta_seconds())
+    println!(
+        "{} FPS - {} ms",
+        1.0 / time.delta_seconds(),
+        time.delta_seconds() * 1000.0
+    );
 }
 
 #[derive(Component)]
@@ -136,7 +140,7 @@ impl Plugin for GamePlugin {
             .with_plugin(PickupPlugin)
             .with_system(flag_system.in_set(AppStage::Update))
             .with_system(door_system.in_set(AppStage::Update).after(flag_system))
-            .with_system(move_cubes.in_set(AppStage::Update));
+            .with_system(move_cubes.in_set(AppStage::Update)); //.with_system(_print_fps.in_set(AppStage::Update));
     }
 }
 

@@ -44,7 +44,6 @@ use windowing::window::Window;
 /// Responsible for keeping the swapchain up-to-date and calling the sub-rendersystems
 pub struct Renderer {
     recreate_swapchain: bool,
-    // TODO: Huh, this doesn't need to be an option?
     previous_frame_end: Option<Box<dyn GpuFuture>>,
     swapchain: SwapchainContainer,
     shadow_renderer: ShadowRenderer,
@@ -196,8 +195,8 @@ pub fn render(
     query_models: Query<(&Transform, &GpuModel)>,
     query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
     query_shadow_light: Query<&Transform, (With<CastShadow>, With<Light>)>,
+    mut counter: Local<usize>,
     query_ui_components: Query<&UIComponent>,
-    mut counter: Local<u32>,
     mut rewind_start_time: Local<f32>,
 ) {
     // On Windows, this can occur from minimizing the application.
@@ -312,7 +311,7 @@ pub fn render(
         0.0
     };
 
-    let future = if *counter > 2 {
+    let future = if *counter > renderer.swapchain.images.len() {
         renderer
             .shadow_renderer
             .render(
@@ -326,10 +325,9 @@ pub fn render(
             )
             .boxed()
     } else {
+        *counter += 1;
         future.boxed()
     };
-
-    *counter += 1;
 
     let future = renderer.scene_renderer.render(
         &context,

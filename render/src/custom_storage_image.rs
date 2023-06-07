@@ -29,9 +29,11 @@ use vulkano::sync::Sharing;
 pub struct CustomStorageImage {
     inner: Arc<Image>,
 
-    // If true, then the image is in the layout `General`. If false, then it
+    // If true, then the image is in the layout `target_layout`. If false, then it
     // is still `Undefined`.
     layout_initialized: AtomicBool,
+
+    target_layout: ImageLayout,
 }
 
 impl CustomStorageImage {
@@ -45,6 +47,7 @@ impl CustomStorageImage {
         num_mip_levels: u32,
         usage: ImageUsage,
         flags: ImageCreateFlags,
+        target_layout: ImageLayout,
     ) -> Result<Arc<CustomStorageImage>, ImageError> {
         assert!(!flags.intersects(ImageCreateFlags::DISJOINT));
 
@@ -89,6 +92,7 @@ impl CustomStorageImage {
                 let image = Arc::new(CustomStorageImage {
                     inner,
                     layout_initialized: AtomicBool::new(false),
+                    target_layout,
                 });
 
                 Ok(image)
@@ -129,21 +133,23 @@ unsafe impl ImageAccess for CustomStorageImage {
 
     #[inline]
     fn initial_layout_requirement(&self) -> ImageLayout {
-        ImageLayout::General
+        self.target_layout
+        //ImageLayout::General
     }
 
     #[inline]
     fn final_layout_requirement(&self) -> ImageLayout {
-        ImageLayout::General
+        self.target_layout
+        //ImageLayout::General
     }
 
     #[inline]
     fn descriptor_layouts(&self) -> Option<ImageDescriptorLayouts> {
         Some(ImageDescriptorLayouts {
-            storage_image: ImageLayout::General,
-            combined_image_sampler: ImageLayout::General,
-            sampled_image: ImageLayout::General,
-            input_attachment: ImageLayout::General,
+            storage_image: self.target_layout,
+            combined_image_sampler: ImageLayout::ShaderReadOnlyOptimal,
+            sampled_image: ImageLayout::ShaderReadOnlyOptimal,
+            input_attachment: self.target_layout,
         })
     }
 }
