@@ -14,13 +14,17 @@ use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::{ImageView, ImageViewCreateInfo};
-use vulkano::image::{AttachmentImage, ImageAccess, ImageUsage, ImageViewAbstract, SwapchainImage};
+use vulkano::image::{
+    AttachmentImage, ImageAccess, ImageLayout, ImageUsage, ImageViewAbstract, SampleCount,
+    SwapchainImage,
+};
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
+use vulkano::render_pass;
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo, SamplerMipmapMode};
 use vulkano::sync::GpuFuture;
@@ -56,36 +60,7 @@ impl OverlayRenderer {
     ) -> OverlayRenderer {
         let (vertex_buffer, index_buffer) = create_geometry_buffers(memory_allocator.clone());
 
-        let render_pass = vulkano::ordered_passes_renderpass!(
-            context.device(),
-            attachments: {
-                color: {
-                    load: Clear,
-                    store: Store,
-                    format: final_output_format,
-                    samples: 1,
-                },
-                depth: {
-                    load: Clear,
-                    store: DontCare,
-                    format: Format::D16_UNORM,
-                    samples: 1,
-                },
-            },
-            passes: [
-                {
-                    color: [color],
-                    depth_stencil: {depth},
-                    input: []
-                },
-                {
-                    color: [color],
-                    depth_stencil: {depth},
-                    input: [color]
-                }
-            ]
-        )
-        .unwrap();
+        let render_pass = Self::create_renderpass(context, final_output_format);
 
         let quad_pipeline = {
             let vertex_shader = quad::vs::load(context.device()).unwrap();
@@ -417,26 +392,186 @@ impl OverlayRenderer {
             .collect()
     }
 
-    fn create_images(
-        memory_allocator: Arc<StandardMemoryAllocator>,
-        final_output_format: Format,
-        image_count: u32,
-        dimensions: [u32; 2],
-    ) -> Vec<Arc<ImageView<AttachmentImage>>> {
-        (0..image_count)
-            .map(|_| {
-                ImageView::new_default(
-                    AttachmentImage::with_usage(
-                        &memory_allocator,
-                        dimensions,
-                        final_output_format,
-                        ImageUsage::TRANSIENT_ATTACHMENT | ImageUsage::INPUT_ATTACHMENT,
-                    )
-                    .unwrap(),
-                )
-                .unwrap()
-            })
-            .collect()
+    fn create_renderpass(context: &Context, final_output_format: Format) -> Arc<RenderPass> {
+        let render_pass = {
+            let create_info = {
+                let mut attachment_num = 0;
+                let color = attachment_num;
+                attachment_num += 1;
+                let depth_index = attachment_num;
+                attachment_num += 1;
+                let mut layouts: Vec<(Option<ImageLayout>, Option<ImageLayout>)> =
+                    vec![(None, None); 2];
+                let subpasses = vec![
+                    {
+                        let desc = render_pass::SubpassDescription {
+                            color_attachments: (<[_]>::into_vec(Box::new([{
+                                let layout = &mut layouts[color as usize];
+                                layout.0 = layout.0.or(Some(ImageLayout::ColorAttachmentOptimal));
+                                layout.1 = Some(ImageLayout::ColorAttachmentOptimal);
+                                Some(render_pass::AttachmentReference {
+                                    attachment: color,
+                                    layout: ImageLayout::ColorAttachmentOptimal,
+                                    ..Default::default()
+                                })
+                            }]))),
+                            depth_stencil_attachment: {
+                                let layout = &mut layouts[depth_index as usize];
+                                layout.1 = Some(ImageLayout::DepthStencilAttachmentOptimal);
+                                layout.0 = layout.0.or(layout.1);
+                                let depth = Some(render_pass::AttachmentReference {
+                                    attachment: depth_index,
+                                    layout: ImageLayout::DepthStencilAttachmentOptimal,
+                                    ..Default::default()
+                                });
+                                depth
+                            },
+                            input_attachments: (Vec::new()),
+                            resolve_attachments: (Vec::new()),
+                            preserve_attachments: (0..attachment_num)
+                                .filter(|&a| {
+                                    if a == color {
+                                        return false;
+                                    }
+                                    if a == depth_index {
+                                        return false;
+                                    }
+                                    true
+                                })
+                                .collect(),
+                            ..Default::default()
+                        };
+                        {
+                            if !(desc.resolve_attachments.is_empty()
+                                || desc.resolve_attachments.len() == desc.color_attachments.len())
+                            {
+                                panic!("explicit panic");
+                            }
+                        };
+                        desc
+                    },
+                    {
+                        let desc = render_pass::SubpassDescription {
+                            color_attachments: (<[_]>::into_vec(Box::new([{
+                                let layout = &mut layouts[color as usize];
+                                layout.0 = layout.0.or(Some(ImageLayout::ColorAttachmentOptimal));
+                                layout.1 = Some(ImageLayout::ColorAttachmentOptimal);
+                                Some(render_pass::AttachmentReference {
+                                    attachment: color,
+                                    layout: ImageLayout::ColorAttachmentOptimal,
+                                    ..Default::default()
+                                })
+                            }]))),
+                            depth_stencil_attachment: {
+                                let layout = &mut layouts[depth_index as usize];
+                                layout.1 = Some(ImageLayout::DepthStencilAttachmentOptimal);
+                                layout.0 = layout.0.or(layout.1);
+                                let depth = Some(render_pass::AttachmentReference {
+                                    attachment: depth_index,
+                                    layout: ImageLayout::DepthStencilAttachmentOptimal,
+                                    ..Default::default()
+                                });
+                                depth
+                            },
+                            input_attachments: (<[_]>::into_vec(Box::new([{
+                                let layout = &mut layouts[color as usize];
+                                layout.1 = Some(ImageLayout::ShaderReadOnlyOptimal);
+                                layout.0 = layout.0.or(layout.1);
+                                Some(render_pass::AttachmentReference {
+                                    attachment: color,
+                                    layout: ImageLayout::ShaderReadOnlyOptimal,
+                                    ..Default::default()
+                                })
+                            }]))),
+                            resolve_attachments: (Vec::new()),
+                            preserve_attachments: (0..attachment_num)
+                                .filter(|&a| {
+                                    if a == color {
+                                        return false;
+                                    }
+                                    if a == depth_index {
+                                        return false;
+                                    }
+                                    if a == color {
+                                        return false;
+                                    }
+                                    true
+                                })
+                                .collect(),
+                            ..Default::default()
+                        };
+                        {
+                            if !(desc.resolve_attachments.is_empty()
+                                || desc.resolve_attachments.len() == desc.color_attachments.len())
+                            {
+                                panic!("explicit panic");
+                            }
+                        };
+                        desc
+                    },
+                ];
+                let dependencies: Vec<_> = (0..subpasses.len().saturating_sub(1) as u32)
+                    .map(|id| {
+                        let src_stages = vulkano::sync::PipelineStages::ALL_GRAPHICS;
+                        let dst_stages = vulkano::sync::PipelineStages::ALL_GRAPHICS;
+                        let src_access = vulkano::sync::AccessFlags::MEMORY_READ
+                            | vulkano::sync::AccessFlags::MEMORY_WRITE;
+                        let dst_access = vulkano::sync::AccessFlags::MEMORY_READ
+                            | vulkano::sync::AccessFlags::MEMORY_WRITE;
+                        render_pass::SubpassDependency {
+                            src_subpass: id.into(),
+                            dst_subpass: (id + 1).into(),
+                            src_stages,
+                            dst_stages,
+                            src_access,
+                            dst_access,
+                            dependency_flags: vulkano::sync::DependencyFlags::BY_REGION,
+                            ..Default::default()
+                        }
+                    })
+                    .collect();
+                let attachments = vec![
+                    {
+                        let layout = &mut layouts[color as usize];
+                        render_pass::AttachmentDescription {
+                            format: Some(final_output_format),
+                            samples: SampleCount::try_from(1).unwrap(),
+                            load_op: render_pass::LoadOp::Clear,
+                            store_op: render_pass::StoreOp::Store,
+                            stencil_load_op: render_pass::LoadOp::Clear,
+                            stencil_store_op: render_pass::StoreOp::Store,
+                            initial_layout: layout.0.expect("ee"),
+                            final_layout: layout.1.expect("ee"),
+                            ..Default::default()
+                        }
+                    },
+                    {
+                        let layout = &mut layouts[depth_index as usize];
+                        render_pass::AttachmentDescription {
+                            format: Some(Format::D16_UNORM),
+                            samples: SampleCount::try_from(1).unwrap(),
+                            load_op: render_pass::LoadOp::Clear,
+                            store_op: render_pass::StoreOp::DontCare,
+                            stencil_load_op: render_pass::LoadOp::Clear,
+                            stencil_store_op: render_pass::StoreOp::DontCare,
+                            initial_layout: layout.0.expect("ee"),
+                            final_layout: layout.1.expect("ee"),
+                            ..Default::default()
+                        }
+                    },
+                ];
+                render_pass::RenderPassCreateInfo {
+                    attachments,
+                    subpasses,
+                    dependencies,
+                    ..Default::default()
+                }
+            };
+            RenderPass::new(context.device(), create_info)
+        }
+        .unwrap();
+
+        render_pass
     }
 }
 
