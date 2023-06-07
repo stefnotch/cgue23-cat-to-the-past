@@ -122,7 +122,7 @@ impl Renderer {
 
         overlay_renderer.pre_record_command_buffer_quad(
             context,
-            bloom_renderer.output_images(),
+            &bloom_renderer.output_images(),
             &viewport,
         );
 
@@ -254,7 +254,7 @@ pub fn render(
 
         renderer.overlay_renderer.pre_record_command_buffer_quad(
             &context,
-            renderer.bloom_renderer.output_images(),
+            &renderer.bloom_renderer.output_images(),
             &renderer.viewport,
         );
 
