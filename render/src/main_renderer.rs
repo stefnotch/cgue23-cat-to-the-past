@@ -418,7 +418,7 @@ impl SwapchainContainer {
                     min_image_count: surface_capabilities.min_image_count,
                     image_format,
                     image_extent: window.inner_size().into(),
-                    image_usage: ImageUsage::COLOR_ATTACHMENT,
+                    image_usage: ImageUsage::COLOR_ATTACHMENT | ImageUsage::INPUT_ATTACHMENT,
                     composite_alpha: surface_capabilities
                         .supported_composite_alpha
                         .into_iter()

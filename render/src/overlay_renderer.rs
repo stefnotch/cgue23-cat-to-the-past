@@ -112,7 +112,6 @@ impl OverlayRenderer {
 
         let input_descriptor_sets = Self::create_input_descriptor_sets(
             ui_pipeline.clone(),
-            sampler.clone(),
             output_images,
             descriptor_set_allocator.clone(),
         );
@@ -141,6 +140,12 @@ impl OverlayRenderer {
             self.memory_allocator.clone(),
             output_images,
             self.render_pass.clone(),
+        );
+
+        self.input_descriptor_sets = Self::create_input_descriptor_sets(
+            self.ui_pipeline.clone(),
+            output_images,
+            self.descriptor_set_allocator.clone(),
         );
 
         // remember to call pre_record_command_buffer_quad again
@@ -369,7 +374,6 @@ impl OverlayRenderer {
 
     fn create_input_descriptor_sets(
         pipeline: Arc<GraphicsPipeline>,
-        sampler: Arc<Sampler>,
         input_images: &[Arc<ImageView<SwapchainImage>>],
         descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     ) -> Vec<Arc<PersistentDescriptorSet>> {
@@ -381,11 +385,7 @@ impl OverlayRenderer {
                 PersistentDescriptorSet::new(
                     &descriptor_set_allocator,
                     layout.clone(),
-                    [WriteDescriptorSet::image_view_sampler(
-                        0,
-                        image.clone(),
-                        sampler.clone(),
-                    )],
+                    [WriteDescriptorSet::image_view(0, image.clone())],
                 )
                 .unwrap()
             })
@@ -458,7 +458,7 @@ impl OverlayRenderer {
                                 layout.1 = Some(ImageLayout::ColorAttachmentOptimal);
                                 Some(render_pass::AttachmentReference {
                                     attachment: color,
-                                    layout: ImageLayout::ColorAttachmentOptimal,
+                                    layout: ImageLayout::General,
                                     ..Default::default()
                                 })
                             }]))),
@@ -475,11 +475,11 @@ impl OverlayRenderer {
                             },
                             input_attachments: (<[_]>::into_vec(Box::new([{
                                 let layout = &mut layouts[color as usize];
-                                layout.1 = Some(ImageLayout::ShaderReadOnlyOptimal);
+                                layout.1 = Some(ImageLayout::General);
                                 layout.0 = layout.0.or(layout.1);
                                 Some(render_pass::AttachmentReference {
                                     attachment: color,
-                                    layout: ImageLayout::ShaderReadOnlyOptimal,
+                                    layout: ImageLayout::General,
                                     ..Default::default()
                                 })
                             }]))),
