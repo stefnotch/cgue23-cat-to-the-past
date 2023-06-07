@@ -308,6 +308,7 @@ impl ImageWithMipViews {
         input_image: Arc<ImageView<AttachmentImage>>,
         memory_allocator: Arc<StandardMemoryAllocator>,
     ) -> Arc<ImageView<CustomStorageImage>> {
+        let pass_count = 6;
         let [width, height] = input_image.dimensions().width_height();
         let storage_image = CustomStorageImage::uninitialized(
             &memory_allocator,
@@ -317,7 +318,7 @@ impl ImageWithMipViews {
                 array_layers: 1,
             },
             input_image.image().format(),
-            6,
+            pass_count,
             ImageUsage::TRANSFER_DST | ImageUsage::STORAGE | ImageUsage::SAMPLED,
             ImageCreateFlags::empty(),
             ImageLayout::General,

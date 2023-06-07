@@ -29,7 +29,7 @@ use vulkano::image::{ImageAccess, ImageUsage, SwapchainImage};
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::viewport::Viewport;
 use vulkano::swapchain::{
-    acquire_next_image, AcquireError, ColorSpace, Surface, SurfaceInfo, Swapchain,
+    acquire_next_image, AcquireError, ColorSpace, PresentMode, Surface, SurfaceInfo, Swapchain,
     SwapchainCreateInfo, SwapchainCreationError, SwapchainPresentInfo,
 };
 use vulkano::sync;
@@ -389,6 +389,7 @@ impl SwapchainContainer {
                 device.clone(),
                 surface.clone(),
                 SwapchainCreateInfo {
+                    present_mode: PresentMode::Fifo,
                     min_image_count: surface_capabilities.min_image_count,
                     image_format,
                     image_extent: window.inner_size().into(),
