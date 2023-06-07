@@ -65,6 +65,8 @@ fn _print_fps(time: Res<Time>) {
 #[derive(Component)]
 pub struct MovingBox;
 
+pub fn spawn_ui_component(mut commands: Commands) {}
+
 pub fn spawn_moving_cube(mut commands: Commands) {
     let cube = CpuMesh::cube(1.0, 1.0, 1.0);
 
