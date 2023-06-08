@@ -1,6 +1,6 @@
 use crate::context::Context;
 use crate::custom_storage_image::CustomStorageImage;
-use crate::quad::{create_geometry_buffers, QuadVertex};
+use crate::quad::{self, quad_mesh, QuadVertex};
 use std::sync::Arc;
 use vulkano::buffer::{BufferCreateInfo, BufferUsage, Subbuffer};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -48,7 +48,8 @@ impl QuadRenderer {
         descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
         brightness: f32,
     ) -> Self {
-        let (vertex_buffer, index_buffer) = create_geometry_buffers(memory_allocator.clone());
+        let (vertex_buffer, index_buffer) =
+            quad::create_geometry_buffers(quad_mesh(), memory_allocator.clone());
 
         let render_pass = vulkano::single_pass_renderpass!(context.device(),
             attachments: {
