@@ -111,6 +111,10 @@ impl TimeManager {
         &self.level_time
     }
 
+    pub fn level_delta_time(&self) -> &SignedDuration {
+        &self.level_delta_time
+    }
+
     pub fn last_level_time(&self) -> LevelTime {
         if !self.level_delta_time.is_negative() {
             // expands to "level_time - (level_time - old_level_time)"

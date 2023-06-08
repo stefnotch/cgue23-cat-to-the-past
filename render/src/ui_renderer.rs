@@ -1,11 +1,11 @@
 use crate::context::Context;
-use crate::quad::{self, create_geometry_buffers, unit_quad_mesh, QuadVertex};
+use crate::quad::{self, unit_quad_mesh, QuadVertex};
 use crate::scene::ui_component::GpuUIComponent;
-use nalgebra::{Matrix4, Vector2, Vector3};
+use nalgebra::{Matrix4, Point3, Vector2, Vector3};
 use scene::ui_component::UIComponent;
 use std::sync::Arc;
-use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
-use vulkano::buffer::{BufferUsage, Subbuffer};
+
+use vulkano::buffer::Subbuffer;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, RenderPassBeginInfo,
@@ -15,7 +15,7 @@ use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
-use vulkano::image::{AttachmentImage, ImageUsage, ImageViewAbstract, SwapchainImage};
+use vulkano::image::{AttachmentImage, ImageViewAbstract, SwapchainImage};
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
@@ -156,8 +156,10 @@ impl UIRenderer {
                 continue;
             }
             let position = cpu_component.get_position(screen_size);
+            let origin = cpu_component.get_origin();
             let size = cpu_component.get_size();
 
+            // TODO: Fix flipped z
             let projection = Matrix4::from_row_slice(&[
                 2.0 / screen_size.x,
                 0.0,
@@ -179,11 +181,10 @@ impl UIRenderer {
 
             let mvp = projection
                 * Matrix4::new_translation(&position.coords)
-                * Matrix4::new_rotation(Vector3::new(
-                    0.0,
-                    0.0,
-                    cpu_component.texture_position.angle.0,
-                ))
+                * Matrix4::new_rotation_wrt_point(
+                    Vector3::new(0.0, 0.0, -cpu_component.texture_position.angle.0),
+                    Point3::new(origin.x, origin.y, 0.0),
+                )
                 * Matrix4::new_nonuniform_scaling(&Vector3::new(size.x, size.y, 1.0));
 
             let component_push_constant = vs::UIComponent { MVP: mvp.into() };

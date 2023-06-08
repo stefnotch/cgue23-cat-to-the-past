@@ -269,6 +269,8 @@ fn lock_mouse(context: Res<Context>, mut event: EventReader<WindowFocusChanged>)
     for WindowFocusChanged { has_focus } in event.into_iter() {
         let window = context.window();
 
+        // TODO: Don't aggressively grab the cursor, instead only grab it when the user actually clicked on the window
+
         if *has_focus {
             window
                 .set_cursor_grab(CursorGrabMode::Confined)

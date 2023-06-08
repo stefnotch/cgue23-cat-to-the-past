@@ -25,15 +25,19 @@ impl UIComponent {
         texture_size.component_mul(&self.texture_position.scale)
     }
 
+    /// Position of the origin around which to rotate in screen pixels
+    pub fn get_origin(&self) -> Vector2<f32> {
+        self.get_size()
+            .component_mul(&self.texture_position.texture_origin.coords)
+    }
+
     /// Position of the top left corner in screen pixels
     /// z is a depth value, in the range 0-1
     pub fn get_position(&self, screen_size: Vector2<f32>) -> Point3<f32> {
         let position_on_screen = self.position.xy().coords.component_mul(&screen_size);
 
-        let size = self.get_size();
         // e.g. if the texture origin is centered (0.5, 0.5), then this is like "position - half of size"
-        let top_left_position =
-            position_on_screen - size.component_mul(&self.texture_position.texture_origin.coords);
+        let top_left_position = position_on_screen - self.get_origin();
 
         Point3::new(top_left_position.x, top_left_position.y, self.position.z)
     }

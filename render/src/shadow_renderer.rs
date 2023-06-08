@@ -3,7 +3,7 @@ use crate::custom_storage_image::CustomStorageImage;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::GpuModel;
 use angle::Deg;
-use nalgebra::{Matrix4, Translation3, Vector3};
+use nalgebra::{Matrix4, Translation3};
 use scene::camera::{calculate_projection, Camera};
 use scene::transform::Transform;
 use std::sync::Arc;
@@ -181,7 +181,7 @@ impl ShadowRenderer {
         }
     }
 
-    pub fn resize(&mut self, image_count: u32) {
+    pub fn resize(&mut self, _image_count: u32) {
         // resize is not necessary since the cubemap is always the same size
         // let (images, views) = Self::create_images(self.memory_allocator.clone(), image_count);
         //

@@ -2,7 +2,7 @@ use crate::context::Context;
 use crate::custom_storage_image::CustomStorageImage;
 use crate::quad::{self, quad_mesh, QuadVertex};
 use std::sync::Arc;
-use vulkano::buffer::{BufferCreateInfo, BufferUsage, Subbuffer};
+use vulkano::buffer::Subbuffer;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, RenderPassBeginInfo,

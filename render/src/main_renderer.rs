@@ -111,7 +111,7 @@ impl Renderer {
             descriptor_set_allocator.clone(),
         );
 
-        let mut quad_renderer = QuadRenderer::new(
+        let quad_renderer = QuadRenderer::new(
             context,
             &bloom_renderer.output_images(),
             &swapchain.images,
@@ -122,7 +122,7 @@ impl Renderer {
             brightness,
         );
 
-        let mut ui_renderer = UIRenderer::new(
+        let ui_renderer = UIRenderer::new(
             context,
             &swapchain.images,
             swapchain.swapchain.image_format(),
@@ -246,8 +246,8 @@ pub fn render(
 
         renderer.viewport.dimensions = renderer.swapchain.dimensions.map(|i| i as f32);
 
-        let dimensions = renderer.swapchain.swapchain.image_extent();
-        let swapchain_image_count = renderer.swapchain.swapchain.image_count();
+        let _dimensions = renderer.swapchain.swapchain.image_extent();
+        let _swapchain_image_count = renderer.swapchain.swapchain.image_count();
 
         // https://doc.rust-lang.org/nomicon/borrow-splitting.html
         let renderer = renderer.as_mut();
