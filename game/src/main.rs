@@ -91,7 +91,7 @@ pub fn spawn_ui_component(mut commands: Commands) {
             sampler_info,
         }),
         position: Point3::new(0.5, 0.5, 0.0),
-        scale: 100.0,
+        scale: 5.0,
         angle: 0.0,
         visible: true,
     });

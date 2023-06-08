@@ -152,15 +152,14 @@ impl UIRenderer {
         let screen_size = Vector2::from(viewport.dimensions);
 
         for (gpu_component, cpu_component) in ui_components {
-            let pixel_center = cpu_component
+            let center_screen = cpu_component
                 .position
                 .xy()
                 .coords
                 .component_mul(&screen_size);
             let texture_size = cpu_component.texture.data.dimensions();
             let texture_size = Vector2::new(texture_size[0] as f32, texture_size[1] as f32);
-            let aspect_ratio = texture_size.y / texture_size.x;
-            let pixel_top_left = pixel_center - texture_size / 2.0;
+            let screen_top_left = center_screen - texture_size / 2.0;
 
             let projection = Matrix4::from_row_slice(&[
                 2.0 / screen_size.x,
@@ -183,14 +182,14 @@ impl UIRenderer {
 
             let mvp = projection
                 * Matrix4::new_translation(&Vector3::new(
-                    pixel_top_left.x,
-                    pixel_top_left.y,
+                    screen_top_left.x,
+                    screen_top_left.y,
                     cpu_component.position.z,
                 ))
                 * Matrix4::new_rotation(Vector3::new(0.0, 0.0, cpu_component.angle))
                 * Matrix4::new_nonuniform_scaling(&Vector3::new(
-                    cpu_component.scale,
-                    cpu_component.scale * aspect_ratio,
+                    cpu_component.scale * texture_size.x,
+                    cpu_component.scale * texture_size.y,
                     1.0,
                 ));
 
