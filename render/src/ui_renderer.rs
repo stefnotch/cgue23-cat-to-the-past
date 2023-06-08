@@ -152,6 +152,9 @@ impl UIRenderer {
         let screen_size = Vector2::from(viewport.dimensions);
 
         for (gpu_component, cpu_component) in ui_components {
+            if !cpu_component.visible {
+                continue;
+            }
             let position = cpu_component.get_position(screen_size);
             let size = cpu_component.get_size();
 
