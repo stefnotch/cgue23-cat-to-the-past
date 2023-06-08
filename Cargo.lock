@@ -721,6 +721,7 @@ dependencies = [
  "app",
  "bevy_ecs",
  "debug",
+ "image",
  "input",
  "loader",
  "math",

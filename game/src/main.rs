@@ -24,6 +24,8 @@ use time::time::Time;
 use time::time_manager::{game_change, TimeManager};
 
 use bevy_ecs::system::{Commands, Res, ResMut};
+use image::codecs::png::PngDecoder;
+use image::GenericImageView;
 use nalgebra::{Point3, Translation3};
 
 use game::core::application::{AppConfig, AppStage, Application};
@@ -31,7 +33,12 @@ use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 
 use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType};
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
+use scene::asset::AssetId;
+use scene::texture::{
+    AddressMode, BytesTextureData, CpuTexture, Filter, SamplerInfo, TextureFormat,
+};
 use scene::transform::{Transform, TransformBuilder};
+use scene::ui_component::UIComponent;
 
 fn spawn_world(mut commands: Commands, scene_loader: Res<SceneLoader>) {
     let before = Instant::now();
@@ -65,7 +72,31 @@ fn _print_fps(time: Res<Time>) {
 #[derive(Component)]
 pub struct MovingBox;
 
-pub fn spawn_ui_component(mut commands: Commands) {}
+pub fn spawn_ui_component(mut commands: Commands) {
+    let sampler_info = SamplerInfo {
+        min_filter: Filter::Nearest,
+        mag_filter: Filter::Nearest,
+        address_mode: [AddressMode::ClampToBorder; 3],
+    };
+
+    let crosshair_texture = image::open("assets/textures/crosshair.png").unwrap();
+
+    commands.spawn(UIComponent {
+        texture: Arc::new(CpuTexture {
+            id: AssetId::new_v4(),
+            data: Box::new(BytesTextureData {
+                dimensions: crosshair_texture.dimensions(),
+                format: TextureFormat::R8G8B8A8_UNORM,
+                bytes: crosshair_texture.as_bytes().to_vec(),
+            }),
+            sampler_info,
+        }),
+        depth: 0.0,
+        scale: 1.0,
+        angle: 0.0,
+        visible: true,
+    });
+}
 
 pub fn spawn_moving_cube(mut commands: Commands) {
     let cube = CpuMesh::cube(1.0, 1.0, 1.0);
@@ -139,6 +170,7 @@ impl Plugin for GamePlugin {
         app.with_startup_system(spawn_world)
             .with_startup_system(setup_levels)
             .with_startup_system(spawn_moving_cube)
+            .with_startup_system(spawn_ui_component)
             .with_plugin(PickupPlugin)
             .with_system(flag_system.in_set(AppStage::Update))
             .with_system(door_system.in_set(AppStage::Update).after(flag_system))

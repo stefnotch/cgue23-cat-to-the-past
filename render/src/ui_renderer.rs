@@ -1,6 +1,6 @@
 use crate::context::Context;
 use crate::quad::{create_geometry_buffers, QuadVertex};
-use crate::scene::ui_component::UIComponent;
+use crate::scene::ui_component::GpuUIComponent;
 use nalgebra::Matrix4;
 use std::sync::Arc;
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
@@ -127,7 +127,7 @@ impl UIRenderer {
     pub fn render<F>(
         &self,
         context: &Context,
-        ui_components: Vec<&UIComponent>,
+        ui_components: Vec<&GpuUIComponent>,
         future: F,
         swapchain_frame_index: u32,
         viewport: &Viewport,

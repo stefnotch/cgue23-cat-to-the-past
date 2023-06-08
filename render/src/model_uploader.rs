@@ -6,6 +6,7 @@ use bevy_ecs::{
     system::{Commands, Query, Res, ResMut, Resource},
 };
 use scene::asset::{Asset, Assets};
+use scene::ui_component::UIComponent;
 use scene::{
     material::CpuMaterial,
     mesh::CpuMesh,
@@ -18,6 +19,7 @@ use vulkano::{
     sampler::{Sampler, SamplerCreateInfo},
 };
 
+use crate::scene::ui_component::GpuUIComponent;
 use crate::{
     context::Context,
     scene::{
@@ -83,6 +85,27 @@ pub fn create_gpu_models(
 
         let gpu_model = GpuModel { primitives };
         commands.entity(entity).insert(gpu_model);
+    }
+}
+
+pub fn create_ui_component(
+    context: Res<Context>,
+    mut commands: Commands,
+    mut texture_assets: ResMut<Assets<Texture>>,
+    query_ui_components: Query<(Entity, &UIComponent), Without<GpuUIComponent>>,
+    mut samplers: ResMut<SamplerInfoMap>,
+) {
+    for (entity, ui_component) in query_ui_components.iter() {
+        let texture = create_gpu_texture(
+            &mut texture_assets,
+            &mut samplers,
+            &ui_component.texture,
+            &context,
+        );
+
+        let gpu_ui_component = GpuUIComponent { texture };
+
+        commands.entity(entity).insert(gpu_ui_component);
     }
 }
 

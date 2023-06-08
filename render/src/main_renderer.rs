@@ -1,7 +1,7 @@
 use crate::bloom_renderer::BloomRenderer;
 use crate::context::Context;
 use crate::create_gpu_models;
-use crate::model_uploader::{ModelUploaderAllocator, SamplerInfoMap};
+use crate::model_uploader::{create_ui_component, ModelUploaderAllocator, SamplerInfoMap};
 use crate::quad_renderer::QuadRenderer;
 use crate::scene::material::Material;
 use crate::scene::mesh::Mesh;
@@ -18,6 +18,7 @@ use scene::asset::Assets;
 use scene::camera::Camera;
 use scene::light::{CastShadow, Light};
 use scene::transform::Transform;
+use scene::ui_component::UIComponent;
 use std::sync::Arc;
 use time::time_manager::TimeManager;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -28,6 +29,7 @@ use vulkano::image::view::ImageView;
 use vulkano::image::{ImageAccess, ImageUsage, SwapchainImage};
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::viewport::Viewport;
+use vulkano::swapchain::PresentMode::Immediate;
 use vulkano::swapchain::{
     acquire_next_image, AcquireError, ColorSpace, Surface, SurfaceInfo, Swapchain,
     SwapchainCreateInfo, SwapchainCreationError, SwapchainPresentInfo,
@@ -37,7 +39,7 @@ use vulkano::sync::{FlushError, GpuFuture};
 use windowing::window::WindowManager;
 
 use crate::overlay_renderer::OverlayRenderer;
-use crate::scene::ui_component::UIComponent;
+use crate::scene::ui_component::GpuUIComponent;
 use crate::ui_renderer::UIRenderer;
 use windowing::window::Window;
 
@@ -178,6 +180,12 @@ impl Plugin for RendererPlugin {
                     .in_set(RendererPluginSets::Render)
                     .before(render),
             )
+            .with_system(
+                create_ui_component
+                    .in_set(RendererPluginSets::Render)
+                    .after(create_gpu_models)
+                    .before(render),
+            )
             .with_system(render.in_set(RendererPluginSets::Render))
             .with_resource(model_uploading_allocator)
             .with_resource(sampler_info_map)
@@ -196,7 +204,7 @@ pub fn render(
     query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
     query_shadow_light: Query<&Transform, (With<CastShadow>, With<Light>)>,
     mut counter: Local<usize>,
-    query_ui_components: Query<&UIComponent>,
+    query_ui_components: Query<(&GpuUIComponent, &UIComponent)>,
     mut rewind_start_time: Local<f32>,
 ) {
     // On Windows, this can occur from minimizing the application.

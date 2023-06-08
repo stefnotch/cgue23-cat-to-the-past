@@ -1,8 +1,9 @@
 use crate::context::Context;
 use crate::custom_storage_image::CustomStorageImage;
 use crate::quad::{create_geometry_buffers, QuadVertex};
-use crate::scene::ui_component::UIComponent;
+use crate::scene::ui_component::GpuUIComponent;
 use nalgebra::Matrix4;
+use scene::ui_component::UIComponent;
 use std::sync::Arc;
 use vulkano::buffer::Subbuffer;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -155,7 +156,7 @@ impl OverlayRenderer {
     pub fn render<F>(
         &self,
         context: &Context,
-        ui_components: Vec<&UIComponent>,
+        ui_components: Vec<(&GpuUIComponent, &UIComponent)>,
         future: F,
         swapchain_frame_index: u32,
         viewport: &Viewport,
@@ -226,7 +227,7 @@ impl OverlayRenderer {
     fn draw_ui(
         &self,
         context: &Context,
-        ui_components: Vec<&UIComponent>,
+        ui_components: Vec<(&GpuUIComponent, &UIComponent)>,
         swapchain_frame_index: u32,
         viewport: &Viewport,
     ) -> SecondaryAutoCommandBuffer {
@@ -245,9 +246,9 @@ impl OverlayRenderer {
             .set_viewport(0, [viewport.clone()])
             .bind_pipeline_graphics(self.ui_pipeline.clone());
 
-        let set_layout = self.ui_pipeline.layout().set_layouts().get(0).unwrap();
+        let set_layout = self.ui_pipeline.layout().set_layouts().get(1).unwrap();
 
-        for component in ui_components {
+        for (gpu_component, cpu_component) in ui_components {
             let component_push_constant = ui::vs::UIComponent {
                 MVP: Matrix4::identity().into(),
             };
@@ -256,9 +257,9 @@ impl OverlayRenderer {
                 &self.descriptor_set_allocator,
                 set_layout.clone(),
                 [WriteDescriptorSet::image_view_sampler(
-                    1,
-                    component.texture.image_view.clone(),
-                    component.texture.sampler.clone(),
+                    0,
+                    gpu_component.texture.image_view.clone(),
+                    gpu_component.texture.sampler.clone(),
                 )],
             )
             .unwrap();

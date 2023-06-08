@@ -12,6 +12,7 @@ nalgebra.workspace = true
 angle = "0.5.0"
 bevy_ecs.workspace = true
 uuid.workspace = true
+image = { version = "0.24.6", default-features = false, features = ["png"] }
 
 math = { path = "../math" }
 windowing = { path = "../windowing" }
