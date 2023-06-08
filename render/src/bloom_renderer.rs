@@ -186,6 +186,10 @@ impl BloomRenderer {
                 knee: 0.1,
             };
 
+            let mut dispatch_size = output_size.width_height_depth();
+            dispatch_size[0] = (dispatch_size[0] as f32 / 8.0).ceil() as u32;
+            dispatch_size[1] = (dispatch_size[1] as f32 / 8.0).ceil() as u32;
+
             builder
                 .push_constants(
                     self.downsample_pipeline.layout().clone(),
@@ -198,7 +202,7 @@ impl BloomRenderer {
                     0,
                     downsample_descriptor_set.clone(),
                 )
-                .dispatch(output_size.width_height_depth())
+                .dispatch(dispatch_size)
                 .unwrap();
         }
 
@@ -242,6 +246,10 @@ impl BloomRenderer {
                 intensity: 1.0, // TODO: make this configurable
             };
 
+            let mut dispatch_size = output_size.width_height_depth();
+            dispatch_size[0] = (dispatch_size[0] as f32 / 8.0).ceil() as u32;
+            dispatch_size[1] = (dispatch_size[1] as f32 / 8.0).ceil() as u32;
+
             builder
                 .push_constants(self.upsample_pipeline.layout().clone(), 0, upsample_pass)
                 .bind_descriptor_sets(
@@ -250,7 +258,7 @@ impl BloomRenderer {
                     0,
                     upsample_descriptor_set.clone(),
                 )
-                .dispatch(output_size.width_height_depth())
+                .dispatch(dispatch_size)
                 .unwrap();
         }
         let command_buffer = Arc::new(builder.build().unwrap());

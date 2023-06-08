@@ -6,6 +6,8 @@ layout(location = 0) out vec4 f_color;
 
 layout(set = 0, binding = 0) uniform sampler2D image;
 
+layout(constant_id = 0) const float brightness = 1.0;
+
 float exposure = 2.0;
 
 // Source: https://github.com/Shot511/RapidGL/blob/65d1202a5926acad9816483b141fb24480e81668/src/demos/22_pbr/tmo.frag
@@ -36,5 +38,5 @@ void main() {
     color = RRTAndODTFit(color);
     color = ACESOutputMatrix * color;
 
-    f_color = vec4(color, 1.0);
+    f_color = vec4(color * brightness, 1.0);
 }

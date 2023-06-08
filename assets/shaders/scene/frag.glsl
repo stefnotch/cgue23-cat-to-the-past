@@ -30,10 +30,14 @@ float vectorToDepthValue(vec3 direction) {
 float computeShadowFactor(vec3 l) {
     vec3 lightDirection = normalize(l);
     vec3 normal = normalize(v_normal);
-    
-    float bias = max(0.08 * (1.0 - dot(normal, lightDirection)), 0.005);
+
+    float bias = max(0.008 * (1.0 - dot(normal, lightDirection)), 0.0);
 
     float shadow = texture(shadowMap, vec4(l, vectorToDepthValue(l - l * bias))).r;
+
+    // float shadow = texture(shadowMap, vec4(l, vectorToDepthValue(l))).r;
+
+
     return shadow;
 }
 

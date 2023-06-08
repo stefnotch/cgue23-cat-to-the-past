@@ -7,7 +7,7 @@ pub struct CpuTexture {
 }
 
 pub trait TextureData: Sync + Send {
-    fn dimensions(&self) -> (u32, u32);
+    fn dimensions(&self) -> [u32; 2];
     fn format(&self) -> &TextureFormat;
     fn bytes(&self) -> &[u8];
 }
@@ -72,8 +72,8 @@ impl BytesTextureData {
 }
 
 impl TextureData for BytesTextureData {
-    fn dimensions(&self) -> (u32, u32) {
-        self.dimensions
+    fn dimensions(&self) -> [u32; 2] {
+        [self.dimensions.0, self.dimensions.1]
     }
 
     fn format(&self) -> &TextureFormat {

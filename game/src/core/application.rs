@@ -134,7 +134,7 @@ impl Application {
                     .before(AppStage::UpdatePhysics),
             )
             .with_plugin(WindowPlugin::new(config.window.clone()))
-            .with_plugin(RendererPlugin::new())
+            .with_plugin(RendererPlugin::new(config.brightness))
             .with_set(RendererPluginSets::Render.in_set(AppStage::Render))
             // Configuring the player plugin (but not adding it)
             .with_set(PlayerPluginSets::UpdateInput.in_set(AppStage::Update))
@@ -270,6 +270,8 @@ impl Application {
 fn lock_mouse(context: Res<Context>, mut event: EventReader<WindowFocusChanged>) {
     for WindowFocusChanged { has_focus } in event.into_iter() {
         let window = context.window();
+
+        // TODO: Don't aggressively grab the cursor, instead only grab it when the user actually clicked on the window
 
         if *has_focus {
             window

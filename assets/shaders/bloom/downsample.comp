@@ -12,11 +12,13 @@ layout(set = 0, binding = 0) uniform sampler2D inputImage;
 
 layout(set = 0, binding = 1, rgba16f) writeonly uniform image2D outputImage;
 
-// inefficient
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+#define FILTER_SIZE        5
+#include "common.glsl"
+
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = 1) in;
 
 vec3 textureSample(vec2 uv, vec2 offset) {
-    return textureLod(inputImage, uv + offset * pass.inputTexelSize, 0.0).rgb;
+    return textureLod(inputImage, uv + offset * pass.inputTexelSize * 2.0, 0.0).rgb;
 }
 
 float luminance(vec3 color) {
@@ -62,11 +64,23 @@ void main() {
     // one invocation for every texel in the output image
     // (output image has half the size as the input image)
     ivec2 texel_output = ivec2(gl_GlobalInvocationID.xy);
-    ivec2 texel_input = 2 * texel_output;
-
-    // uv coordinates in the input image
+    // uv coordinates in the input image, hence the 2x
     // plus 0.5 to read the pixel from the center
-    vec2 uv = vec2(texel_input + 0.5) * vec2(pass.inputTexelSize);
+    ivec2 tile_top_left_corner = ivec2(gl_WorkGroupID) * GROUP_SIZE - FILTER_RADIUS;
+    vec2 top_left_uv = (vec2(tile_top_left_corner) + vec2(0.5)) * pass.inputTexelSize * 2.0;
+
+    for (int i = int(gl_LocalInvocationIndex); i < TILE_PIXEL_COUNT; i += GROUP_THREAD_COUNT) {
+        vec2 offset = vec2(i % TILE_SIZE, i / TILE_SIZE);
+
+        vec3 color = textureSample(top_left_uv, offset);
+        store_sample(i, color);
+    }
+
+    memoryBarrierShared();
+    barrier();
+
+    uint center_index = (gl_LocalInvocationID.y + FILTER_RADIUS) * TILE_SIZE
+        + (gl_LocalInvocationID.x + FILTER_RADIUS);
 
     // Source: https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom
     // Take 13 samples around current texel:
@@ -77,22 +91,22 @@ void main() {
     // g - h - i
     // === ('e' is the current texel) ===
 
-    vec3 a = textureSample(uv, vec2(-2, 2));
-    vec3 b = textureSample(uv, vec2( 0, 2));
-    vec3 c = textureSample(uv, vec2( 2, 2));
+    vec3 a = load_sample(center_index, ivec2(-2, 2));
+    vec3 b = load_sample(center_index, ivec2( 0, 2));
+    vec3 c = load_sample(center_index, ivec2( 2, 2));
 
-    vec3 d = textureSample(uv, vec2(-2, 0));
-    vec3 e = textureSample(uv, vec2( 0, 0));
-    vec3 f = textureSample(uv, vec2( 2, 0));
+    vec3 d = load_sample(center_index, ivec2(-2, 0));
+    vec3 e = load_sample(center_index, ivec2( 0, 0));
+    vec3 f = load_sample(center_index, ivec2( 2, 0));
 
-    vec3 g = textureSample(uv, vec2(-2,-2));
-    vec3 h = textureSample(uv, vec2( 0,-2));
-    vec3 i = textureSample(uv, vec2( 2,-2));
+    vec3 g = load_sample(center_index, ivec2(-2,-2));
+    vec3 h = load_sample(center_index, ivec2( 0,-2));
+    vec3 i = load_sample(center_index, ivec2( 2,-2));
 
-    vec3 j = textureSample(uv, vec2(-1, 1));
-    vec3 k = textureSample(uv, vec2( 1, 1));
-    vec3 l = textureSample(uv, vec2(-1,-1));
-    vec3 m = textureSample(uv, vec2( 1,-1));
+    vec3 j = load_sample(center_index, ivec2(-1, 1));
+    vec3 k = load_sample(center_index, ivec2( 1, 1));
+    vec3 l = load_sample(center_index, ivec2(-1,-1));
+    vec3 m = load_sample(center_index, ivec2( 1,-1));
 
     // Apply weighted distribution:
     // 0.5 + 0.125 + 0.125 + 0.125 + 0.125 = 1
@@ -128,6 +142,9 @@ void main() {
     }
 
     downsample = max(downsample, 0.0001f);
+
+   // vec2 uvxx = vec2(2 * texel_output + 0.5) * vec2(pass.inputTexelSize);
+   // downsample = textureSample(uvxx, vec2( 0, 0));
 
     imageStore(outputImage, texel_output, vec4(downsample, 1.0));
 }

@@ -10,3 +10,4 @@ pub mod model;
 pub mod pickup;
 pub mod texture;
 pub mod transform;
+pub mod ui_component;

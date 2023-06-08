@@ -5,10 +5,11 @@ use app::entity_event::EntityEvent;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::{Component, Query, With};
 use bevy_ecs::schedule::IntoSystemConfig;
-
+use bevy_ecs::schedule::IntoSystemSetConfig;
 use debug::setup_debugging;
 use game::level_flags::{FlagChange, LevelFlags};
 use game::pickup_system::PickupPlugin;
+use game::rewind_power::RewindPowerPlugin;
 use loader::config_loader::LoadableConfig;
 use loader::loader::{Door, SceneLoader};
 use scene::flag_trigger::FlagTrigger;
@@ -24,13 +25,16 @@ use time::time::Time;
 use time::time_manager::{game_change, TimeManager};
 
 use bevy_ecs::system::{Commands, Res, ResMut};
+
 use nalgebra::{Point3, Translation3};
 
 use game::core::application::{AppConfig, AppStage, Application};
+use game::game_ui::UIPlugin;
 use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 
 use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType};
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
+
 use scene::transform::{Transform, TransformBuilder};
 
 fn spawn_world(mut commands: Commands, scene_loader: Res<SceneLoader>) {
@@ -137,7 +141,15 @@ impl Plugin for GamePlugin {
         app.with_startup_system(spawn_world)
             .with_startup_system(setup_levels)
             .with_startup_system(spawn_moving_cube)
+            .with_plugin(UIPlugin)
+            .with_set(UIPlugin::system_set().in_set(AppStage::Update))
             .with_plugin(PickupPlugin)
+            .with_plugin(RewindPowerPlugin)
+            .with_set(
+                RewindPowerPlugin::system_set()
+                    .in_set(AppStage::Update)
+                    .before(UIPlugin::system_set()),
+            )
             .with_system(flag_system.in_set(AppStage::Update))
             .with_system(door_system.in_set(AppStage::Update).after(flag_system))
             .with_system(move_cubes.in_set(AppStage::Update)); //.with_system(_print_fps.in_set(AppStage::Update));

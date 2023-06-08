@@ -1,7 +1,8 @@
 use crate::context::Context;
 use crate::custom_storage_image::CustomStorageImage;
+use crate::quad::{self, quad_mesh, QuadVertex};
 use std::sync::Arc;
-use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
+use vulkano::buffer::Subbuffer;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, RenderPassBeginInfo,
@@ -13,7 +14,7 @@ use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
 use vulkano::image::SwapchainImage;
-use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
+use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
@@ -45,35 +46,10 @@ impl QuadRenderer {
         memory_allocator: Arc<StandardMemoryAllocator>,
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
         descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
+        brightness: f32,
     ) -> Self {
-        let (vertices, indices) = quad_mesh();
-        let vertex_buffer = Buffer::from_iter(
-            &memory_allocator,
-            BufferCreateInfo {
-                usage: BufferUsage::VERTEX_BUFFER,
-                ..Default::default()
-            },
-            AllocationCreateInfo {
-                usage: MemoryUsage::Upload,
-                ..Default::default()
-            },
-            vertices,
-        )
-        .unwrap();
-
-        let index_buffer = Buffer::from_iter(
-            &memory_allocator,
-            BufferCreateInfo {
-                usage: BufferUsage::INDEX_BUFFER,
-                ..Default::default()
-            },
-            AllocationCreateInfo {
-                usage: MemoryUsage::Upload,
-                ..Default::default()
-            },
-            indices,
-        )
-        .unwrap();
+        let (vertex_buffer, index_buffer) =
+            quad::create_geometry_buffers(quad_mesh(), memory_allocator.clone());
 
         let render_pass = vulkano::single_pass_renderpass!(context.device(),
             attachments: {
@@ -95,11 +71,13 @@ impl QuadRenderer {
             let vertex_shader = vs::load(context.device()).unwrap();
             let fragment_shader = fs::load(context.device()).unwrap();
 
+            let spec_consts = fs::SpecializationConstants { brightness };
+
             GraphicsPipeline::start()
                 .vertex_input_state(QuadVertex::per_vertex())
                 .vertex_shader(vertex_shader.entry_point("main").unwrap(), ())
                 .input_assembly_state(InputAssemblyState::new())
-                .fragment_shader(fragment_shader.entry_point("main").unwrap(), ())
+                .fragment_shader(fragment_shader.entry_point("main").unwrap(), spec_consts)
                 .viewport_state(ViewportState::viewport_dynamic_scissor_irrelevant())
                 .render_pass(Subpass::from(render_pass.clone(), 0).unwrap())
                 .build(context.device())
@@ -254,51 +232,16 @@ impl QuadRenderer {
     }
 }
 
-#[derive(BufferContents, Vertex)]
-#[repr(C)]
-pub struct QuadVertex {
-    #[format(R32G32_SFLOAT)]
-    pub position: [f32; 2],
-
-    #[format(R32G32_SFLOAT)]
-    pub uv: [f32; 2],
-}
-
-const fn quad_mesh() -> ([QuadVertex; 4], [u32; 6]) {
-    let vertices = [
-        QuadVertex {
-            position: [-1.0, -1.0],
-            uv: [0.0, 0.0],
-        },
-        QuadVertex {
-            position: [1.0, -1.0],
-            uv: [1.0, 0.0],
-        },
-        QuadVertex {
-            position: [1.0, 1.0],
-            uv: [1.0, 1.0],
-        },
-        QuadVertex {
-            position: [-1.0, 1.0],
-            uv: [0.0, 1.0],
-        },
-    ];
-
-    let indices = [0, 1, 2, 2, 3, 0];
-
-    (vertices, indices)
-}
-
 mod vs {
     vulkano_shaders::shader! {
         ty: "vertex",
-        path: "../assets/shaders/bloom/quad.vert",
+        path: "../assets/shaders/quad/quad.vert",
     }
 }
 
 mod fs {
     vulkano_shaders::shader! {
         ty: "fragment",
-        path: "../assets/shaders/bloom/quad.frag",
+        path: "../assets/shaders/quad/quad.frag",
     }
 }

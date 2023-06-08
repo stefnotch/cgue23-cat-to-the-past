@@ -1,7 +1,7 @@
 use crate::bloom_renderer::BloomRenderer;
 use crate::context::Context;
 use crate::create_gpu_models;
-use crate::model_uploader::{ModelUploaderAllocator, SamplerInfoMap};
+use crate::model_uploader::{create_ui_component, ModelUploaderAllocator, SamplerInfoMap};
 use crate::quad_renderer::QuadRenderer;
 use crate::scene::material::Material;
 use crate::scene::mesh::Mesh;
@@ -18,6 +18,7 @@ use scene::asset::Assets;
 use scene::camera::Camera;
 use scene::light::{CastShadow, Light};
 use scene::transform::Transform;
+use scene::ui_component::UIComponent;
 use std::sync::Arc;
 use time::time_manager::TimeManager;
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -36,6 +37,8 @@ use vulkano::sync;
 use vulkano::sync::{FlushError, GpuFuture};
 use windowing::window::WindowManager;
 
+use crate::scene::ui_component::GpuUIComponent;
+use crate::ui_renderer::UIRenderer;
 use windowing::window::Window;
 
 /// Responsible for keeping the swapchain up-to-date and calling the sub-rendersystems
@@ -47,6 +50,7 @@ pub struct Renderer {
     scene_renderer: SceneRenderer,
     bloom_renderer: BloomRenderer,
     quad_renderer: QuadRenderer,
+    ui_renderer: UIRenderer,
     viewport: Viewport,
 }
 
@@ -57,7 +61,7 @@ struct SwapchainContainer {
 }
 
 impl Renderer {
-    pub fn new(context: &Context) -> Renderer {
+    pub fn new(context: &Context, brightness: f32) -> Renderer {
         let previous_frame_end = Some(sync::now(context.device()).boxed());
 
         let swapchain = SwapchainContainer::new(context.device(), context.surface());
@@ -115,6 +119,16 @@ impl Renderer {
             memory_allocator.clone(),
             command_buffer_allocator.clone(),
             descriptor_set_allocator.clone(),
+            brightness,
+        );
+
+        let ui_renderer = UIRenderer::new(
+            context,
+            &swapchain.images,
+            swapchain.swapchain.image_format(),
+            memory_allocator.clone(),
+            command_buffer_allocator.clone(),
+            descriptor_set_allocator.clone(),
         );
 
         Renderer {
@@ -125,6 +139,7 @@ impl Renderer {
             scene_renderer,
             bloom_renderer,
             quad_renderer,
+            ui_renderer,
             viewport,
         }
     }
@@ -139,11 +154,13 @@ pub enum RendererPluginSets {
     Render,
 }
 
-pub struct RendererPlugin;
+pub struct RendererPlugin {
+    brightness: f32,
+}
 
 impl RendererPlugin {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(brightness: f32) -> Self {
+        Self { brightness }
     }
 }
 
@@ -156,7 +173,7 @@ impl Plugin for RendererPlugin {
                 .window
                 .clone(),
         );
-        let renderer = Renderer::new(&context);
+        let renderer = Renderer::new(&context, self.brightness);
         let model_uploading_allocator = ModelUploaderAllocator::new(context.device());
         let sampler_info_map = SamplerInfoMap::new();
 
@@ -165,6 +182,12 @@ impl Plugin for RendererPlugin {
             .with_system(
                 create_gpu_models
                     .in_set(RendererPluginSets::Render)
+                    .before(render),
+            )
+            .with_system(
+                create_ui_component
+                    .in_set(RendererPluginSets::Render)
+                    .after(create_gpu_models)
                     .before(render),
             )
             .with_system(render.in_set(RendererPluginSets::Render))
@@ -185,6 +208,7 @@ pub fn render(
     query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
     query_shadow_light: Query<&Transform, (With<CastShadow>, With<Light>)>,
     mut counter: Local<usize>,
+    query_ui_components: Query<(&GpuUIComponent, &UIComponent)>,
     mut rewind_start_time: Local<f32>,
 ) {
     // On Windows, this can occur from minimizing the application.
@@ -222,6 +246,9 @@ pub fn render(
 
         renderer.viewport.dimensions = renderer.swapchain.dimensions.map(|i| i as f32);
 
+        let _dimensions = renderer.swapchain.swapchain.image_extent();
+        let _swapchain_image_count = renderer.swapchain.swapchain.image_count();
+
         // https://doc.rust-lang.org/nomicon/borrow-splitting.html
         let renderer = renderer.as_mut();
         renderer
@@ -234,10 +261,13 @@ pub fn render(
         renderer
             .bloom_renderer
             .resize(renderer.scene_renderer.output_images().clone());
+
         renderer.quad_renderer.resize(
             &renderer.swapchain.images,
             &renderer.bloom_renderer.output_images(),
         );
+
+        renderer.ui_renderer.resize(&renderer.swapchain.images);
 
         renderer.recreate_swapchain = false;
     }
@@ -274,6 +304,7 @@ pub fn render(
 
     let models = query_models.iter().collect();
     let lights = query_lights.iter().collect();
+    let ui_components = query_ui_components.iter().collect();
 
     let nearest_shadow_light = query_shadow_light
         .iter()
@@ -328,6 +359,21 @@ pub fn render(
     let future = renderer
         .quad_renderer
         .render(&context, future, image_index, &renderer.viewport);
+
+    let future = if *counter > renderer.swapchain.images.len() {
+        renderer
+            .ui_renderer
+            .render(
+                &context,
+                ui_components,
+                future,
+                image_index,
+                &renderer.viewport,
+            )
+            .boxed()
+    } else {
+        future.boxed()
+    };
 
     let future = future
         .then_swapchain_present(
@@ -393,7 +439,7 @@ impl SwapchainContainer {
                     min_image_count: surface_capabilities.min_image_count,
                     image_format,
                     image_extent: window.inner_size().into(),
-                    image_usage: ImageUsage::COLOR_ATTACHMENT,
+                    image_usage: ImageUsage::COLOR_ATTACHMENT | ImageUsage::INPUT_ATTACHMENT,
                     composite_alpha: surface_capabilities
                         .supported_composite_alpha
                         .into_iter()
