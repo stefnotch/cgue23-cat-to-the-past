@@ -3,7 +3,6 @@ pub mod context;
 mod custom_storage_image;
 mod main_renderer;
 mod model_uploader;
-mod overlay_renderer;
 mod quad;
 mod quad_renderer;
 mod scene;

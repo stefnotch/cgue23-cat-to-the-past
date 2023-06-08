@@ -87,7 +87,7 @@ impl PhysicsContext {
         mut collision_event_query: Query<&mut EntityEvent<CollisionEvent>>,
     ) {
         self.integration_parameters.dt =
-            ((time.delta_seconds() as Real) / (self.substeps as Real)).min(1.0 / 144.0);
+            ((time.delta_seconds() as Real) / (self.substeps as Real)).min(1.0 / 10.0);
 
         let (collision_send, collision_recv) = crossbeam::channel::unbounded();
         let (contact_force_send, contact_force_recv) = crossbeam::channel::unbounded();

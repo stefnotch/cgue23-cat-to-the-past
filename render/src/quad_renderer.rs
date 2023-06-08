@@ -1,8 +1,8 @@
 use crate::context::Context;
 use crate::custom_storage_image::CustomStorageImage;
-use crate::quad::{create_geometry_buffers, quad_mesh, QuadVertex};
+use crate::quad::{create_geometry_buffers, QuadVertex};
 use std::sync::Arc;
-use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer};
+use vulkano::buffer::{BufferCreateInfo, BufferUsage, Subbuffer};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{
     AutoCommandBufferBuilder, CommandBufferExecFuture, CommandBufferUsage, RenderPassBeginInfo,
@@ -13,8 +13,8 @@ use vulkano::descriptor_set::layout::DescriptorSetLayout;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
-use vulkano::image::{AttachmentImage, SwapchainImage};
-use vulkano::memory::allocator::{AllocationCreateInfo, MemoryUsage, StandardMemoryAllocator};
+use vulkano::image::SwapchainImage;
+use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
@@ -41,7 +41,6 @@ impl QuadRenderer {
     pub fn new(
         context: &Context,
         input_images: &[Arc<ImageView<CustomStorageImage>>],
-        ui_images: &[Arc<ImageView<AttachmentImage>>],
         output_images: &[Arc<ImageView<SwapchainImage>>],
         final_output_format: Format,
         memory_allocator: Arc<StandardMemoryAllocator>,
@@ -101,7 +100,6 @@ impl QuadRenderer {
         let descriptor_sets = Self::create_descriptor_sets(
             layout,
             input_images,
-            ui_images,
             sampler.clone(),
             descriptor_set_allocator.clone(),
         );
@@ -127,7 +125,6 @@ impl QuadRenderer {
         &mut self,
         output_images: &[Arc<ImageView<SwapchainImage>>],
         input_images: &[Arc<ImageView<CustomStorageImage>>],
-        ui_images: &[Arc<ImageView<AttachmentImage>>],
     ) {
         self.framebuffers = Self::create_framebuffers(self.render_pass.clone(), output_images);
 
@@ -135,7 +132,6 @@ impl QuadRenderer {
         self.descriptor_sets = Self::create_descriptor_sets(
             layout,
             input_images,
-            ui_images,
             self.sampler.clone(),
             self.descriptor_set_allocator.clone(),
         );
@@ -163,25 +159,20 @@ impl QuadRenderer {
     fn create_descriptor_sets(
         layout: &Arc<DescriptorSetLayout>,
         images: &[Arc<ImageView<CustomStorageImage>>],
-        ui_images: &[Arc<ImageView<AttachmentImage>>],
         sampler: Arc<Sampler>,
         descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     ) -> Vec<Arc<PersistentDescriptorSet>> {
         images
             .iter()
-            .zip(ui_images)
-            .map(|(image, ui_image)| {
+            .map(|image| {
                 PersistentDescriptorSet::new(
                     &descriptor_set_allocator,
                     layout.clone(),
-                    [
-                        WriteDescriptorSet::image_view_sampler(0, image.clone(), sampler.clone()),
-                        WriteDescriptorSet::image_view_sampler(
-                            1,
-                            ui_image.clone(),
-                            sampler.clone(),
-                        ),
-                    ],
+                    [WriteDescriptorSet::image_view_sampler(
+                        0,
+                        image.clone(),
+                        sampler.clone(),
+                    )],
                 )
                 .unwrap()
             })

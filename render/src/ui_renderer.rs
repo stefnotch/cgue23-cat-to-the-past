@@ -2,6 +2,7 @@ use crate::context::Context;
 use crate::quad::{create_geometry_buffers, QuadVertex};
 use crate::scene::ui_component::GpuUIComponent;
 use nalgebra::Matrix4;
+use scene::ui_component::UIComponent;
 use std::sync::Arc;
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
 use vulkano::buffer::{BufferUsage, Subbuffer};
@@ -14,7 +15,7 @@ use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::{PersistentDescriptorSet, WriteDescriptorSet};
 use vulkano::format::Format;
 use vulkano::image::view::ImageView;
-use vulkano::image::{AttachmentImage, ImageUsage};
+use vulkano::image::{AttachmentImage, ImageUsage, ImageViewAbstract, SwapchainImage};
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
@@ -28,7 +29,6 @@ pub struct UIRenderer {
     render_pass: Arc<RenderPass>,
     pipeline: Arc<GraphicsPipeline>,
     framebuffers: Vec<Arc<Framebuffer>>,
-    output_images: Vec<Arc<ImageView<AttachmentImage>>>,
 
     index_buffer: Subbuffer<[u32]>,
     vertex_buffer: Subbuffer<[QuadVertex]>,
@@ -41,8 +41,8 @@ pub struct UIRenderer {
 impl UIRenderer {
     pub fn new(
         context: &Context,
-        image_count: u32,
-        dimensions: [u32; 2],
+        images: &[Arc<ImageView<SwapchainImage>>],
+        final_output_format: Format,
         memory_allocator: Arc<StandardMemoryAllocator>,
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
         descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
@@ -53,9 +53,9 @@ impl UIRenderer {
             context.device(),
             attachments: {
                 color: {
-                    load: Clear,
+                    load: Load,
                     store: Store,
-                    format: Format::B8G8R8A8_SRGB,
+                    format: final_output_format,
                     samples: 1,
                 },
                 depth: {
@@ -88,20 +88,14 @@ impl UIRenderer {
                 .unwrap()
         };
 
-        let images = Self::create_images(memory_allocator.clone(), image_count, dimensions);
-        let framebuffers = Self::create_framebuffers(
-            memory_allocator.clone(),
-            dimensions,
-            images.clone(),
-            render_pass.clone(),
-        );
+        let framebuffers =
+            Self::create_framebuffers(memory_allocator.clone(), images, render_pass.clone());
 
         UIRenderer {
             render_pass,
             pipeline,
 
             framebuffers,
-            output_images: images,
 
             index_buffer,
             vertex_buffer,
@@ -112,14 +106,10 @@ impl UIRenderer {
         }
     }
 
-    pub fn resize(&mut self, dimensions: [u32; 2], image_count: u32) {
-        self.output_images =
-            Self::create_images(self.memory_allocator.clone(), image_count, dimensions);
-
+    pub fn resize(&mut self, images: &[Arc<ImageView<SwapchainImage>>]) {
         self.framebuffers = Self::create_framebuffers(
             self.memory_allocator.clone(),
-            dimensions,
-            self.output_images.clone(),
+            images,
             self.render_pass.clone(),
         );
     }
@@ -127,7 +117,7 @@ impl UIRenderer {
     pub fn render<F>(
         &self,
         context: &Context,
-        ui_components: Vec<&GpuUIComponent>,
+        ui_components: Vec<(&GpuUIComponent, &UIComponent)>,
         future: F,
         swapchain_frame_index: u32,
         viewport: &Viewport,
@@ -145,7 +135,7 @@ impl UIRenderer {
         builder
             .begin_render_pass(
                 RenderPassBeginInfo {
-                    clear_values: vec![Some([0.0; 4].into()), Some(1.0f32.into())],
+                    clear_values: vec![None, Some(1.0f32.into())],
                     ..RenderPassBeginInfo::framebuffer(
                         self.framebuffers[swapchain_frame_index as usize].clone(),
                     )
@@ -158,7 +148,7 @@ impl UIRenderer {
 
         let set_layout = self.pipeline.layout().set_layouts().get(0).unwrap();
 
-        for component in ui_components {
+        for (gpu_component, cpu_component) in ui_components {
             let component_push_constant = vs::UIComponent {
                 MVP: Matrix4::identity().into(),
             };
@@ -168,8 +158,8 @@ impl UIRenderer {
                 set_layout.clone(),
                 [WriteDescriptorSet::image_view_sampler(
                     0,
-                    component.texture.image_view.clone(),
-                    component.texture.sampler.clone(),
+                    gpu_component.texture.image_view.clone(),
+                    gpu_component.texture.sampler.clone(),
                 )],
             )
             .unwrap();
@@ -197,36 +187,16 @@ impl UIRenderer {
             .unwrap()
     }
 
-    fn create_images(
-        memory_allocator: Arc<StandardMemoryAllocator>,
-        image_count: u32,
-        dimensions: [u32; 2],
-    ) -> Vec<Arc<ImageView<AttachmentImage>>> {
-        (0..image_count)
-            .map(|_| {
-                ImageView::new_default(
-                    AttachmentImage::with_usage(
-                        &memory_allocator,
-                        dimensions,
-                        Format::B8G8R8A8_SRGB,
-                        ImageUsage::SAMPLED | ImageUsage::COLOR_ATTACHMENT,
-                    )
-                    .unwrap(),
-                )
-                .unwrap()
-            })
-            .collect()
-    }
-
     fn create_framebuffers(
         memory_allocator: Arc<StandardMemoryAllocator>,
-        dimensions: [u32; 2],
-        images: Vec<Arc<ImageView<AttachmentImage>>>,
+        images: &[Arc<ImageView<SwapchainImage>>],
         render_pass: Arc<RenderPass>,
     ) -> Vec<Arc<Framebuffer>> {
         images
             .into_iter()
             .map(|image| {
+                let dimensions = image.dimensions().width_height();
+
                 let depth_buffer = ImageView::new_default(
                     AttachmentImage::transient(&memory_allocator, dimensions, Format::D16_UNORM)
                         .unwrap(),
@@ -243,10 +213,6 @@ impl UIRenderer {
                 .unwrap()
             })
             .collect()
-    }
-
-    pub fn get_ui_images(&self) -> &Vec<Arc<ImageView<AttachmentImage>>> {
-        &self.output_images
     }
 }
 

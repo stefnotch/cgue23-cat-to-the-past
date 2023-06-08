@@ -29,7 +29,6 @@ use vulkano::image::view::ImageView;
 use vulkano::image::{ImageAccess, ImageUsage, SwapchainImage};
 use vulkano::memory::allocator::StandardMemoryAllocator;
 use vulkano::pipeline::graphics::viewport::Viewport;
-use vulkano::swapchain::PresentMode::Immediate;
 use vulkano::swapchain::{
     acquire_next_image, AcquireError, ColorSpace, Surface, SurfaceInfo, Swapchain,
     SwapchainCreateInfo, SwapchainCreationError, SwapchainPresentInfo,
@@ -38,7 +37,6 @@ use vulkano::sync;
 use vulkano::sync::{FlushError, GpuFuture};
 use windowing::window::WindowManager;
 
-use crate::overlay_renderer::OverlayRenderer;
 use crate::scene::ui_component::GpuUIComponent;
 use crate::ui_renderer::UIRenderer;
 use windowing::window::Window;
@@ -51,7 +49,8 @@ pub struct Renderer {
     shadow_renderer: ShadowRenderer,
     scene_renderer: SceneRenderer,
     bloom_renderer: BloomRenderer,
-    overlay_renderer: OverlayRenderer,
+    quad_renderer: QuadRenderer,
+    ui_renderer: UIRenderer,
     viewport: Viewport,
 }
 
@@ -112,8 +111,9 @@ impl Renderer {
             descriptor_set_allocator.clone(),
         );
 
-        let mut overlay_renderer = OverlayRenderer::new(
+        let mut quad_renderer = QuadRenderer::new(
             context,
+            &bloom_renderer.output_images(),
             &swapchain.images,
             swapchain.swapchain.image_format(),
             memory_allocator.clone(),
@@ -122,10 +122,13 @@ impl Renderer {
             brightness,
         );
 
-        overlay_renderer.pre_record_command_buffer_quad(
+        let mut ui_renderer = UIRenderer::new(
             context,
-            &bloom_renderer.output_images(),
-            &viewport,
+            &swapchain.images,
+            swapchain.swapchain.image_format(),
+            memory_allocator.clone(),
+            command_buffer_allocator.clone(),
+            descriptor_set_allocator.clone(),
         );
 
         Renderer {
@@ -135,7 +138,8 @@ impl Renderer {
             shadow_renderer,
             scene_renderer,
             bloom_renderer,
-            overlay_renderer,
+            quad_renderer,
+            ui_renderer,
             viewport,
         }
     }
@@ -258,13 +262,12 @@ pub fn render(
             .bloom_renderer
             .resize(renderer.scene_renderer.output_images().clone());
 
-        renderer.overlay_renderer.resize(&renderer.swapchain.images);
-
-        renderer.overlay_renderer.pre_record_command_buffer_quad(
-            &context,
+        renderer.quad_renderer.resize(
+            &renderer.swapchain.images,
             &renderer.bloom_renderer.output_images(),
-            &renderer.viewport,
         );
+
+        renderer.ui_renderer.resize(&renderer.swapchain.images);
 
         renderer.recreate_swapchain = false;
     }
@@ -353,13 +356,24 @@ pub fn render(
         .bloom_renderer
         .render(&context, future, image_index);
 
-    let future = renderer.overlay_renderer.render(
-        &context,
-        ui_components,
-        future,
-        image_index,
-        &renderer.viewport,
-    );
+    let future = renderer
+        .quad_renderer
+        .render(&context, future, image_index, &renderer.viewport);
+
+    let future = if *counter > renderer.swapchain.images.len() {
+        renderer
+            .ui_renderer
+            .render(
+                &context,
+                ui_components,
+                future,
+                image_index,
+                &renderer.viewport,
+            )
+            .boxed()
+    } else {
+        future.boxed()
+    };
 
     let future = future
         .then_swapchain_present(
