@@ -79,7 +79,7 @@ pub fn spawn_ui_component(mut commands: Commands) {
         address_mode: [AddressMode::ClampToBorder; 3],
     };
 
-    let crosshair_texture = image::open("assets/textures/crosshair.png").unwrap();
+    let crosshair_texture = image::open("assets/textures/game_over.png").unwrap();
 
     commands.spawn(UIComponent {
         texture: Arc::new(CpuTexture {

@@ -1,7 +1,7 @@
 use crate::context::Context;
 use crate::quad::{create_geometry_buffers, QuadVertex};
 use crate::scene::ui_component::GpuUIComponent;
-use nalgebra::Matrix4;
+use nalgebra::{Matrix, Matrix4, Scale3, Translation3};
 use scene::ui_component::UIComponent;
 use std::sync::Arc;
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
@@ -149,9 +149,32 @@ impl UIRenderer {
         let set_layout = self.pipeline.layout().set_layouts().get(0).unwrap();
 
         for (gpu_component, cpu_component) in ui_components {
-            let component_push_constant = vs::UIComponent {
-                MVP: Matrix4::identity().into(),
-            };
+            let projection = Matrix4::from_row_slice(&[
+                1.0 / 640.0,
+                0.0,
+                0.0,
+                -1.0, //
+                0.0,
+                1.0 / 360.0,
+                0.0,
+                -1.0, //
+                0.0,
+                0.0,
+                -1.0,
+                0.0, //
+                0.0,
+                0.0,
+                0.0,
+                1.0, //
+            ]);
+
+            let view = Scale3::new(100.0, 100.0, 1.0).to_homogeneous();
+
+            let model = Translation3::new(0.0f32, 0.0f32, 0.0f32).to_homogeneous();
+
+            let mvp: Matrix4<f32> = projection * view * model;
+
+            let component_push_constant = vs::UIComponent { MVP: mvp.into() };
 
             let descriptor_set = PersistentDescriptorSet::new(
                 &self.descriptor_set_allocator,
