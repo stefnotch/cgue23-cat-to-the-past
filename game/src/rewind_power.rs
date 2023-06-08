@@ -5,7 +5,7 @@ use time::time_manager::TimeManager;
 // TODO: Deal with next level (in the game logic)
 #[derive(Resource)]
 pub struct RewindPower {
-    pub remaining_seconds: f32,
+    remaining_seconds: f32,
     pub max_seconds: f32,
 }
 
@@ -25,6 +25,9 @@ impl RewindPower {
         if self.max_seconds == 0.0 {
             return 0.0;
         }
+        if self.is_empty() {
+            return 0.0;
+        }
         self.remaining_seconds / self.max_seconds
     }
 }
@@ -32,7 +35,8 @@ impl RewindPower {
 fn update_rewind_power(mut rewind_power: ResMut<RewindPower>, time_manager: Res<TimeManager>) {
     let consumed_power = time_manager.level_delta_time();
     if consumed_power.is_negative() {
-        rewind_power.remaining_seconds -= consumed_power.duration().as_secs_f32();
+        rewind_power.remaining_seconds =
+            (rewind_power.remaining_seconds - consumed_power.duration().as_secs_f32()).max(0.0);
     }
 }
 

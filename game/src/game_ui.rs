@@ -3,7 +3,7 @@ use app::plugin::Plugin;
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::Res;
 use image::{DynamicImage, GenericImageView};
-use nalgebra::{Point3, Vector2};
+use nalgebra::{Point2, Point3, Vector2};
 use scene::asset::AssetId;
 use scene::texture::{
     AddressMode, BytesTextureData, CpuTexture, Filter, SamplerInfo, TextureFormat,
@@ -19,6 +19,9 @@ struct UICrosshair;
 
 #[derive(Component)]
 struct UIRewind;
+
+#[derive(Component)]
+struct UIProgressFill;
 
 fn spawn_ui_components(mut commands: Commands) {
     let sampler_info = SamplerInfo {
@@ -80,23 +83,28 @@ fn spawn_ui_components(mut commands: Commands) {
     ));
 
     let progress_fill = image::open("assets/textures/progress_fill.png").unwrap();
-    commands.spawn(UIComponent {
-        texture: create_cpu_texture(progress_fill),
-        position: Point3::new(0.95, 0.15, -0.1),
-        texture_position: UITexturePosition {
-            scale: Vector2::new(2.0, 2.0),
-            ..UITexturePosition::default()
+    commands.spawn((
+        UIComponent {
+            texture: create_cpu_texture(progress_fill),
+            position: Point3::new(0.95, 0.05, 0.0),
+            texture_position: UITexturePosition {
+                scale: Vector2::new(1.0, 1.0),
+                texture_origin: Point2::new(0.5, 1.0),
+                angle: Rad(std::f32::consts::FRAC_PI_2),
+            },
+            visible: true,
         },
-        visible: true,
-    });
+        UIProgressFill,
+    ));
 
     let progress = image::open("assets/textures/progress_outline_stepped.png").unwrap();
     commands.spawn(UIComponent {
         texture: create_cpu_texture(progress),
-        position: Point3::new(0.95, 0.15, 0.0),
+        position: Point3::new(0.95, 0.05, 0.0),
         texture_position: UITexturePosition {
-            scale: Vector2::new(2.0, 2.0),
-            ..UITexturePosition::default()
+            scale: Vector2::new(1.0, 1.0),
+            texture_origin: Point2::new(0.5, 1.0),
+            angle: Rad(std::f32::consts::FRAC_PI_2),
         },
         visible: true,
     });
@@ -122,11 +130,21 @@ fn update_rewind(
     }
 }
 
+fn update_rewind_power(
+    rewind_power: Res<RewindPower>,
+    mut progress_fill_query: Query<&mut UIComponent, With<UIProgressFill>>,
+) {
+    let mut progress_fill = progress_fill_query.single_mut();
+
+    progress_fill.texture_position.scale.y = rewind_power.get_percent();
+}
+
 pub struct UIPlugin;
 
 impl Plugin for UIPlugin {
     fn build(&mut self, app: &mut app::plugin::PluginAppAccess) {
         app.with_startup_system(spawn_ui_components)
-            .with_system(update_rewind);
+            .with_system(update_rewind)
+            .with_system(update_rewind_power.after(update_rewind));
     }
 }

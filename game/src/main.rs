@@ -145,7 +145,11 @@ impl Plugin for GamePlugin {
             .with_set(UIPlugin::system_set().in_set(AppStage::Update))
             .with_plugin(PickupPlugin)
             .with_plugin(RewindPowerPlugin)
-            .with_set(RewindPowerPlugin::system_set().in_set(AppStage::Update))
+            .with_set(
+                RewindPowerPlugin::system_set()
+                    .in_set(AppStage::Update)
+                    .before(UIPlugin::system_set()),
+            )
             .with_system(flag_system.in_set(AppStage::Update))
             .with_system(door_system.in_set(AppStage::Update).after(flag_system))
             .with_system(move_cubes.in_set(AppStage::Update)); //.with_system(_print_fps.in_set(AppStage::Update));
