@@ -1,8 +1,9 @@
 use crate::context::Context;
 use crate::quad::{create_geometry_buffers, QuadVertex};
 use crate::scene::ui_component::GpuUIComponent;
-use nalgebra::{Matrix4, Scale3, Translation3, Vector2};
+use nalgebra::{Matrix4, Scale3, Translation3, Vector, Vector2, Vector3};
 use scene::ui_component::UIComponent;
+use std::ops::Deref;
 use std::sync::Arc;
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
 use vulkano::buffer::{BufferUsage, Subbuffer};
@@ -148,8 +149,9 @@ impl UIRenderer {
 
         let set_layout = self.pipeline.layout().set_layouts().get(0).unwrap();
 
+        let screen_size = Vector2::from(viewport.dimensions);
+
         for (gpu_component, cpu_component) in ui_components {
-            let screen_size = Vector2::from(viewport.dimensions);
             let pixel_center = cpu_component
                 .position
                 .xy()
@@ -157,16 +159,16 @@ impl UIRenderer {
                 .component_mul(&screen_size);
             let texture_size = cpu_component.texture.data.dimensions();
             let texture_size = Vector2::new(texture_size[0] as f32, texture_size[1] as f32);
-            let pixel_size = texture_size.component_mul(&screen_size);
-            let pixel_top_left = pixel_center - pixel_size / 2.0;
+            let aspect_ratio = texture_size.y / texture_size.x;
+            let pixel_top_left = pixel_center - texture_size / 2.0;
 
             let projection = Matrix4::from_row_slice(&[
-                1.0 / 640.0,
+                2.0 / screen_size.x,
                 0.0,
                 0.0,
                 -1.0, //
                 0.0,
-                1.0 / 360.0,
+                2.0 / screen_size.y,
                 0.0,
                 -1.0, //
                 0.0,
@@ -179,17 +181,18 @@ impl UIRenderer {
                 1.0, //
             ]);
 
-            let view = Scale3::new(100.0, 100.0, 1.0).to_homogeneous();
-
-            let model = Translation3::new(0.0f32, 0.0f32, 0.0f32).to_homogeneous();
-
-            let mvp: Matrix4<f32> = projection * view * model;
-
-            /*
-            let mvp = calculate_orthographic(screen size)
-                * Matrix4::new_translation(pixel_xy, depth)
-                * Matrix4::new_rotation(Vector3::unit_z, angle)
-                * Matrix4::new_scale(pixel_size, 1.0) */
+            let mvp = projection
+                * Matrix4::new_translation(&Vector3::new(
+                    pixel_top_left.x,
+                    pixel_top_left.y,
+                    cpu_component.position.z,
+                ))
+                * Matrix4::new_rotation(Vector3::new(0.0, 0.0, cpu_component.angle))
+                * Matrix4::new_nonuniform_scaling(&Vector3::new(
+                    cpu_component.scale,
+                    cpu_component.scale * aspect_ratio,
+                    1.0,
+                ));
 
             let component_push_constant = vs::UIComponent { MVP: mvp.into() };
 
