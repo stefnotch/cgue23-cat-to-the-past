@@ -71,7 +71,7 @@ impl Texture {
                 &memory_allocator,
                 data_iterator,
                 dimensions,
-                MipmapsCount::One,
+                MipmapsCount::Log2,
                 format,
                 &mut command_buffer_builder,
             )

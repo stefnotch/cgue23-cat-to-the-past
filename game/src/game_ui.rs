@@ -6,7 +6,7 @@ use image::{DynamicImage, GenericImageView};
 use nalgebra::{Point2, Point3, Vector2};
 use scene::asset::AssetId;
 use scene::texture::{
-    AddressMode, BytesTextureData, CpuTexture, Filter, SamplerInfo, TextureFormat,
+    AddressMode, BytesTextureData, CpuTexture, Filter, MipmapMode, SamplerInfo, TextureFormat,
 };
 use scene::ui_component::{UIComponent, UITexturePosition};
 use std::sync::Arc;
@@ -27,6 +27,7 @@ fn spawn_ui_components(mut commands: Commands) {
     let sampler_info = SamplerInfo {
         min_filter: Filter::Nearest,
         mag_filter: Filter::Nearest,
+        mipmap_mode: MipmapMode::Nearest,
         address_mode: [AddressMode::ClampToBorder; 3],
     };
 

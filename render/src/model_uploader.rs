@@ -210,6 +210,7 @@ fn create_gpu_sampler(
                 SamplerCreateInfo {
                     mag_filter: to_vulkano_filter(sampler_info.mag_filter),
                     min_filter: to_vulkano_filter(sampler_info.min_filter),
+                    mipmap_mode: to_vulkano_mipmap_mode(sampler_info.mipmap_mode),
                     address_mode: to_vulkano_address_mode(sampler_info.address_mode),
                     ..SamplerCreateInfo::default()
                 },
@@ -217,6 +218,15 @@ fn create_gpu_sampler(
             .unwrap()
         })
         .to_owned()
+}
+
+fn to_vulkano_mipmap_mode(
+    mipmap_mode: scene::texture::MipmapMode,
+) -> vulkano::sampler::SamplerMipmapMode {
+    match mipmap_mode {
+        scene::texture::MipmapMode::Nearest => vulkano::sampler::SamplerMipmapMode::Nearest,
+        scene::texture::MipmapMode::Linear => vulkano::sampler::SamplerMipmapMode::Linear,
+    }
 }
 
 fn to_vulkano_address_mode(

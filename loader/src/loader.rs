@@ -14,7 +14,7 @@ use scene::mesh::{CpuMesh, CpuMeshVertex};
 use scene::model::{CpuPrimitive, Model};
 use scene::pickup::Pickupable;
 use scene::texture::{
-    AddressMode, BytesTextureData, CpuTexture, Filter, SamplerInfo, TextureFormat,
+    AddressMode, BytesTextureData, CpuTexture, Filter, MipmapMode, SamplerInfo, TextureFormat,
 };
 use scene::transform::Transform;
 use std::hash::Hash;
@@ -410,7 +410,8 @@ impl SceneLoadingData {
     fn get_sampler(&mut self, gltf_texture: &gltf::texture::Texture) -> SamplerInfo {
         let sampler = gltf_texture.sampler();
 
-        let min_filter = from_gltf_min_filter(sampler.min_filter().unwrap_or(MinFilter::Linear));
+        let (min_filter, mipmap_mode) =
+            from_gltf_min_filter(sampler.min_filter().unwrap_or(MinFilter::Linear));
         let mag_filter = from_gltf_max_filter(sampler.mag_filter().unwrap_or(MagFilter::Linear));
 
         let address_mode: [AddressMode; 3] = [
@@ -421,6 +422,7 @@ impl SceneLoadingData {
         SamplerInfo {
             min_filter,
             mag_filter,
+            mipmap_mode,
             address_mode,
         }
     }
@@ -470,14 +472,14 @@ fn from_gltf_max_filter(linear: MagFilter) -> Filter {
     }
 }
 
-fn from_gltf_min_filter(gltf_min_filter: MinFilter) -> Filter {
+fn from_gltf_min_filter(gltf_min_filter: MinFilter) -> (Filter, MipmapMode) {
     match gltf_min_filter {
-        MinFilter::Nearest => Filter::Nearest,
-        MinFilter::Linear => Filter::Linear,
-        MinFilter::NearestMipmapNearest => Filter::Nearest,
-        MinFilter::LinearMipmapNearest => Filter::Linear,
-        MinFilter::NearestMipmapLinear => Filter::Linear,
-        MinFilter::LinearMipmapLinear => Filter::Linear,
+        MinFilter::Nearest => (Filter::Nearest, MipmapMode::Nearest),
+        MinFilter::Linear => (Filter::Linear, MipmapMode::Nearest),
+        MinFilter::NearestMipmapNearest => (Filter::Nearest, MipmapMode::Nearest),
+        MinFilter::LinearMipmapNearest => (Filter::Linear, MipmapMode::Nearest),
+        MinFilter::NearestMipmapLinear => (Filter::Nearest, MipmapMode::Linear),
+        MinFilter::LinearMipmapLinear => (Filter::Linear, MipmapMode::Linear),
     }
 }
 

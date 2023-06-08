@@ -36,6 +36,7 @@ pub enum TextureFormat {
 pub struct SamplerInfo {
     pub min_filter: Filter,
     pub mag_filter: Filter,
+    pub mipmap_mode: MipmapMode,
     pub address_mode: [AddressMode; 3],
 }
 
@@ -51,6 +52,12 @@ pub enum AddressMode {
     MirroredRepeat,
     ClampToEdge,
     ClampToBorder,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum MipmapMode {
+    Nearest,
+    Linear,
 }
 
 /// A simple CPU texture implementation
