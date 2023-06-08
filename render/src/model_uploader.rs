@@ -165,7 +165,7 @@ fn create_gpu_texture(
         .assets
         .entry(texture.id())
         .or_insert_with(|| {
-            let (width, height) = texture.data.dimensions();
+            let [width, height] = texture.data.dimensions();
             let a: Vec<u8> = texture.data.bytes().into();
             Texture::new(
                 texture.id(),

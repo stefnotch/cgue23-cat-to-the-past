@@ -24,7 +24,6 @@ use time::time::Time;
 use time::time_manager::{game_change, TimeManager};
 
 use bevy_ecs::system::{Commands, Res, ResMut};
-use image::codecs::png::PngDecoder;
 use image::GenericImageView;
 use nalgebra::{Point3, Translation3};
 
@@ -91,7 +90,7 @@ pub fn spawn_ui_component(mut commands: Commands) {
             }),
             sampler_info,
         }),
-        depth: 0.0,
+        position: Point3::new(0.5, 0.5, 0.0),
         scale: 1.0,
         angle: 0.0,
         visible: true,
