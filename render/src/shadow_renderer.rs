@@ -3,7 +3,7 @@ use crate::custom_storage_image::CustomStorageImage;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::GpuModel;
 use angle::Deg;
-use nalgebra::{Matrix4, Translation3};
+use nalgebra::{Matrix4, Translation3, Vector3};
 use scene::camera::{calculate_projection, Camera};
 use scene::transform::Transform;
 use std::sync::Arc;
@@ -21,9 +21,10 @@ use vulkano::format::{ClearValue, Format};
 use vulkano::image::view::{ImageView, ImageViewCreateInfo};
 use vulkano::image::ImageDimensions::Dim2d;
 use vulkano::image::{
-    ImageAccess, ImageCreateFlags, ImageSubresourceRange, ImageUsage, ImageViewType, ImageLayout,
+    ImageAccess, ImageCreateFlags, ImageLayout, ImageSubresourceRange, ImageUsage, ImageViewType,
 };
 use vulkano::memory::allocator::StandardMemoryAllocator;
+use vulkano::padded::Padded;
 use vulkano::pipeline::graphics::depth_stencil::DepthStencilState;
 use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
 use vulkano::pipeline::graphics::rasterization::{CullMode, PolygonMode, RasterizationState};
@@ -33,7 +34,7 @@ use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::sync::GpuFuture;
 
-const CUBE_SIZE: u32 = 1024;
+const CUBE_SIZE: u32 = 2048;
 
 pub struct ShadowRenderer {
     render_pass: Arc<RenderPass>,
@@ -221,6 +222,9 @@ impl ShadowRenderer {
             depth_range: 0.0..1.0,
         };
 
+        let scene_set_layout = self.pipeline.layout().set_layouts().get(0).unwrap();
+        let entity_set_layout = self.pipeline.layout().set_layouts().get(1).unwrap();
+
         for face_index in 0..6 {
             builder
                 .begin_render_pass(
@@ -236,11 +240,18 @@ impl ShadowRenderer {
                 .set_viewport(0, [viewport.clone()])
                 .bind_pipeline_graphics(self.pipeline.clone());
 
-            let scene_set_layout = self.pipeline.layout().set_layouts().get(0).unwrap();
+            let view_matrix = self.face_view_matrices[face_index];
+
+            let light_position: Matrix4<f32> =
+                Translation3::from(-nearest_shadow_light.position).to_homogeneous();
+            let proj_view_matrix = self.perspective_matrix * view_matrix * light_position;
+
             let uniform_subbuffer_scene = {
                 let uniform_data = vs::Scene {
-                    rewindTime: rewind_time.into(),
+                    projView: proj_view_matrix.into(),
+                    lightPos: Padded::from(<[f32; 3]>::from(nearest_shadow_light.position)),
                     cameraPosition: camera.position.into(),
+                    rewindTime: rewind_time.into(),
                 };
 
                 let subbuffer = self.buffer_allocator.allocate_sized().unwrap();
@@ -261,21 +272,38 @@ impl ShadowRenderer {
                 scene_descriptor_set.clone(),
             );
 
-            let view_matrix = self.face_view_matrices[face_index];
-
-            let light_position: Matrix4<f32> =
-                Translation3::from(-nearest_shadow_light.position).to_homogeneous();
-            let proj_view_matrix = self.perspective_matrix * view_matrix * light_position;
-
             for (transform, model) in models.iter() {
                 for primitive in &model.primitives {
-                    let push_consts = vs::PushConsts {
-                        projView: proj_view_matrix.into(),
-                        model: transform.to_matrix().into(),
+                    // descriptor set
+                    let uniform_subbuffer_entity = {
+                        let model_matrix = transform.to_matrix();
+                        let normal_model_matrix = model_matrix.try_inverse().unwrap().transpose();
+
+                        let uniform_data = vs::Entity {
+                            model: model_matrix.into(),
+                            normalMatrix: normal_model_matrix.into(),
+                        };
+
+                        let subbuffer = self.buffer_allocator.allocate_sized().unwrap();
+                        *subbuffer.write().unwrap() = uniform_data;
+
+                        subbuffer
                     };
 
+                    let entity_descriptor_set = PersistentDescriptorSet::new(
+                        &self.descriptor_set_allocator,
+                        entity_set_layout.clone(),
+                        [WriteDescriptorSet::buffer(0, uniform_subbuffer_entity)],
+                    )
+                    .unwrap();
+
                     builder
-                        .push_constants(self.pipeline.layout().clone(), 0, push_consts)
+                        .bind_descriptor_sets(
+                            PipelineBindPoint::Graphics,
+                            self.pipeline.layout().clone(),
+                            1,
+                            entity_descriptor_set.clone(),
+                        )
                         .bind_index_buffer(primitive.mesh.index_buffer.clone())
                         .bind_vertex_buffers(0, primitive.mesh.vertex_buffer.clone())
                         .draw_indexed(primitive.mesh.index_buffer.len() as u32, 1, 0, 0, 0)
@@ -313,7 +341,7 @@ impl ShadowRenderer {
                     1,
                     ImageUsage::SAMPLED | ImageUsage::DEPTH_STENCIL_ATTACHMENT,
                     ImageCreateFlags::CUBE_COMPATIBLE,
-                    ImageLayout::DepthStencilAttachmentOptimal
+                    ImageLayout::DepthStencilAttachmentOptimal,
                 )
                 .unwrap()
             })

@@ -78,7 +78,7 @@ pub fn spawn_ui_component(mut commands: Commands) {
         address_mode: [AddressMode::ClampToBorder; 3],
     };
 
-    let crosshair_texture = image::open("assets/textures/game_over.png").unwrap();
+    let crosshair_texture = image::open("assets/textures/crosshair.png").unwrap();
 
     commands.spawn(UIComponent {
         texture: Arc::new(CpuTexture {
@@ -91,7 +91,7 @@ pub fn spawn_ui_component(mut commands: Commands) {
             sampler_info,
         }),
         position: Point3::new(0.5, 0.5, 0.0),
-        scale: 5.0,
+        scale: 0.5,
         angle: 0.0,
         visible: true,
     });
