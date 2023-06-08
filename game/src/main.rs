@@ -25,7 +25,7 @@ use time::time_manager::{game_change, TimeManager};
 
 use bevy_ecs::system::{Commands, Res, ResMut};
 use image::GenericImageView;
-use nalgebra::{Point3, Translation3};
+use nalgebra::{Point3, Translation3, Vector2};
 
 use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
@@ -37,7 +37,7 @@ use scene::texture::{
     AddressMode, BytesTextureData, CpuTexture, Filter, SamplerInfo, TextureFormat,
 };
 use scene::transform::{Transform, TransformBuilder};
-use scene::ui_component::UIComponent;
+use scene::ui_component::{UIComponent, UITexturePosition};
 
 fn spawn_world(mut commands: Commands, scene_loader: Res<SceneLoader>) {
     let before = Instant::now();
@@ -91,8 +91,10 @@ pub fn spawn_ui_component(mut commands: Commands) {
             sampler_info,
         }),
         position: Point3::new(0.5, 0.5, 0.0),
-        scale: 5.0,
-        angle: 0.0,
+        texture_position: UITexturePosition {
+            scale: Vector2::new(5.0, 5.0),
+            ..UITexturePosition::centered()
+        },
         visible: true,
     });
 }

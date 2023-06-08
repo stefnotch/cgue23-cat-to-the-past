@@ -1,9 +1,8 @@
 use crate::context::Context;
-use crate::quad::{create_geometry_buffers, QuadVertex};
+use crate::quad::{self, create_geometry_buffers, unit_quad_mesh, QuadVertex};
 use crate::scene::ui_component::GpuUIComponent;
-use nalgebra::{Matrix4, Scale3, Translation3, Vector, Vector2, Vector3};
+use nalgebra::{Matrix4, Vector2, Vector3};
 use scene::ui_component::UIComponent;
-use std::ops::Deref;
 use std::sync::Arc;
 use vulkano::buffer::allocator::{SubbufferAllocator, SubbufferAllocatorCreateInfo};
 use vulkano::buffer::{BufferUsage, Subbuffer};
@@ -48,7 +47,8 @@ impl UIRenderer {
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
         descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     ) -> Self {
-        let (vertex_buffer, index_buffer) = create_geometry_buffers(memory_allocator.clone());
+        let (vertex_buffer, index_buffer) =
+            quad::create_geometry_buffers(unit_quad_mesh(), memory_allocator.clone());
 
         let render_pass = vulkano::single_pass_renderpass!(
             context.device(),
@@ -152,14 +152,8 @@ impl UIRenderer {
         let screen_size = Vector2::from(viewport.dimensions);
 
         for (gpu_component, cpu_component) in ui_components {
-            let center_screen = cpu_component
-                .position
-                .xy()
-                .coords
-                .component_mul(&screen_size);
-            let texture_size = cpu_component.texture.data.dimensions();
-            let texture_size = Vector2::new(texture_size[0] as f32, texture_size[1] as f32);
-            let screen_top_left = center_screen - texture_size / 2.0;
+            let position = cpu_component.get_position(screen_size);
+            let size = cpu_component.get_size();
 
             let projection = Matrix4::from_row_slice(&[
                 2.0 / screen_size.x,
@@ -181,17 +175,13 @@ impl UIRenderer {
             ]);
 
             let mvp = projection
-                * Matrix4::new_translation(&Vector3::new(
-                    screen_top_left.x,
-                    screen_top_left.y,
-                    cpu_component.position.z,
+                * Matrix4::new_translation(&position.coords)
+                * Matrix4::new_rotation(Vector3::new(
+                    0.0,
+                    0.0,
+                    cpu_component.texture_position.angle.0,
                 ))
-                * Matrix4::new_rotation(Vector3::new(0.0, 0.0, cpu_component.angle))
-                * Matrix4::new_nonuniform_scaling(&Vector3::new(
-                    cpu_component.scale * texture_size.x,
-                    cpu_component.scale * texture_size.y,
-                    1.0,
-                ));
+                * Matrix4::new_nonuniform_scaling(&Vector3::new(size.x, size.y, 1.0));
 
             let component_push_constant = vs::UIComponent { MVP: mvp.into() };
 

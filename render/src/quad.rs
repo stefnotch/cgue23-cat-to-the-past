@@ -13,6 +13,7 @@ pub struct QuadVertex {
     pub uv: [f32; 2],
 }
 
+/// A quad mesh from -1 to +1
 pub const fn quad_mesh() -> ([QuadVertex; 4], [u32; 6]) {
     let vertices = [
         QuadVertex {
@@ -38,10 +39,36 @@ pub const fn quad_mesh() -> ([QuadVertex; 4], [u32; 6]) {
     (vertices, indices)
 }
 
+pub const fn unit_quad_mesh() -> ([QuadVertex; 4], [u32; 6]) {
+    let vertices = [
+        QuadVertex {
+            position: [0.0, 0.0],
+            uv: [0.0, 0.0],
+        },
+        QuadVertex {
+            position: [1.0, 0.0],
+            uv: [1.0, 0.0],
+        },
+        QuadVertex {
+            position: [1.0, 1.0],
+            uv: [1.0, 1.0],
+        },
+        QuadVertex {
+            position: [0.0, 1.0],
+            uv: [0.0, 1.0],
+        },
+    ];
+
+    let indices = [0, 1, 2, 2, 3, 0];
+
+    (vertices, indices)
+}
+
 pub fn create_geometry_buffers(
+    data: ([QuadVertex; 4], [u32; 6]),
     memory_allocator: Arc<StandardMemoryAllocator>,
 ) -> (Subbuffer<[QuadVertex]>, Subbuffer<[u32]>) {
-    let (vertices, indices) = quad_mesh();
+    let (vertices, indices) = data;
     let vertex_buffer = Buffer::from_iter(
         &memory_allocator,
         BufferCreateInfo {
