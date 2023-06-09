@@ -49,22 +49,20 @@ struct AnimationProperty {
     pub duration: f32,
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
-struct LevelFlagProperty {
-    pub level_id: u32,
-    pub flag_id: u32,
-}
-
 #[derive(Deserialize, Debug, Default)]
 #[serde(deny_unknown_fields)]
-struct GLTFExtras {
-    pub sensor: Option<LevelFlagProperty>,
+struct GLTFNodeExtras {
+    pub flag_trigger: Option<u32>,
     pub box_collider: Option<bool>,
     pub rigid_body: Option<String>,
     pub animation: Option<AnimationProperty>,
     pub door: Option<bool>,
     pub pickupable: Option<bool>,
+}
+
+#[derive(Deserialize, Debug, Default)]
+struct GLFTSceneExtras {
+    pub level_id: u32,
 }
 
 #[derive(Resource)]
@@ -83,104 +81,112 @@ impl SceneLoader {
         // TODO: open issue on gltf repository (working with buffers and images is unintuitive and not very good documented)
         let (doc, buffers, images) = import(path)?;
 
-        if doc.scenes().len() > 1 {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "We shouldn't have more than one scene",
-            )));
-        }
-
         let mut scene_loading_data = SceneLoadingData::new(buffers, images);
-        let mut scene_loading_result = SceneLoadingResult::new();
 
-        let scene = doc.default_scene().ok_or("Default scene is not set")?;
+        for scene in doc.scenes() {
+            let scene_extras = scene
+                .extras()
+                .as_ref()
+                .map(|extra| {
+                    let str = extra.get();
 
-        for node in scene.nodes() {
-            Self::read_node(
-                &node,
-                &mut scene_loading_data,
-                &mut scene_loading_result,
-                &Transform::default(),
-            );
-        }
+                    let result: GLFTSceneExtras = serde_json::from_str(str).expect(str);
 
-        let sphere = CpuMesh::sphere(10, 16, 0.1);
+                    result
+                })
+                .unwrap_or_default();
 
-        for (transform, light, name) in scene_loading_result.lights {
-            commands.spawn((
-                name,
-                light,
-                CastShadow,
-                Model {
-                    primitives: vec![CpuPrimitive {
-                        mesh: sphere.clone(),
-                        material: Arc::new(CpuMaterial::default()),
-                    }],
-                },
-                transform,
-            ));
-        }
+            let level_id = scene_extras.level_id;
 
-        for (transform, model, extras, name) in scene_loading_result.models {
-            let box_collider = BoxCollider {
-                bounds: model.bounding_box(),
-            };
+            let mut scene_loading_result = SceneLoadingResult::new();
 
-            let mut entity = commands.spawn((name, transform.clone()));
-
-            if let Some(flag) = extras.sensor {
-                entity
-                    .insert(FlagTrigger {
-                        level_id: LevelId::new(flag.level_id),
-                        flag_id: flag.flag_id as usize,
-                    })
-                    .insert(EntityEvent::<CollisionEvent>::default());
-            } else {
-                // add model component
-                entity.insert(model);
+            for node in scene.nodes() {
+                Self::read_node(
+                    &node,
+                    &mut scene_loading_data,
+                    &mut scene_loading_result,
+                    &Transform::default(),
+                );
             }
 
-            // add box collider component
-            if let Some(true) = extras.box_collider {
-                entity.insert(box_collider);
+            let sphere = CpuMesh::sphere(10, 16, 0.1);
+
+            for (transform, light, name) in scene_loading_result.lights {
+                commands.spawn((
+                    name,
+                    light,
+                    CastShadow,
+                    Model {
+                        primitives: vec![CpuPrimitive {
+                            mesh: sphere.clone(),
+                            material: Arc::new(CpuMaterial::default()),
+                        }],
+                    },
+                    transform,
+                ));
             }
 
-            if let Some(str) = extras.rigid_body {
-                if str == "kinematic" {
-                    entity.insert((RigidBody(KinematicPositionBased), TimeTracked::new()));
-                } else if str == "dynamic" {
-                    entity.insert((RigidBody(Dynamic), TimeTracked::new()));
-                } else {
-                    panic!("Unknown rigid_body type: {}", str);
-                }
-            }
-
-            if let Some(is_open) = extras.door {
-                entity.insert(Door { is_open });
-            }
-
-            if let Some(animation) = extras.animation {
-                let start_transform = transform.clone();
-                let mut end_transform = transform.clone();
-                let test: Vector3<f32> = animation.translation.into();
-                end_transform.position = end_transform.position.add(test);
-
-                let animation = Animation {
-                    start_transform,
-                    end_transform,
-                    duration: Duration::from_secs_f32(animation.duration),
+            for (transform, model, extras, name) in scene_loading_result.models {
+                let box_collider = BoxCollider {
+                    bounds: model.bounding_box(),
                 };
 
-                let playing_animation = PlayingAnimation::new_frozen(animation);
+                let mut entity = commands.spawn((name, transform.clone()));
 
-                entity.insert(playing_animation);
+                if let Some(flag) = extras.flag_trigger {
+                    entity
+                        .insert(FlagTrigger {
+                            level_id: LevelId::new(level_id),
+                            flag_id: flag as usize,
+                        })
+                        .insert(EntityEvent::<CollisionEvent>::default());
+                } else {
+                    // add model component
+                    entity.insert(model);
+                }
 
-                // May not have a time tracked if it's animated
-                entity.remove::<TimeTracked>();
-            }
+                // add box collider component
+                if let Some(true) = extras.box_collider {
+                    entity.insert(box_collider);
+                }
 
-            if let Some(true) = extras.pickupable {
-                entity.insert(Pickupable);
+                if let Some(str) = extras.rigid_body {
+                    if str == "kinematic" {
+                        entity.insert((RigidBody(KinematicPositionBased), TimeTracked::new()));
+                    } else if str == "dynamic" {
+                        entity.insert((RigidBody(Dynamic), TimeTracked::new()));
+                    } else {
+                        panic!("Unknown rigid_body type: {}", str);
+                    }
+                }
+
+                if let Some(is_open) = extras.door {
+                    entity.insert(Door { is_open });
+                }
+
+                if let Some(animation) = extras.animation {
+                    let start_transform = transform.clone();
+                    let mut end_transform = transform.clone();
+                    let test: Vector3<f32> = animation.translation.into();
+                    end_transform.position = end_transform.position.add(test);
+
+                    let animation = Animation {
+                        start_transform,
+                        end_transform,
+                        duration: Duration::from_secs_f32(animation.duration),
+                    };
+
+                    let playing_animation = PlayingAnimation::new_frozen(animation);
+
+                    entity.insert(playing_animation);
+
+                    // May not have a time tracked if it's animated
+                    entity.remove::<TimeTracked>();
+                }
+
+                if let Some(true) = extras.pickupable {
+                    entity.insert(Pickupable);
+                }
             }
         }
 
@@ -225,7 +231,7 @@ impl SceneLoader {
             .map(|extra| {
                 let str = extra.get();
 
-                let result: GLTFExtras = serde_json::from_str(str).expect(str);
+                let result: GLTFNodeExtras = serde_json::from_str(str).expect(str);
 
                 result
             })
@@ -299,7 +305,7 @@ struct SceneLoadingData {
 
 struct SceneLoadingResult {
     lights: Vec<(Transform, Light, DebugName)>,
-    models: Vec<(Transform, Model, GLTFExtras, DebugName)>,
+    models: Vec<(Transform, Model, GLTFNodeExtras, DebugName)>,
 }
 impl SceneLoadingResult {
     fn new() -> Self {
