@@ -93,7 +93,7 @@ impl SceneLoader {
                 })
                 .unwrap_or_default();
 
-            let level_id = scene_extras.level_id;
+            let level_id = LevelId::new(scene_extras.level_id);
 
             let mut scene_loading_result = SceneLoadingResult::new();
 

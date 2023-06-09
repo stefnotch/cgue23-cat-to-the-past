@@ -13,7 +13,7 @@ use time::time_manager::TimeManager;
 fn door_system(
     level_flags: Res<LevelFlags>,
     time: Res<TimeManager>,
-    mut query: Query<&mut PlayingAnimation, With<Door>>,
+    mut query: Query<(&mut PlayingAnimation, &LevelId), With<Door>>,
     mut door_flag_value: Local<bool>,
 ) {
     let door_should_open = level_flags.get(LevelId::new(0), 0);
@@ -23,7 +23,12 @@ fn door_system(
         return;
     }
 
-    let mut animation = query.single_mut();
+    let mut animation = query
+        .iter()
+        .filter(|(_, level)| level.id() == 0)
+        .next()
+        .unwrap()
+        .0;
     if door_should_open {
         animation.play_forwards(*time.level_time());
     } else if !door_should_open {

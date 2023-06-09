@@ -39,8 +39,8 @@ float computeShadowFactor(vec3 l) {
     //   we have an surface pointing away from the light => shadow
     // When the dot product between light and normal is around zero, 
     //   we have a surface that's nearly parallel to the light => smooth shadow
-    float shadowFactor = smoothstep(0.0, 0.1, normalLightDot);
-    shadow = mix(0.0, shadow, shadowFactor);
+    float shadowIsParallel = smoothstep(0.0, 0.1, normalLightDot);
+    shadow = mix(0.0, shadow, shadowIsParallel);
 
     return shadow;
 }
