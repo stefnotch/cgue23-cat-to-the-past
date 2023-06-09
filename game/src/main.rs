@@ -24,7 +24,7 @@ use std::time::Instant;
 use time::time::Time;
 use time::time_manager::{game_change, TimeManager};
 
-use bevy_ecs::system::{Commands, Res, ResMut};
+use bevy_ecs::system::{Commands, Local, Res, ResMut};
 
 use nalgebra::{Point3, Translation3};
 
@@ -122,17 +122,23 @@ fn flag_system(
 fn door_system(
     level_flags: Res<LevelFlags>,
     time: Res<TimeManager>,
-    mut query: Query<(&mut PlayingAnimation, &mut Door)>,
+    mut query: Query<&mut PlayingAnimation, With<Door>>,
+    mut door_flag_value: Local<bool>,
 ) {
     let door_should_open = level_flags.get(LevelId::new(0), 0);
-    let (mut animation, mut door) = query.single_mut();
-    if door_should_open && !door.is_open {
-        door.is_open = true;
-        animation.play_forwards(*time.level_time());
-    } else if !door_should_open && door.is_open {
-        door.is_open = false;
-        animation.play_backwards(*time.level_time());
+    if door_should_open != *door_flag_value {
+        *door_flag_value = door_should_open;
+    } else {
+        return;
     }
+
+    let mut animation = query.single_mut();
+    if door_should_open {
+        animation.play_forwards(*time.level_time());
+    }
+    /*else if !door_should_open {
+        animation.play_backwards(*time.level_time());
+    }*/
 }
 
 struct GamePlugin;

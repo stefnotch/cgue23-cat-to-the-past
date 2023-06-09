@@ -8,7 +8,7 @@ use bevy_ecs::{
 use scene::transform::Transform;
 
 use time::time_manager::{
-    game_change::{GameChange, GameChangeHistory, InterpolationType},
+    game_change::{GameChange, GameChangeHistory},
     TimeManager, TimeTracked,
 };
 
@@ -33,8 +33,7 @@ pub fn time_manager_rewind_transform(
         .map(|(time_tracked, transform)| (time_tracked.id(), transform))
         .collect();
 
-    let (commands, _interpolation) =
-        history.take_commands_to_apply(&time_manager, InterpolationType::None);
+    let commands = history.take_commands_to_apply(&time_manager);
 
     for command_collection in commands {
         for command in command_collection.commands {

@@ -6,7 +6,6 @@ use bevy_ecs::world::Mut;
 use std::collections::HashMap;
 use time::time_manager::game_change::GameChange;
 use time::time_manager::game_change::GameChangeHistory;
-use time::time_manager::game_change::InterpolationType;
 use time::time_manager::level_time::LevelTime;
 use time::time_manager::TimeManager;
 use time::time_manager::TimeTrackedId;
@@ -45,8 +44,7 @@ pub(crate) fn animations_rewind(
         .map(|animation| (animation.id, animation))
         .collect();
 
-    let (commands, _interpolation) =
-        history.take_commands_to_apply(&time_manager, InterpolationType::None);
+    let commands = history.take_commands_to_apply(&time_manager);
 
     for command_collection in commands {
         for command in command_collection.commands {

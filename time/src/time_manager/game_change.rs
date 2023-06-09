@@ -16,12 +16,6 @@ where
 {
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum InterpolationType {
-    None,
-    Linear,
-}
-
 pub struct GameChangeInterpolation<'history, T>
 where
     T: GameChange,
@@ -106,11 +100,7 @@ where
     }
 
     /// Returns the commands that need to be applied to the game state
-    pub fn take_commands_to_apply(
-        &mut self,
-        time_manager: &TimeManager,
-        with_interpolation: InterpolationType,
-    ) -> (Vec<GameChanges<T>>, Option<GameChangeInterpolation<T>>) {
+    pub fn take_commands_to_apply(&mut self, time_manager: &TimeManager) -> Vec<GameChanges<T>> {
         let mut commands = Vec::new();
         loop {
             if self.history.len() <= 1 {
@@ -131,33 +121,6 @@ where
             }
         }
 
-        let interpolation = if with_interpolation == InterpolationType::Linear
-            && commands
-                .last()
-                .map(|v| self.can_interpolate(v, time_manager))
-                == Some(true)
-        {
-            // We add it back to the history
-            let top = commands.pop().unwrap();
-            self.history.push_back(top);
-            let top = self.history.back().unwrap();
-
-            // And return the desired interpolation data
-            let previous = self.history.get(self.history.len() - 2).unwrap();
-            assert!(previous.timestamp <= top.timestamp);
-            let factor = previous
-                .timestamp
-                .inverse_lerp(&top.timestamp, time_manager.level_time)
-                as f32;
-            Some(GameChangeInterpolation {
-                from: previous,
-                to: top,
-                factor,
-            })
-        } else {
-            None
-        };
-
         if self.rewinder_commands.len() > 0 {
             commands.insert(
                 0,
@@ -167,18 +130,7 @@ where
                 },
             );
         }
-        (commands, interpolation)
-    }
-
-    fn can_interpolate(&self, top: &GameChanges<T>, time_manager: &TimeManager) -> bool {
-        if !time_manager.is_interpolating() {
-            return false;
-        }
-        if self.history.is_empty() {
-            return false;
-        }
-
-        return time_manager.level_time < top.timestamp;
+        commands
     }
 }
 

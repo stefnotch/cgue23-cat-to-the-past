@@ -9,7 +9,7 @@ use rapier3d::prelude::RigidBodyType;
 
 use scene::pickup::Pickupable;
 use time::time_manager::{
-    game_change::{GameChange, GameChangeHistory, InterpolationType},
+    game_change::{GameChange, GameChangeHistory},
     TimeManager, TimeState, TimeTracked, TimeTrackedId,
 };
 
@@ -79,8 +79,7 @@ pub(super) fn time_manager_rewind_rigid_body_type(
             }
             previous_types.previous_types.clear();
 
-            let (commands, _interpolation) =
-                history.take_commands_to_apply(&time_manager, InterpolationType::None);
+            let commands = history.take_commands_to_apply(&time_manager);
             for command_collection in commands {
                 for command in command_collection.commands {
                     if let Some(v) = entities.get_mut(&command.id) {

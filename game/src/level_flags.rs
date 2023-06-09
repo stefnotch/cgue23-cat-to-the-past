@@ -4,7 +4,7 @@ use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::system::{Res, ResMut, Resource};
 use scene::level::{FlagId, LevelId};
 use time::time_manager::{
-    game_change::{GameChange, GameChangeHistory, GameChangeHistoryPlugin, InterpolationType},
+    game_change::{GameChange, GameChangeHistory, GameChangeHistoryPlugin},
     TimeManager,
 };
 
@@ -95,8 +95,7 @@ fn level_flags_rewind(
     mut level_flags: ResMut<LevelFlags>,
     mut history: ResMut<GameChangeHistory<FlagChange>>,
 ) {
-    let (commands, _interpolation) =
-        history.take_commands_to_apply(&time_manager, InterpolationType::None);
+    let commands = history.take_commands_to_apply(&time_manager);
 
     for command_collection in commands {
         for command in command_collection.commands {

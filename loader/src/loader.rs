@@ -37,10 +37,7 @@ use serde::Deserialize;
 // list of assets in code
 
 #[derive(Component)]
-pub struct Door {
-    /// true if the door is open *or if it is opening*
-    pub is_open: bool,
-}
+pub struct Door {}
 
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
@@ -155,8 +152,8 @@ impl SceneLoader {
                 }
             }
 
-            if let Some(is_open) = extras.door {
-                entity.insert(Door { is_open });
+            if let Some(_v) = extras.door {
+                entity.insert(Door {});
             }
 
             if let Some(animation) = extras.animation {
