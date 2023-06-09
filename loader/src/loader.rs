@@ -29,7 +29,7 @@ use app::entity_event::EntityEvent;
 use physics::physics_context::RigidBodyType::{Dynamic, KinematicPositionBased};
 use physics::physics_events::CollisionEvent;
 use scene::flag_trigger::FlagTrigger;
-use scene::level::LevelId;
+use scene::level::{Level, LevelId};
 use serde::Deserialize;
 
 // scene.json -> assets
@@ -94,6 +94,7 @@ impl SceneLoader {
                 .unwrap_or_default();
 
             let level_id = LevelId::new(scene_extras.level_id);
+            let level_component = get_level_component(level_id);
 
             let mut scene_loading_result = SceneLoadingResult::new();
 
@@ -120,6 +121,7 @@ impl SceneLoader {
                         }],
                     },
                     transform,
+                    level_component.clone(),
                 ));
             }
 
@@ -128,12 +130,12 @@ impl SceneLoader {
                     bounds: model.bounding_box(),
                 };
 
-                let mut entity = commands.spawn((name, transform.clone()));
+                let mut entity = commands.spawn((name, transform.clone(), level_component.clone()));
 
                 if let Some(flag) = extras.flag_trigger {
                     entity
                         .insert(FlagTrigger {
-                            level_id: LevelId::new(level_id),
+                            level_id: level_id.clone(),
                             flag_id: flag as usize,
                         })
                         .insert(EntityEvent::<CollisionEvent>::default());
@@ -274,6 +276,13 @@ impl SceneLoader {
         }
 
         model
+    }
+}
+
+fn get_level_component(level_id: LevelId) -> impl Bundle + Clone {
+    match level_id.id() {
+        0 => Level::<0>::new(),
+        _ => panic!("Unknown level id: {}", level_id.id()),
     }
 }
 

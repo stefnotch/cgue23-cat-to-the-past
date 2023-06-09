@@ -4,7 +4,7 @@ mod levels;
 
 use app::entity_event::EntityEvent;
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::prelude::{Component, Query, With};
+use bevy_ecs::prelude::Query;
 use bevy_ecs::schedule::IntoSystemConfig;
 use bevy_ecs::schedule::IntoSystemSetConfig;
 use debug::setup_debugging;
@@ -18,9 +18,9 @@ use scene::level::LevelId;
 
 use std::time::Instant;
 use time::time::Time;
-use time::time_manager::{game_change, TimeManager};
+use time::time_manager::game_change;
 
-use bevy_ecs::system::{Commands, Local, Res, ResMut};
+use bevy_ecs::system::{Commands, Res, ResMut};
 
 use game::core::application::{AppConfig, AppStage, Application};
 use game::game_ui::UIPlugin;
@@ -29,7 +29,7 @@ use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
 
 use crate::levels::level1::Level1Plugin;
-use scene::transform::{Transform, TransformBuilder};
+use scene::transform::TransformBuilder;
 
 fn spawn_world(mut commands: Commands, scene_loader: Res<SceneLoader>) {
     let before = Instant::now();
