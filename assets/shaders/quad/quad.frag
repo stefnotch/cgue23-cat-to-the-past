@@ -32,11 +32,11 @@ vec3 RRTAndODTFit(vec3 v) {
 }
 
 void main() {
-    vec3 color = exposure * texture(image, v_uv).rgb;
+    vec3 color = brightness * exposure * texture(image, v_uv).rgb;
 
     color = ACESInputMatrix * color.rgb;
     color = RRTAndODTFit(color);
     color = ACESOutputMatrix * color;
 
-    f_color = vec4(color * brightness, 1.0);
+    f_color = vec4(color, 1.0);
 }
