@@ -23,6 +23,8 @@ fn door_system(
         return;
     }
 
+    println!("{:?}", query);
+
     let mut animation = query.single_mut();
     if door_should_open {
         animation.play_forwards(*time.level_time());
