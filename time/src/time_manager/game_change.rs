@@ -12,14 +12,8 @@ use super::{is_rewinding, level_time::LevelTime, TimeManager, TimeManagerPluginS
 
 pub trait GameChange
 where
-    Self: Sync + Send,
+    Self: Sync + Send + Clone,
 {
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum InterpolationType {
-    None,
-    Linear,
 }
 
 pub struct GameChangeInterpolation<'history, T>
@@ -33,6 +27,8 @@ where
 
 /// All game changes in one frame
 /// Multiple commands, because we have multiple entities
+/// A GameChange describes the state of an object starting at a certain time. Until the next GameChange happens.
+#[derive(Clone)]
 pub struct GameChanges<T>
 where
     T: GameChange,
@@ -56,7 +52,6 @@ where
     is_rewinding: bool,
     level_time: LevelTime,
     history: VecDeque<GameChanges<T>>,
-    rewinder_commands: Vec<T>,
 }
 
 impl<T> GameChangeHistory<T>
@@ -68,16 +63,12 @@ where
             is_rewinding: false,
             level_time: LevelTime::zero(),
             history: VecDeque::new(),
-            rewinder_commands: Vec::new(),
         }
     }
 
     fn update_with_time(&mut self, time_manager: &TimeManager) {
         self.is_rewinding = time_manager.is_rewinding();
         self.level_time = time_manager.level_time;
-        if !self.is_rewinding {
-            self.rewinder_commands.clear();
-        }
     }
 
     pub fn add_command(&mut self, command: T) {
@@ -106,15 +97,10 @@ where
     }
 
     /// Returns the commands that need to be applied to the game state
-    pub fn take_commands_to_apply(
-        &mut self,
-        time_manager: &TimeManager,
-        with_interpolation: InterpolationType,
-    ) -> (Vec<GameChanges<T>>, Option<GameChangeInterpolation<T>>) {
+    pub fn take_commands_to_apply(&mut self, time_manager: &TimeManager) -> Vec<GameChanges<T>> {
         let mut commands = Vec::new();
         loop {
-            if self.history.len() <= 1 {
-                // If there's only one element, we can't really rewind time any further
+            if self.history.len() <= 0 {
                 break;
             }
 
@@ -131,54 +117,19 @@ where
             }
         }
 
-        let interpolation = if with_interpolation == InterpolationType::Linear
-            && commands
-                .last()
-                .map(|v| self.can_interpolate(v, time_manager))
-                == Some(true)
-        {
-            // We add it back to the history
-            let top = commands.pop().unwrap();
-            self.history.push_back(top);
-            let top = self.history.back().unwrap();
+        // Start position
+        // ..
+        // .. <-- If our timestamp is here, we already popped the 4 PM and 3 PM states.
+        //        But we should actually recreate the start position, without popping it
+        // Position at 3 PM
+        // ..
+        // Position at 4 PM
 
-            // And return the desired interpolation data
-            let previous = self.history.get(self.history.len() - 2).unwrap();
-            assert!(previous.timestamp <= top.timestamp);
-            let factor = previous
-                .timestamp
-                .inverse_lerp(&top.timestamp, time_manager.level_time)
-                as f32;
-            Some(GameChangeInterpolation {
-                from: previous,
-                to: top,
-                factor,
-            })
-        } else {
-            None
-        };
-
-        if self.rewinder_commands.len() > 0 {
-            commands.insert(
-                0,
-                GameChanges {
-                    timestamp: time_manager.level_time,
-                    commands: std::mem::replace(&mut self.rewinder_commands, Vec::new()),
-                },
-            );
-        }
-        (commands, interpolation)
-    }
-
-    fn can_interpolate(&self, top: &GameChanges<T>, time_manager: &TimeManager) -> bool {
-        if !time_manager.is_interpolating() {
-            return false;
-        }
-        if self.history.is_empty() {
-            return false;
+        if let Some(top) = self.history.back() {
+            commands.push(top.clone());
         }
 
-        return time_manager.level_time < top.timestamp;
+        commands
     }
 }
 

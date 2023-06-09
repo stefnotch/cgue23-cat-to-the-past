@@ -2,7 +2,6 @@
 
 mod levels;
 
-use animations::animation::PlayingAnimation;
 use app::entity_event::EntityEvent;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::{Component, Query, With};
@@ -13,28 +12,20 @@ use game::level_flags::{FlagChange, LevelFlags};
 use game::pickup_system::PickupPlugin;
 use game::rewind_power::RewindPowerPlugin;
 use loader::config_loader::LoadableConfig;
-use loader::loader::{Door, SceneLoader};
+use loader::loader::SceneLoader;
 use scene::flag_trigger::FlagTrigger;
 use scene::level::LevelId;
-use scene::{
-    mesh::CpuMesh,
-    model::{CpuPrimitive, Model},
-};
-use std::f32::consts::PI;
-use std::sync::Arc;
+
 use std::time::Instant;
 use time::time::Time;
 use time::time_manager::{game_change, TimeManager};
 
-use bevy_ecs::system::{Commands, Res, ResMut};
-
-use nalgebra::{Point3, Translation3};
+use bevy_ecs::system::{Commands, Local, Res, ResMut};
 
 use game::core::application::{AppConfig, AppStage, Application};
 use game::game_ui::UIPlugin;
 use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 
-use physics::physics_context::{BoxCollider, RigidBody, RigidBodyType};
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
 
 use crate::levels::level1::Level1Plugin;
