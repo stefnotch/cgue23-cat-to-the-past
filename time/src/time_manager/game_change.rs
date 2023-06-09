@@ -50,7 +50,6 @@ where
     is_rewinding: bool,
     level_time: LevelTime,
     history: VecDeque<GameChanges<T>>,
-    rewinder_commands: Vec<T>,
 }
 
 impl<T> GameChangeHistory<T>
@@ -62,16 +61,12 @@ where
             is_rewinding: false,
             level_time: LevelTime::zero(),
             history: VecDeque::new(),
-            rewinder_commands: Vec::new(),
         }
     }
 
     fn update_with_time(&mut self, time_manager: &TimeManager) {
         self.is_rewinding = time_manager.is_rewinding();
         self.level_time = time_manager.level_time;
-        if !self.is_rewinding {
-            self.rewinder_commands.clear();
-        }
     }
 
     pub fn add_command(&mut self, command: T) {
@@ -103,8 +98,7 @@ where
     pub fn take_commands_to_apply(&mut self, time_manager: &TimeManager) -> Vec<GameChanges<T>> {
         let mut commands = Vec::new();
         loop {
-            if self.history.len() <= 1 {
-                // If there's only one element, we can't really rewind time any further
+            if self.history.len() <= 0 {
                 break;
             }
 
@@ -119,16 +113,6 @@ where
                 // Nothing to do
                 break;
             }
-        }
-
-        if self.rewinder_commands.len() > 0 {
-            commands.insert(
-                0,
-                GameChanges {
-                    timestamp: time_manager.level_time,
-                    commands: std::mem::replace(&mut self.rewinder_commands, Vec::new()),
-                },
-            );
         }
         commands
     }
