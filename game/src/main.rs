@@ -11,7 +11,7 @@ use debug::setup_debugging;
 use game::level_flags::{FlagChange, LevelFlags};
 use game::pickup_system::PickupPlugin;
 use game::rewind_power::RewindPowerPlugin;
-use levels::level2::Level2Plugin;
+use levels::level1::Level1Plugin;
 use loader::config_loader::LoadableConfig;
 use loader::loader::SceneLoader;
 use scene::flag_trigger::FlagTrigger;
@@ -29,7 +29,7 @@ use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
 
-use crate::levels::level1::Level1Plugin;
+use crate::levels::level0::Level0Plugin;
 use scene::transform::TransformBuilder;
 
 fn spawn_world(mut commands: Commands, scene_loader: Res<SceneLoader>) {
@@ -87,13 +87,13 @@ impl Plugin for GamePlugin {
             .with_set(UIPlugin::system_set().in_set(AppStage::Update))
             .with_plugin(PickupPlugin)
             .with_plugin(RewindPowerPlugin)
+            .with_plugin(Level0Plugin)
+            .with_set(Level0Plugin::system_set().in_set(AppStage::UpdateLevel))
             .with_plugin(Level1Plugin)
-            .with_set(Level1Plugin::system_set().in_set(AppStage::UpdateLevel))
-            .with_plugin(Level2Plugin)
             .with_set(
-                Level2Plugin::system_set()
+                Level1Plugin::system_set()
                     .in_set(AppStage::UpdateLevel)
-                    .after(Level1Plugin::system_set()),
+                    .after(Level0Plugin::system_set()),
             )
             .with_set(
                 RewindPowerPlugin::system_set()

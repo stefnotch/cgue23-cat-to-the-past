@@ -16,7 +16,8 @@ fn door_system(
     mut query: Query<(&mut PlayingAnimation, &Level), With<Door>>,
     mut door_flag_value: Local<bool>,
 ) {
-    let door_should_open = level_flags.get(LevelId::new(0), 0);
+    let door_should_open =
+        level_flags.get(LevelId::new(1), 0) && level_flags.get(LevelId::new(1), 0);
     if door_should_open != *door_flag_value {
         *door_flag_value = door_should_open;
     } else {
@@ -25,13 +26,11 @@ fn door_system(
 
     let mut animation = query
         .iter_mut()
-        .find(|(_, level)| level.id.id() == 0)
+        .find(|(_, level)| level.id.id() == 1)
         .unwrap()
         .0;
     if door_should_open {
         animation.play_forwards(*time.level_time());
-    } else if !door_should_open {
-        animation.play_backwards(*time.level_time());
     }
 }
 
