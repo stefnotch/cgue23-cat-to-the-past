@@ -158,7 +158,7 @@ impl SceneLoader {
                 }
 
                 if let Some(true) = extras.door {
-                    entity.insert(Door { });
+                    entity.insert(Door {});
                 }
 
                 if let Some(animation) = extras.animation {

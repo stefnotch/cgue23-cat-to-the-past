@@ -203,7 +203,7 @@
 				},
 				"rigid_body":"kinematic",
 				"box_collider":true,
-				"door":false
+				"door":true
 			},
 			"mesh":8,
 			"name":"Door",
@@ -301,6 +301,9 @@
 			]
 		},
 		{
+			"extras":{
+				"flag_trigger":0
+			},
 			"mesh":16,
 			"name":"UnitCube.001",
 			"scale":[
