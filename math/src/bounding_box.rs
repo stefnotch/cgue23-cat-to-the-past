@@ -40,4 +40,10 @@ impl BoundingBox<Vector3<f32>> {
             max: self.max.component_mul(scaling),
         }
     }
+
+    pub fn bounding_sphere(&self) -> (Vector3<f32>, f32) {
+        let center = (self.min + self.max) / 2.0;
+        let radius = (self.max - self.min).norm() / 2.0;
+        (center, radius)
+    }
 }

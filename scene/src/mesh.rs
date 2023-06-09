@@ -15,6 +15,7 @@ pub struct CpuMesh {
     pub vertices: Vec<CpuMeshVertex>,
     pub indices: Vec<u32>,
     pub bounding_box: BoundingBox<Vector3<f32>>,
+    pub bounding_sphere: (Vector3<f32>, f32),
 }
 
 impl Asset for CpuMesh {
@@ -29,11 +30,13 @@ impl CpuMesh {
         indices: Vec<u32>,
         bounding_box: BoundingBox<Vector3<f32>>,
     ) -> Arc<Self> {
+        let bounding_sphere = bounding_box.bounding_sphere();
         Arc::new(Self {
             id: AssetId::new_v4(),
             vertices,
             indices,
             bounding_box,
+            bounding_sphere,
         })
     }
 
@@ -135,16 +138,14 @@ impl CpuMesh {
             })
             .collect();
 
-        Arc::new(CpuMesh {
-            id: AssetId::new_v4(),
+        CpuMesh::new(
             vertices,
             indices,
-
-            bounding_box: BoundingBox::new(
+            BoundingBox::new(
                 Vector3::new(-width / 2.0, -height / 2.0, -depth / 2.0),
                 Vector3::new(width / 2.0, height / 2.0, depth / 2.0),
             ),
-        })
+        )
     }
 
     pub fn sphere(longitude_segments: u32, latitude_segments: u32, radius: f32) -> Arc<Self> {
@@ -198,15 +199,13 @@ impl CpuMesh {
             }
         }
 
-        Arc::new(CpuMesh {
-            id: AssetId::new_v4(),
+        CpuMesh::new(
             vertices,
             indices,
-
-            bounding_box: BoundingBox::new(
+            BoundingBox::new(
                 Vector3::new(-radius, -radius, -radius),
                 Vector3::new(radius, radius, radius),
             ),
-        })
+        )
     }
 }

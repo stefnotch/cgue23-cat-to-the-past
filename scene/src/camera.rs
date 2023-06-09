@@ -1,10 +1,14 @@
 use angle::{Angle, Deg, Rad};
 use bevy_ecs::prelude::*;
-use nalgebra::{vector, Matrix, Matrix4, Point3, UnitQuaternion, UnitVector3};
+use nalgebra::{vector, Matrix, Matrix4, Point3, UnitQuaternion, UnitVector3, Vector3};
 
 // TODO: look up how to get the euler yaw and pitch angles from a quaternion
 #[derive(Resource)]
 pub struct Camera {
+    near: f32,
+    far: f32,
+    fov: Rad<f32>,
+    aspect_ratio: f32,
     view: Matrix4<f32>,
     proj: Matrix4<f32>,
 
@@ -24,6 +28,10 @@ impl Camera {
         let fov = Rad::from(fov);
 
         Camera {
+            near,
+            far,
+            fov,
+            aspect_ratio,
             proj: calculate_projection(aspect_ratio, fov, near, far),
             view: calculate_view(position, orientation),
 
@@ -33,6 +41,7 @@ impl Camera {
     }
 
     pub fn update_aspect_ratio(&mut self, aspect_ratio: f32) {
+        self.aspect_ratio = aspect_ratio;
         self.proj[(0, 0)] = -self.proj[(1, 1)].clone() / aspect_ratio;
     }
 
@@ -61,6 +70,30 @@ impl Camera {
     /// in world-space
     pub const fn up() -> UnitVector3<f32> {
         UnitVector3::new_unchecked(vector![0.0, 1.0, 0.0])
+    }
+
+    pub fn camera_basis_vectors(&self) -> (Vector3<f32>, Vector3<f32>, Vector3<f32>) {
+        let forward = self.orientation * Camera::forward();
+        let right = self.orientation * Camera::right();
+        let up = self.orientation * Camera::up();
+
+        (forward.into_inner(), right.into_inner(), up.into_inner())
+    }
+
+    pub fn near(&self) -> f32 {
+        self.near
+    }
+
+    pub fn far(&self) -> f32 {
+        self.far
+    }
+
+    pub fn fov(&self) -> Rad<f32> {
+        self.fov
+    }
+
+    pub fn aspect_ratio(&self) -> f32 {
+        self.aspect_ratio
     }
 }
 

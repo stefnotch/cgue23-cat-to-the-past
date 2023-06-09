@@ -1,4 +1,3 @@
-use math::bounding_box::BoundingBox;
 use nalgebra::Vector3;
 use scene::asset::{Asset, AssetId};
 use scene::mesh::CpuMeshVertex;
@@ -34,7 +33,7 @@ pub struct Mesh {
     pub id: AssetId,
     pub vertex_buffer: Subbuffer<[MeshVertex]>,
     pub index_buffer: Subbuffer<[u32]>,
-    pub bounding_box: BoundingBox<Vector3<f32>>,
+    pub bounding_sphere: (Vector3<f32>, f32),
 }
 
 impl Mesh {
@@ -42,7 +41,7 @@ impl Mesh {
         id: AssetId,
         vertices: Vec<MeshVertex>,
         indices: Vec<u32>,
-        bounding_box: BoundingBox<Vector3<f32>>,
+        bounding_sphere: (Vector3<f32>, f32),
         allocator: &(impl MemoryAllocator + ?Sized),
     ) -> Arc<Self> {
         let (vertex_buffer, index_buffer) = Mesh::setup_buffers(&vertices, &indices, allocator);
@@ -51,7 +50,7 @@ impl Mesh {
             id,
             vertex_buffer,
             index_buffer,
-            bounding_box,
+            bounding_sphere,
         })
     }
 

@@ -256,6 +256,7 @@ impl SceneRenderer {
         future: F,
         nearest_shadow_light: &Transform,
         swapchain_frame_index: u32,
+        frame_counter: u64,
         viewport: &Viewport,
     ) -> CommandBufferExecFuture<F>
     where
@@ -374,6 +375,27 @@ impl SceneRenderer {
                 camera_descriptor_set.clone(),
             );
 
+        let frustum_bounding_sphere = {
+            // Thank you to https://stackoverflow.com/a/27872276/3492994 for the explanation
+            let (camera_forward, camera_right, camera_up) = camera.camera_basis_vectors();
+            let far_center = camera.position.coords + camera_forward * camera.far();
+            let near_center = camera.position.coords + camera_forward * camera.near();
+
+            let far_height = camera.far() * (camera.fov().0 / 2.0).tan();
+            let far_width = far_height * camera.aspect_ratio();
+
+            let far_corner = far_center + camera_right * far_width + camera_up * far_height;
+            // Approximating it as a cube
+            let near_corner = near_center + camera_right * far_width + camera_up * far_height;
+            // Finding the radius of the sphere that contains the frustum
+            let radius = (far_corner - near_corner).norm() / 2.0;
+            // Finding the center of the sphere that contains the frustum
+            let center = (far_center + near_center) / 2.0;
+            (center, radius)
+        };
+
+        let mut cull_counter = 0;
+
         for (transform, model) in models {
             // descriptor set
             let uniform_subbuffer_entity = {
@@ -411,6 +433,11 @@ impl SceneRenderer {
             );
 
             for primitive in &model.primitives {
+                if !primitive.intersects_frustum(&frustum_bounding_sphere, &transform) {
+                    cull_counter += 1;
+                    continue;
+                }
+
                 // descriptor set
                 let uniform_subbuffer_material = {
                     let uniform_data: vs::Material = primitive.material.as_ref().into();
@@ -453,6 +480,10 @@ impl SceneRenderer {
                     .draw_indexed(primitive.mesh.index_buffer.len() as u32, 1, 0, 0, 0)
                     .unwrap();
             }
+        }
+
+        if frame_counter % 100 == 0 {
+            println!("Culled {} models", cull_counter);
         }
 
         builder.end_render_pass().unwrap();

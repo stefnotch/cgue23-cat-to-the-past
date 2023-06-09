@@ -207,7 +207,7 @@ pub fn render(
     query_models: Query<(&Transform, &GpuModel)>,
     query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
     query_shadow_light: Query<&Transform, (With<CastShadow>, With<Light>)>,
-    mut counter: Local<usize>,
+    mut frame_counter: Local<u64>,
     query_ui_components: Query<(&GpuUIComponent, &UIComponent)>,
     mut rewind_start_time: Local<f32>,
 ) {
@@ -322,7 +322,7 @@ pub fn render(
         0.0
     };
 
-    let future = if *counter > renderer.swapchain.images.len() {
+    let future = if *frame_counter > renderer.swapchain.images.len() as u64 {
         renderer
             .shadow_renderer
             .render(
@@ -336,7 +336,6 @@ pub fn render(
             )
             .boxed()
     } else {
-        *counter += 1;
         future.boxed()
     };
 
@@ -349,6 +348,7 @@ pub fn render(
         future,
         nearest_shadow_light,
         image_index,
+        *frame_counter,
         &renderer.viewport,
     );
 
@@ -360,7 +360,7 @@ pub fn render(
         .quad_renderer
         .render(&context, future, image_index, &renderer.viewport);
 
-    let future = if *counter > renderer.swapchain.images.len() {
+    let future = if *frame_counter > renderer.swapchain.images.len() as u64 {
         renderer
             .ui_renderer
             .render(
@@ -385,6 +385,7 @@ pub fn render(
         )
         .then_signal_fence_and_flush();
 
+    *frame_counter += 1;
     match future {
         Ok(future) => {
             // NOTE: one solution to remove the massive input delay with fullscreen-mode enabled

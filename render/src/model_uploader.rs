@@ -122,7 +122,7 @@ fn create_gpu_mesh(
                 mesh.id(),
                 mesh.vertices.iter().map(|vertex| vertex.into()).collect(),
                 mesh.indices.clone(),
-                mesh.bounding_box.clone(),
+                mesh.bounding_sphere,
                 &allocator.allocator,
             )
         })
