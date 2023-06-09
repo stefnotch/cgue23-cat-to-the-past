@@ -19,14 +19,12 @@ impl LevelId {
 pub type FlagId = usize;
 
 #[derive(Component, Clone)]
-pub struct Level<const ID: u32> {
+pub struct Level {
     pub id: LevelId,
 }
 
-impl<const ID: u32> Level<ID> {
-    pub fn new() -> Self {
-        Self {
-            id: LevelId::new(ID),
-        }
+impl Level {
+    pub fn new(id: LevelId) -> Self {
+        Self { id }
     }
 }

@@ -94,7 +94,7 @@ impl SceneLoader {
                 .unwrap_or_default();
 
             let level_id = LevelId::new(scene_extras.level_id);
-            let level_component = get_level_component(level_id);
+            let level_component = Level::new(level_id);
 
             let mut scene_loading_result = SceneLoadingResult::new();
 
@@ -276,13 +276,6 @@ impl SceneLoader {
         }
 
         model
-    }
-}
-
-fn get_level_component(level_id: LevelId) -> impl Bundle + Clone {
-    match level_id.id() {
-        0 => Level::<0>::new(),
-        _ => panic!("Unknown level id: {}", level_id.id()),
     }
 }
 
