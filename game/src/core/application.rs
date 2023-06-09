@@ -66,6 +66,8 @@ pub enum AppStage {
     BeforeUpdate,
     /// for game logic
     Update,
+    /// for level specific game logic
+    UpdateLevel,
     UpdatePhysics,
     /// after physics
     BeforeRender,
@@ -87,6 +89,7 @@ impl Application {
                 AppStage::EventUpdate,
                 AppStage::BeforeUpdate,
                 AppStage::Update,
+                AppStage::UpdateLevel,
                 AppStage::UpdatePhysics,
                 AppStage::BeforeRender,
                 AppStage::Render,
@@ -116,7 +119,7 @@ impl Application {
             .with_plugin(AnimationPlugin)
             .with_set(
                 AnimationPlugin::system_set()
-                    .after(AppStage::Update)
+                    .after(AppStage::UpdateLevel)
                     .before(AppStage::UpdatePhysics),
             )
             .with_plugin(PhysicsPlugin)
@@ -129,7 +132,7 @@ impl Application {
             )
             .with_set(
                 GameChangeHistoryPlugin::<TransformChange>::system_set()
-                    .after(AppStage::Update)
+                    .after(AppStage::UpdateLevel)
                     .after(AnimationPlugin::system_set())
                     .before(AppStage::UpdatePhysics),
             )
@@ -137,12 +140,12 @@ impl Application {
             .with_plugin(RendererPlugin::new(config.brightness))
             .with_set(RendererPluginSets::Render.in_set(AppStage::Render))
             // Configuring the player plugin (but not adding it)
-            .with_set(PlayerPluginSets::UpdateInput.in_set(AppStage::Update))
-            .with_set(PlayerPluginSets::Update.in_set(AppStage::Update))
+            .with_set(PlayerPluginSets::UpdateInput.in_set(AppStage::UpdateLevel))
+            .with_set(PlayerPluginSets::Update.in_set(AppStage::UpdateLevel))
             .with_set(PlayerPluginSets::UpdateCamera.in_set(AppStage::BeforeRender))
             .with_set(
                 PickupPlugin::system_set()
-                    .in_set(AppStage::Update)
+                    .in_set(AppStage::UpdateLevel)
                     .after(PlayerPluginSets::Update),
             );
     }

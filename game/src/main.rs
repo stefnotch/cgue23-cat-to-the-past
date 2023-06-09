@@ -11,6 +11,7 @@ use debug::setup_debugging;
 use game::level_flags::{FlagChange, LevelFlags};
 use game::pickup_system::PickupPlugin;
 use game::rewind_power::RewindPowerPlugin;
+use levels::level2::Level2Plugin;
 use loader::config_loader::LoadableConfig;
 use loader::loader::SceneLoader;
 use scene::flag_trigger::FlagTrigger;
@@ -47,6 +48,7 @@ fn setup_levels(
     mut game_changes: ResMut<game_change::GameChangeHistory<FlagChange>>,
 ) {
     level_flags.set_count(LevelId::new(0), 1, &mut game_changes);
+    level_flags.set_count(LevelId::new(1), 2, &mut game_changes);
 }
 
 fn _print_fps(time: Res<Time>) {
@@ -86,10 +88,12 @@ impl Plugin for GamePlugin {
             .with_plugin(PickupPlugin)
             .with_plugin(RewindPowerPlugin)
             .with_plugin(Level1Plugin)
+            .with_set(Level1Plugin::system_set().in_set(AppStage::UpdateLevel))
+            .with_plugin(Level2Plugin)
             .with_set(
-                Level1Plugin::system_set()
-                    .in_set(AppStage::Update)
-                    .after(flag_system),
+                Level2Plugin::system_set()
+                    .in_set(AppStage::UpdateLevel)
+                    .after(Level1Plugin::system_set()),
             )
             .with_set(
                 RewindPowerPlugin::system_set()
