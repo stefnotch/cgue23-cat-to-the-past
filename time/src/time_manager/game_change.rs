@@ -12,7 +12,7 @@ use super::{is_rewinding, level_time::LevelTime, TimeManager, TimeManagerPluginS
 
 pub trait GameChange
 where
-    Self: Sync + Send,
+    Self: Sync + Send + Clone,
 {
 }
 
@@ -27,6 +27,8 @@ where
 
 /// All game changes in one frame
 /// Multiple commands, because we have multiple entities
+/// A GameChange describes the state of an object starting at a certain time. Until the next GameChange happens.
+#[derive(Clone)]
 pub struct GameChanges<T>
 where
     T: GameChange,
@@ -114,6 +116,19 @@ where
                 break;
             }
         }
+
+        // Start position
+        // ..
+        // .. <-- If our timestamp is here, we already popped the 4 PM and 3 PM states.
+        //        But we should actually recreate the start position, without popping it
+        // Position at 3 PM
+        // ..
+        // Position at 4 PM
+
+        if let Some(top) = self.history.back() {
+            commands.push(top.clone());
+        }
+
         commands
     }
 }

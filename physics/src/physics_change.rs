@@ -15,6 +15,7 @@ use time::time_manager::{
 
 use super::physics_context::RigidBody;
 
+#[derive(Debug, Clone)]
 pub(super) struct RigidBodyTypeChange {
     id: TimeTrackedId,
     body_type: RigidBodyType,

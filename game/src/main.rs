@@ -135,10 +135,9 @@ fn door_system(
     let mut animation = query.single_mut();
     if door_should_open {
         animation.play_forwards(*time.level_time());
-    }
-    /*else if !door_should_open {
+    } else if !door_should_open {
         animation.play_backwards(*time.level_time());
-    }*/
+    }
 }
 
 struct GamePlugin;

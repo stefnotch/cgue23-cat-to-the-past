@@ -12,7 +12,7 @@ use time::time_manager::TimeTrackedId;
 
 use crate::animation::PlayingAnimation;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PlayingAnimationChange {
     pub(crate) id: TimeTrackedId,
     pub(crate) end_time: LevelTime,

@@ -46,6 +46,7 @@ pub fn time_manager_rewind_transform(
     // TODO: Interpolation logic
 }
 
+#[derive(Debug, Clone)]
 pub struct TransformChange {
     id: uuid::Uuid,
     new_transform: Transform,

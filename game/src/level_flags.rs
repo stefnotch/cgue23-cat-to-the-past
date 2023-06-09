@@ -46,15 +46,14 @@ impl LevelFlags {
         value: bool,
         game_change_history: &mut GameChangeHistory<FlagChange>,
     ) {
-        let old_value = self.get(level_id, flag_id);
-        if old_value == value {
+        if self.get(level_id, flag_id) == value {
             return;
         }
         self.set(level_id, flag_id, value);
         game_change_history.add_command(FlagChange {
             level_id,
             flag_id,
-            value: old_value,
+            value,
         });
     }
 
@@ -81,7 +80,7 @@ impl LevelFlags {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FlagChange {
     level_id: LevelId,
     flag_id: FlagId,
