@@ -133,12 +133,14 @@ impl SceneLoader {
                 let mut entity = commands.spawn((name, transform.clone(), level_component.clone()));
 
                 if let Some(flag) = extras.flag_trigger {
-                    entity
-                        .insert(FlagTrigger {
+                    entity.insert((
+                        FlagTrigger {
                             level_id: level_id.clone(),
                             flag_id: flag as usize,
-                        })
-                        .insert(EntityEvent::<CollisionEvent>::default());
+                        },
+                        box_collider.clone(),
+                        EntityEvent::<CollisionEvent>::default(),
+                    ));
                 } else {
                     // add model component
                     entity.insert(model);
