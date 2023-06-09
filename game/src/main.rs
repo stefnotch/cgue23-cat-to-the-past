@@ -71,6 +71,7 @@ fn flag_system(
                     true,
                     &mut game_changes,
                 );
+                WWWWWWWWWWWWW
             }
         }
     }
