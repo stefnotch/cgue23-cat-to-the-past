@@ -31,12 +31,16 @@ float computeShadowFactor(vec3 l) {
     vec3 lightDirection = normalize(l);
     vec3 normal = normalize(v_normal);
 
-    float bias = max(0.008 * (1.0 - dot(normal, lightDirection)), 0.0);
+    float normalLightDot = dot(normal, lightDirection);
+    float bias = 0.0; // max(0.001 * (1.0 - normalLightDot), 0.0);
+    float shadow = texture(shadowMap, vec4(l, vectorToDepthValue(l - lightDirection * bias))).r;
 
-    float shadow = texture(shadowMap, vec4(l, vectorToDepthValue(l - l * bias))).r;
-
-    // float shadow = texture(shadowMap, vec4(l, vectorToDepthValue(l))).r;
-
+    // When the dot product between light and normal < 0, 
+    //   we have an surface pointing away from the light => shadow
+    // When the dot product between light and normal is around zero, 
+    //   we have a surface that's nearly parallel to the light => smooth shadow
+    float shadowFactor = smoothstep(0.0, 0.1, normalLightDot);
+    shadow = mix(0.0, shadow, shadowFactor);
 
     return shadow;
 }

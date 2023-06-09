@@ -27,7 +27,7 @@ void main() {
 
     float angleFactor = 1.0 - max(dot(n, toLight), 0.0);
 
-    float bias = max(0.09 * angleFactor, 0.0005);
+    float bias = max(0.08 * angleFactor, 0.0005);
     worldPos.xyz -= toLight * bias;
 
     vec4 clipSpacePosition = scene.projView * worldPos;
