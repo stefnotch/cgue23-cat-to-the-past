@@ -16,8 +16,12 @@ fn update_current_level(
     mut event_next_level: EventWriter<NextLevel>,
 ) {
     if let Some(level_id) = current_level.take_start_next_level() {
+        let old_level_id = current_level.level_id;
         current_level.level_id = level_id;
-        event_next_level.send(NextLevel(level_id));
+        event_next_level.send(NextLevel {
+            level_id,
+            old_level_id,
+        });
     }
 }
 

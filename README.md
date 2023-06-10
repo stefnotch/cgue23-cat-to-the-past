@@ -63,6 +63,15 @@ cargo run --bin bloom_demo
 
 where bloom_demo can be replaced with the name of any demo project in the `demos/src/bin` folder
 
+## Levels
+
+A level internally has
+
+- a numerical ID
+- a camera: spawn position
+- one shadow light
+- ...
+
 ## Used sources
 
 - https://github.com/vulkano-rs/vulkano/blob/master/vulkano-win/src/winit.rs#L17
