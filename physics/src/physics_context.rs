@@ -128,15 +128,21 @@ impl PhysicsContext {
         ray: &Ray,
         max_toi: f32,
         solid: bool,
-        filter: QueryFilter,
+        to_exclude: Vec<&RapierRigidBodyHandle>,
     ) -> Option<(Entity, f32)> {
+        let mut query_filter = QueryFilter::new().exclude_sensors();
+
+        for handle in to_exclude {
+            query_filter = query_filter.exclude_rigid_body(handle.handle);
+        }
+
         let (handle, toi) = self.query_pipeline.cast_ray(
             &self.rigid_bodies,
             &self.colliders,
             ray,
             max_toi,
             solid,
-            filter,
+            query_filter,
         )?;
 
         Some((collider2entity(&self.colliders, handle), toi))
@@ -153,8 +159,8 @@ pub(crate) fn step_physics_simulation(
 }
 
 #[derive(Component)]
-pub(crate) struct RapierRigidBodyHandle {
-    pub handle: RigidBodyHandle,
+pub struct RapierRigidBodyHandle {
+    pub(crate) handle: RigidBodyHandle,
 }
 
 #[derive(Component)]

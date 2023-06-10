@@ -37,13 +37,11 @@ use vulkano::sync::GpuFuture;
 const CUBE_SIZE: u32 = 4096;
 
 pub struct ShadowRenderer {
-    render_pass: Arc<RenderPass>,
+    _render_pass: Arc<RenderPass>,
     pipeline: Arc<GraphicsPipeline>,
     framebuffers: Vec<[Arc<Framebuffer>; 6]>,
-    shadow_maps: Vec<Arc<CustomStorageImage>>,
     shadow_maps_views: Vec<Arc<ImageView<CustomStorageImage>>>,
 
-    memory_allocator: Arc<StandardMemoryAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
 
@@ -167,12 +165,10 @@ impl ShadowRenderer {
         let perspective_matrix = calculate_projection(1.0, Deg(90.0).into(), near, far);
 
         ShadowRenderer {
-            render_pass,
+            _render_pass: render_pass,
             pipeline,
             framebuffers,
-            shadow_maps,
             shadow_maps_views,
-            memory_allocator,
             command_buffer_allocator,
             descriptor_set_allocator,
             buffer_allocator,
