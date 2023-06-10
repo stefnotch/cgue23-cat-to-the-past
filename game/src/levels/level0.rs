@@ -6,17 +6,19 @@ use bevy_ecs::{
     system::Local,
 };
 use game::level_flags::LevelFlags;
+use levels::level_id::LevelId;
 use loader::loader::Door;
-use scene::level::{Level, LevelId};
 use time::time_manager::TimeManager;
 
 fn door_system(
     level_flags: Res<LevelFlags>,
     time: Res<TimeManager>,
-    mut query: Query<(&mut PlayingAnimation, &Level), With<Door>>,
+    mut query: Query<(&mut PlayingAnimation, &LevelId), With<Door>>,
     mut door_flag_value: Local<bool>,
 ) {
-    let door_should_open = level_flags.get(LevelId::new(0), 0);
+    let level_id = LevelId::new(0);
+
+    let door_should_open = level_flags.get(level_id, 0);
     if door_should_open != *door_flag_value {
         *door_flag_value = door_should_open;
     } else {
@@ -25,7 +27,7 @@ fn door_system(
 
     let mut animation = query
         .iter_mut()
-        .find(|(_, level)| level.id.id() == 0)
+        .find(|(_, level)| level == &&level_id)
         .unwrap()
         .0;
     if door_should_open {

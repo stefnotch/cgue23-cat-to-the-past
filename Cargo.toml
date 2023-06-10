@@ -14,7 +14,8 @@ members = [
     "debug",
     "animations",
     "demos",
-    "loader"
+    "loader",
+    "levels"
 ]
 
 [profile.dev.package.vulkano]

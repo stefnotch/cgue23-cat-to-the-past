@@ -25,6 +25,7 @@ render = { path = "../render" }
 loader = { path = "../loader"}
 animations = { path = "../animations"}
 app = { path = "../app"}
+levels = { path = "../levels"}
 
 [features]
 default = []

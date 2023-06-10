@@ -2,6 +2,7 @@ use animations::animation::AnimationPlugin;
 use app::plugin::Plugin;
 use app::App;
 use input::plugin::InputPlugin;
+use levels::LevelsPlugin;
 use loader::config_loader::LoadableConfig;
 use physics::plugin::PhysicsPlugin;
 use time::time::{Time, TimePlugin, TimePluginSet};
@@ -104,13 +105,17 @@ impl Application {
     }
 
     fn add_default_plugins(app: &mut App, config: &AppConfig) {
-        app.with_plugin(TimePlugin)
+        app //
+            .with_plugin(TimePlugin)
             .with_set(TimePluginSet::UpdateTime.in_set(AppStage::StartFrame))
+            .with_plugin(LevelsPlugin)
+            .with_set(LevelsPlugin::system_set().in_set(AppStage::StartFrame))
             .with_plugin(TimeManagerPlugin)
             .with_set(
                 TimeManagerPluginSet::StartFrame
                     .in_set(AppStage::StartFrame)
-                    .after(TimePluginSet::UpdateTime),
+                    .after(TimePluginSet::UpdateTime)
+                    .after(LevelsPlugin::system_set()),
             )
             .with_plugin(InputPlugin)
             .with_set(InputPlugin::system_set().in_set(AppStage::EventUpdate))
@@ -140,12 +145,12 @@ impl Application {
             .with_plugin(RendererPlugin::new(config.brightness))
             .with_set(RendererPluginSets::Render.in_set(AppStage::Render))
             // Configuring the player plugin (but not adding it)
-            .with_set(PlayerPluginSets::UpdateInput.in_set(AppStage::UpdateLevel))
-            .with_set(PlayerPluginSets::Update.in_set(AppStage::UpdateLevel))
+            .with_set(PlayerPluginSets::UpdateInput.in_set(AppStage::BeforeUpdate))
+            .with_set(PlayerPluginSets::Update.in_set(AppStage::BeforeUpdate))
             .with_set(PlayerPluginSets::UpdateCamera.in_set(AppStage::BeforeRender))
             .with_set(
                 PickupPlugin::system_set()
-                    .in_set(AppStage::UpdateLevel)
+                    .in_set(AppStage::BeforeUpdate)
                     .after(PlayerPluginSets::Update),
             );
     }
@@ -176,7 +181,7 @@ impl Application {
         schedule.add_system(
             update_camera_aspect_ratio
                 .after(AppStage::EventUpdate)
-                .before(AppStage::Update),
+                .before(AppStage::BeforeUpdate),
         );
         schedule.add_system(
             update_camera

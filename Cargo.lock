@@ -723,6 +723,7 @@ dependencies = [
  "debug",
  "image",
  "input",
+ "levels",
  "loader",
  "math",
  "nalgebra",
@@ -916,6 +917,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
+name = "levels"
+version = "0.1.0"
+dependencies = [
+ "app",
+ "bevy_ecs",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.144"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -945,6 +954,7 @@ dependencies = [
  "app",
  "bevy_ecs",
  "gltf",
+ "levels",
  "math",
  "nalgebra",
  "physics",
@@ -1647,6 +1657,7 @@ version = "0.1.0"
 dependencies = [
  "angle",
  "bevy_ecs",
+ "levels",
  "math",
  "nalgebra",
  "uuid",
@@ -1877,6 +1888,7 @@ dependencies = [
  "angle",
  "app",
  "bevy_ecs",
+ "levels",
  "nalgebra",
  "uuid",
 ]

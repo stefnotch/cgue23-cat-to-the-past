@@ -1,24 +1,25 @@
 use animations::animation::PlayingAnimation;
 use app::plugin::Plugin;
-use bevy_ecs::prelude::IntoSystemConfig;
 use bevy_ecs::{
     prelude::{Query, Res},
     query::With,
+    schedule::IntoSystemConfig,
     system::Local,
 };
 use game::level_flags::LevelFlags;
+use levels::level_id::LevelId;
 use loader::loader::{Door, Platform};
-use scene::level::{Level, LevelId};
 use time::time_manager::TimeManager;
 
 fn door_system(
     level_flags: Res<LevelFlags>,
     time: Res<TimeManager>,
-    mut query: Query<(&mut PlayingAnimation, &Level), With<Door>>,
+    mut query: Query<(&mut PlayingAnimation, &LevelId), With<Door>>,
     mut door_flag_value: Local<bool>,
 ) {
-    let door_should_open =
-        level_flags.get(LevelId::new(2), 0) && level_flags.get(LevelId::new(2), 1);
+    let level_id = LevelId::new(2);
+
+    let door_should_open = level_flags.get(level_id, 0) && level_flags.get(level_id, 1);
     if door_should_open != *door_flag_value {
         *door_flag_value = door_should_open;
     } else {
@@ -27,7 +28,7 @@ fn door_system(
 
     let mut animation = query
         .iter_mut()
-        .find(|(_, level)| level.id.id() == 2)
+        .find(|(_, level)| level == &&level_id)
         .unwrap()
         .0;
     if door_should_open {
@@ -38,10 +39,12 @@ fn door_system(
 fn platform_system(
     level_flags: Res<LevelFlags>,
     time: Res<TimeManager>,
-    mut query: Query<(&mut PlayingAnimation, &Level), With<Platform>>,
+    mut query: Query<(&mut PlayingAnimation, &LevelId), With<Platform>>,
     mut platform_flag_value: Local<bool>,
 ) {
-    let platform_should_lower = level_flags.get(LevelId::new(2), 0);
+    let level_id = LevelId::new(2);
+
+    let platform_should_lower = level_flags.get(level_id, 0);
     if platform_should_lower != *platform_flag_value {
         *platform_flag_value = platform_should_lower;
     } else {
@@ -50,7 +53,7 @@ fn platform_system(
 
     let mut animation = query
         .iter_mut()
-        .find(|(_, level)| level.id.id() == 2)
+        .find(|(_, level)| level == &&level_id)
         .unwrap()
         .0;
     if platform_should_lower {

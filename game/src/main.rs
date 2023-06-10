@@ -2,20 +2,23 @@
 
 mod levels;
 
+use ::levels::current_level::CurrentLevel;
+use ::levels::level_id::LevelId;
 use app::entity_event::EntityEvent;
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::prelude::{not, Query};
+use bevy_ecs::prelude::{not, Entity, Query};
+use bevy_ecs::query::With;
 use bevy_ecs::schedule::IntoSystemConfig;
 use bevy_ecs::schedule::IntoSystemSetConfig;
 use debug::setup_debugging;
 use game::level_flags::{FlagChange, LevelFlags};
 use game::pickup_system::PickupPlugin;
 use game::rewind_power::RewindPowerPlugin;
-use levels::level1::Level1Plugin;
 use loader::config_loader::LoadableConfig;
 use loader::loader::SceneLoader;
+use nalgebra::Point3;
 use scene::flag_trigger::FlagTrigger;
-use scene::level::LevelId;
+use scene::level::NextLevelTrigger;
 
 use std::time::Instant;
 use time::time::Time;
@@ -25,13 +28,14 @@ use bevy_ecs::system::{Commands, Res, ResMut};
 
 use game::core::application::{AppConfig, AppStage, Application};
 use game::game_ui::UIPlugin;
-use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
+use game::player::{Player, PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
 
 use crate::levels::level0::Level0Plugin;
+use crate::levels::level1::Level1Plugin;
 use crate::levels::level2::Level2Plugin;
-use scene::transform::TransformBuilder;
+use scene::transform::{Transform, TransformBuilder};
 
 fn spawn_world(mut commands: Commands, scene_loader: Res<SceneLoader>) {
     let before = Instant::now();
@@ -91,14 +95,46 @@ fn flag_system(
     }
 }
 
+fn next_level_system(
+    level_triggers: Query<(&LevelId, &EntityEvent<CollisionEvent>), With<NextLevelTrigger>>,
+    player_query: Query<Entity, With<Player>>,
+    current_level: Res<CurrentLevel>,
+) {
+    for (level_id, collision_events) in level_triggers.iter() {
+        for collision_event in collision_events.iter() {
+            match collision_event {
+                CollisionEvent::Started(entity, CollisionEventFlags::SENSOR) => {
+                    if player_query.contains(*entity) {
+                        current_level.start_next_level(*level_id);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
+fn fall_out_of_world_system(mut query: Query<&mut Transform, With<Player>>) {
+    for mut transform in query.iter_mut() {
+        if transform.position.y < -10.0 {
+            println!("Player fell out of the world");
+            transform.position = Point3::new(0.0, 1.0, 3.0);
+        }
+    }
+}
+
 struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
         app.with_startup_system(spawn_world)
             .with_startup_system(setup_levels)
-            .with_plugin(UIPlugin)
-            .with_set(UIPlugin::system_set().in_set(AppStage::Update))
             .with_plugin(PickupPlugin)
+            .with_plugin(UIPlugin)
+            .with_set(
+                UIPlugin::system_set()
+                    .in_set(AppStage::Update)
+                    .after(PickupPlugin::system_set()),
+            )
             .with_plugin(RewindPowerPlugin)
             .with_plugin(Level0Plugin)
             .with_set(Level0Plugin::system_set().in_set(AppStage::UpdateLevel))
@@ -119,11 +155,13 @@ impl Plugin for GamePlugin {
                     .in_set(AppStage::Update)
                     .before(UIPlugin::system_set()),
             )
+            .with_system(next_level_system.in_set(AppStage::Update))
             .with_system(
                 flag_system
                     .in_set(AppStage::Update)
                     .run_if(not(is_rewinding)),
-            );
+            )
+            .with_system(fall_out_of_world_system.in_set(AppStage::Update));
     }
 }
 
