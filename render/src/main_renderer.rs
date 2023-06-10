@@ -14,6 +14,8 @@ use bevy_ecs::prelude::Local;
 use bevy_ecs::query::With;
 use bevy_ecs::schedule::{IntoSystemConfig, SystemSet};
 use bevy_ecs::system::{NonSendMut, Query, Res};
+use levels::current_level::CurrentLevel;
+use levels::level_id::LevelId;
 use scene::asset::Assets;
 use scene::camera::Camera;
 use scene::light::{CastsShadow, Light, LightCastShadow};
@@ -204,9 +206,10 @@ pub fn render(
     context: Res<Context>,
     camera: Res<Camera>,
     time_manager: Res<TimeManager>,
+    current_level: Res<CurrentLevel>,
     query_models: Query<(&Transform, &GpuModel)>,
-    query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
-    query_shadow_light: Query<&Transform, (With<LightCastShadow>, With<Light>)>,
+    query_lights: Query<(&Transform, &Light, &LevelId)>,
+    query_shadow_light: Query<(&Transform, &LevelId), (With<LightCastShadow>, With<Light>)>,
     query_shadow_casting_models: Query<(&Transform, &GpuModel), With<CastsShadow>>,
     mut frame_counter: Local<u64>,
     query_ui_components: Query<(&GpuUIComponent, &UIComponent)>,
@@ -305,13 +308,20 @@ pub fn render(
         .unwrap()
         .join(acquire_future);
 
+    let current_level_id = current_level.level_id;
     let models = query_models.iter().collect();
-    let lights = query_lights.iter().collect();
+    let lights = query_lights
+        .iter()
+        .filter(|(_, _, level_id)| level_id == &&current_level_id)
+        .map(|(transform, light, _)| (transform, light))
+        .collect();
     let ui_components = query_ui_components.iter().collect();
     let shadow_cast_models = query_shadow_casting_models.iter().collect();
 
     let nearest_shadow_light = query_shadow_light
         .iter()
+        .filter(|(_, level_id)| level_id == &&current_level_id)
+        .map(|(transform, _)| transform)
         .min_by(|transform_a, transform_b| {
             let distance_a = (camera.position - transform_a.position).norm_squared();
             let distance_b = (camera.position - transform_b.position).norm_squared();

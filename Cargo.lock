@@ -1598,6 +1598,7 @@ dependencies = [
  "angle",
  "app",
  "bevy_ecs",
+ "levels",
  "math",
  "nalgebra",
  "raw-window-handle",

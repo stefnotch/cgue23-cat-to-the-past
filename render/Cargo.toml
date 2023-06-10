@@ -20,3 +20,4 @@ scene = { path = "../scene" }
 app = { path = "../app" }
 time = { path = "../time" }
 windowing = { path = "../windowing" }
+levels = { path = "../levels" }

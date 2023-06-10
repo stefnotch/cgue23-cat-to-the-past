@@ -29,7 +29,7 @@ use game::core::application::{AppConfig, AppStage, Application};
 use game::game_ui::UIPlugin;
 use game::player::{Player, PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 
-use physics::physics_events::{CollisionEvent, CollisionEventFlags};
+use physics::physics_events::CollisionEvent;
 
 use crate::levels::level0::Level0Plugin;
 use crate::levels::level1::Level1Plugin;
