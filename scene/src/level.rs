@@ -1,6 +1,6 @@
 use bevy_ecs::prelude::Component;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LevelId {
     id: u32,
 }
@@ -18,13 +18,10 @@ impl LevelId {
 // For now the level flags are purely number based. (No enums yet)
 pub type FlagId = usize;
 
+/// Spawnpoint for the player in a level.
 #[derive(Component, Clone)]
-pub struct Level {
-    pub id: LevelId,
-}
+pub struct Spawnpoint;
 
-impl Level {
-    pub fn new(id: LevelId) -> Self {
-        Self { id }
-    }
-}
+/// Component that should trigger NextLevel events.
+#[derive(Component, Clone)]
+pub struct NextLevelTrigger;

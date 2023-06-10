@@ -29,7 +29,7 @@ use app::entity_event::EntityEvent;
 use physics::physics_context::RigidBodyType::{Dynamic, KinematicPositionBased};
 use physics::physics_events::CollisionEvent;
 use scene::flag_trigger::FlagTrigger;
-use scene::level::{Level, LevelId};
+use scene::level::{LevelId, NextLevelTrigger, Spawnpoint};
 use serde::Deserialize;
 
 // scene.json -> assets
@@ -53,6 +53,7 @@ struct AnimationProperty {
 #[serde(deny_unknown_fields)]
 struct GLTFNodeExtras {
     pub flag_trigger: Option<u32>,
+    pub level_trigger: Option<bool>,
     pub box_collider: Option<bool>,
     pub rigid_body: Option<String>,
     pub animation: Option<AnimationProperty>,
@@ -99,7 +100,6 @@ impl SceneLoader {
                 .unwrap_or_default();
 
             let level_id = LevelId::new(scene_extras.level_id);
-            let level_component = Level::new(level_id);
 
             let mut scene_loading_result = SceneLoadingResult::new();
 
@@ -126,8 +126,12 @@ impl SceneLoader {
                         }],
                     },
                     transform,
-                    level_component.clone(),
+                    level_id.clone(),
                 ));
+            }
+
+            for (transform, name) in scene_loading_result.cameras {
+                commands.spawn((name, Spawnpoint, transform, level_id.clone()));
             }
 
             for (transform, model, extras, name) in scene_loading_result.models {
@@ -135,7 +139,7 @@ impl SceneLoader {
                     bounds: model.bounding_box(),
                 };
 
-                let mut entity = commands.spawn((name, transform.clone(), level_component.clone()));
+                let mut entity = commands.spawn((name, transform.clone(), level_id.clone()));
 
                 if let Some(_) = extras.casts_shadow {
                     entity.insert(CastsShadow);
@@ -147,6 +151,12 @@ impl SceneLoader {
                             level_id: level_id.clone(),
                             flag_id: flag as usize,
                         },
+                        box_collider.clone(),
+                        EntityEvent::<CollisionEvent>::default(),
+                    ));
+                } else if let Some(true) = extras.level_trigger {
+                    entity.insert((
+                        NextLevelTrigger,
                         box_collider.clone(),
                         EntityEvent::<CollisionEvent>::default(),
                     ));
@@ -230,12 +240,17 @@ impl SceneLoader {
             );
         }
 
-        // skip loading camera (hardcoded)
-
         if let Some(light) = node.light() {
             scene_loading_result.lights.push((
                 global_transform.clone(),
                 Self::load_light(light),
+                DebugName(node.name().unwrap_or_default().to_string()),
+            ));
+        }
+
+        if let Some(_camera) = node.camera() {
+            scene_loading_result.cameras.push((
+                global_transform.clone(),
                 DebugName(node.name().unwrap_or_default().to_string()),
             ));
         }
@@ -320,12 +335,14 @@ struct SceneLoadingData {
 
 struct SceneLoadingResult {
     lights: Vec<(Transform, Light, DebugName)>,
+    cameras: Vec<(Transform, DebugName)>,
     models: Vec<(Transform, Model, GLTFNodeExtras, DebugName)>,
 }
 impl SceneLoadingResult {
     fn new() -> Self {
         Self {
             lights: vec![],
+            cameras: vec![],
             models: vec![],
         }
     }

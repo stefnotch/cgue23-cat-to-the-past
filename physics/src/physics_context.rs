@@ -295,7 +295,7 @@ pub(crate) fn write_transform_back(
 
 pub(crate) fn apply_transform_changes(
     mut physics_context: ResMut<PhysicsContext>,
-    query: Query<(&RapierRigidBodyHandle, &Transform), (With<RigidBody>, Without<PickedUp>)>,
+    query: Query<(&RapierRigidBodyHandle, &Transform), Without<PickedUp>>,
 ) {
     for (rigid_body_handle, transform) in query.iter() {
         let rigid_body = physics_context
