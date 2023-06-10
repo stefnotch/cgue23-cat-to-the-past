@@ -30,6 +30,11 @@ impl RewindPower {
         }
         self.remaining_seconds / self.max_seconds
     }
+
+    pub fn set_rewind_power(&mut self, rewind_power: f32) {
+        self.remaining_seconds = rewind_power;
+        self.max_seconds = rewind_power;
+    }
 }
 
 fn update_rewind_power(mut rewind_power: ResMut<RewindPower>, time_manager: Res<TimeManager>) {

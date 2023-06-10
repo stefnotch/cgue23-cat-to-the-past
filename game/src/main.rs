@@ -2,18 +2,18 @@
 
 mod levels;
 
-use ::levels::current_level::CurrentLevel;
+use ::levels::current_level::{CurrentLevel, NextLevel};
 use ::levels::level_id::LevelId;
 use app::entity_event::EntityEvent;
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::prelude::{not, Entity, Query};
-use bevy_ecs::query::With;
+use bevy_ecs::prelude::{not, Entity, EventReader, Query};
+use bevy_ecs::query::{With, Without};
 use bevy_ecs::schedule::IntoSystemConfig;
 use bevy_ecs::schedule::IntoSystemSetConfig;
 use debug::setup_debugging;
 use game::level_flags::{FlagChange, LevelFlags};
 use game::pickup_system::PickupPlugin;
-use game::rewind_power::RewindPowerPlugin;
+use game::rewind_power::{RewindPower, RewindPowerPlugin};
 use loader::config_loader::LoadableConfig;
 use loader::loader::SceneLoader;
 use scene::flag_trigger::FlagTrigger;
@@ -54,6 +54,24 @@ fn setup_levels(
     level_flags.set_count(LevelId::new(0), 1, &mut game_changes);
     level_flags.set_count(LevelId::new(1), 2, &mut game_changes);
     level_flags.set_count(LevelId::new(2), 2, &mut game_changes);
+    level_flags.set_count(LevelId::new(3), 0, &mut game_changes);
+}
+
+fn setup_next_level(
+    mut next_level_events: EventReader<NextLevel>,
+    mut rewind_power: ResMut<RewindPower>,
+) {
+    for next_level in next_level_events.iter() {
+        let rewind_power_per_level = match next_level.level_id.id() {
+            0 => 60.0,
+            1 => 60.0,
+            2 => 60.0,
+            3 => 60.0,
+            _ => 0.0,
+        };
+
+        rewind_power.set_rewind_power(rewind_power_per_level);
+    }
 }
 
 fn _print_fps(time: Res<Time>) {
@@ -77,14 +95,6 @@ fn flag_system(
                         flag_trigger.level_id,
                         flag_trigger.flag_id,
                         true,
-                        &mut game_changes,
-                    );
-                }
-                CollisionEvent::Stopped(_e2, CollisionEventFlags::SENSOR) => {
-                    level_flags.set_and_record(
-                        flag_trigger.level_id,
-                        flag_trigger.flag_id,
-                        false,
                         &mut game_changes,
                     );
                 }
@@ -116,7 +126,7 @@ fn next_level_system(
 fn fall_out_of_world_system(
     current_level: Res<CurrentLevel>,
     mut players_query: Query<&mut Transform, With<Player>>,
-    spawnpoints: Query<(&Transform, &LevelId), With<Spawnpoint>>,
+    spawnpoints: Query<(&Transform, &LevelId), (With<Spawnpoint>, Without<Player>)>,
 ) {
     for mut transform in players_query.iter_mut() {
         let spawnpoint = spawnpoints
@@ -169,7 +179,8 @@ impl Plugin for GamePlugin {
                     .in_set(AppStage::Update)
                     .run_if(not(is_rewinding)),
             )
-            .with_system(fall_out_of_world_system.in_set(AppStage::Update));
+            .with_system(fall_out_of_world_system.in_set(AppStage::Update))
+            .with_system(setup_next_level.in_set(AppStage::Update));
     }
 }
 
