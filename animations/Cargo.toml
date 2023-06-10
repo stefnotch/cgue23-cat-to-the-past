@@ -9,4 +9,5 @@ edition = "2021"
 bevy_ecs.workspace = true
 scene = { path = "../scene" }
 time = { path = "../time" }
+levels = { path = "../levels" }
 app = { path = "../app" }

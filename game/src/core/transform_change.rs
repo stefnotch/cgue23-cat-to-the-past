@@ -5,6 +5,7 @@ use bevy_ecs::{
     system::{Query, Res, ResMut},
 };
 
+use levels::{current_level::CurrentLevel, level_id::LevelId};
 use scene::transform::Transform;
 
 use time::time_manager::{
@@ -16,9 +17,13 @@ use time::time_manager::{
 
 pub fn time_manager_track_transform(
     mut history: ResMut<GameChangeHistory<TransformChange>>,
-    query: Query<(&TimeTracked, &Transform), Changed<Transform>>,
+    current_level: Res<CurrentLevel>,
+    query: Query<(&TimeTracked, &Transform, &LevelId), Changed<Transform>>,
 ) {
-    for (time_tracked, transform) in &query {
+    for (time_tracked, transform, level_id) in &query {
+        if level_id != &current_level.level_id {
+            continue;
+        }
         history.add_command(TransformChange::new(time_tracked, transform.clone()));
     }
 }

@@ -97,6 +97,7 @@ version = "0.1.0"
 dependencies = [
  "app",
  "bevy_ecs",
+ "levels",
  "scene",
  "time",
 ]
@@ -1412,6 +1413,7 @@ dependencies = [
  "app",
  "bevy_ecs",
  "crossbeam",
+ "levels",
  "math",
  "nalgebra",
  "rapier3d",

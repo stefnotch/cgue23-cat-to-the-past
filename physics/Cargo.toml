@@ -15,3 +15,4 @@ time = { path = "../time" }
 math = { path = "../math" }
 scene = { path = "../scene" }
 app = { path = "../app" }
+levels = { path = "../levels" }

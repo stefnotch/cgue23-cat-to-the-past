@@ -5,6 +5,7 @@ use bevy_ecs::{
     system::{Query, Res, ResMut, Resource},
     world::Mut,
 };
+use levels::{current_level::CurrentLevel, level_id::LevelId};
 use rapier3d::prelude::RigidBodyType;
 
 use scene::pickup::Pickupable;
@@ -34,9 +35,13 @@ impl GameChange for RigidBodyTypeChange {}
 
 pub(super) fn time_manager_track_rigid_body_type(
     mut history: ResMut<GameChangeHistory<RigidBodyTypeChange>>,
-    query: Query<(&TimeTracked, &RigidBody), (Changed<RigidBody>, Without<Pickupable>)>,
+    current_level: Res<CurrentLevel>,
+    query: Query<(&TimeTracked, &RigidBody, &LevelId), (Changed<RigidBody>, Without<Pickupable>)>,
 ) {
-    for (time_tracked, rigidbody) in &query {
+    for (time_tracked, rigidbody, level_id) in &query {
+        if level_id != &current_level.level_id {
+            continue;
+        }
         history.add_command(RigidBodyTypeChange::new(time_tracked, rigidbody.0));
     }
 }

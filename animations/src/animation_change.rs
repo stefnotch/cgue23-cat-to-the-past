@@ -3,6 +3,8 @@ use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
 use bevy_ecs::system::ResMut;
 use bevy_ecs::world::Mut;
+use levels::current_level::CurrentLevel;
+use levels::level_id::LevelId;
 use std::collections::HashMap;
 use time::time_manager::game_change::GameChange;
 use time::time_manager::game_change::GameChangeHistory;
@@ -23,9 +25,13 @@ impl GameChange for PlayingAnimationChange {}
 
 pub(super) fn animations_track(
     mut history: ResMut<GameChangeHistory<PlayingAnimationChange>>,
-    query: Query<&PlayingAnimation, Changed<PlayingAnimation>>,
+    current_level: Res<CurrentLevel>,
+    query: Query<(&PlayingAnimation, &LevelId), Changed<PlayingAnimation>>,
 ) {
-    for animation in &query {
+    for (animation, level_id) in &query {
+        if level_id != &current_level.level_id {
+            continue;
+        }
         history.add_command(PlayingAnimationChange {
             id: animation.id,
             end_time: animation.end_time,
