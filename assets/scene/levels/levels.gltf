@@ -56,7 +56,7 @@
 			]
 		}
 	},
-	"scene":0,
+	"scene":3,
 	"scenes":[
 		{
 			"extras":{
@@ -818,7 +818,7 @@
 			"mesh":42,
 			"name":"Right Wall",
 			"translation":[
-				-12,
+				-11,
 				15,
 				-39
 			]
@@ -854,7 +854,7 @@
 			"mesh":45,
 			"name":"Right Ledge",
 			"translation":[
-				2,
+				2.5,
 				16,
 				-39
 			]
@@ -3505,12 +3505,12 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				24.5,
-				0.5,
+				33.5,
+				5.5,
 				-10.5
 			],
 			"min":[
-				15.5,
+				9.5,
 				-3.5,
 				-11.5
 			],
