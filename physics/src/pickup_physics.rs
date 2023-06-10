@@ -98,7 +98,7 @@ pub(super) fn update_pickup_transform(
             .get_mut(rigid_body_handle.handle)
             .unwrap();
 
-        character_rigid_body.enable_ccd(false);
+        character_rigid_body.enable_ccd(true);
 
         let position = character_rigid_body.position();
         let new_position = position.translation.vector + effective_movement.translation;

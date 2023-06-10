@@ -187,7 +187,6 @@ impl SceneLoader {
 
                 if let Some(true) = extras.platform {
                     entity.insert(Platform);
-                    println!("HELP2");
                 }
 
                 if let Some(animation) = extras.animation {

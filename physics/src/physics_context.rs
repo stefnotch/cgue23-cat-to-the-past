@@ -225,6 +225,7 @@ pub(crate) fn apply_rigid_body_added(
     for (entity, collider, transform, RigidBody(body_type)) in rigid_body_query.iter_mut() {
         let physics_rigid_body = RigidBodyBuilder::new(body_type.clone())
             .position(transform.to_isometry())
+            .ccd_enabled(true)
             .build();
 
         let handle = context.rigid_bodies.insert(physics_rigid_body);
