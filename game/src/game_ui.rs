@@ -79,7 +79,7 @@ fn spawn_ui_components(mut commands: Commands) {
             texture: create_cpu_texture(rewind_texture),
             position: Point3::new(0.5, 0.5, 0.0),
             texture_position: UITexturePosition {
-                scale: Vector2::new(1.0, 1.0),
+                scale: Vector2::new(2.0, 2.0),
                 ..UITexturePosition::centered()
             },
             visible: false,
