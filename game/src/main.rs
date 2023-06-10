@@ -16,9 +16,8 @@ use game::pickup_system::PickupPlugin;
 use game::rewind_power::RewindPowerPlugin;
 use loader::config_loader::LoadableConfig;
 use loader::loader::SceneLoader;
-use nalgebra::Point3;
 use scene::flag_trigger::FlagTrigger;
-use scene::level::NextLevelTrigger;
+use scene::level::{NextLevelTrigger, Spawnpoint};
 
 use std::time::Instant;
 use time::time::Time;
@@ -114,11 +113,20 @@ fn next_level_system(
     }
 }
 
-fn fall_out_of_world_system(mut query: Query<&mut Transform, With<Player>>) {
-    for mut transform in query.iter_mut() {
+fn fall_out_of_world_system(
+    current_level: Res<CurrentLevel>,
+    mut players_query: Query<&mut Transform, With<Player>>,
+    spawnpoints: Query<(&Transform, &LevelId), With<Spawnpoint>>,
+) {
+    for mut transform in players_query.iter_mut() {
+        let spawnpoint = spawnpoints
+            .iter()
+            .find(|(_, level_id)| level_id == &&current_level.level_id)
+            .unwrap()
+            .0;
+
         if transform.position.y < -10.0 {
-            println!("Player fell out of the world");
-            transform.position = Point3::new(0.0, 1.0, 3.0);
+            transform.position = spawnpoint.position;
         }
     }
 }

@@ -20,6 +20,10 @@ impl CurrentLevel {
     }
 
     pub fn start_next_level(&self, level_id: LevelId) {
+        if level_id.id() <= self.level_id.id() {
+            return;
+        }
+
         let mut start_next_level = self.start_next_level.lock().unwrap();
         *start_next_level = Some(level_id);
     }
@@ -30,4 +34,7 @@ impl CurrentLevel {
     }
 }
 
-pub struct NextLevel(pub LevelId);
+pub struct NextLevel {
+    pub level_id: LevelId,
+    pub old_level_id: LevelId,
+}

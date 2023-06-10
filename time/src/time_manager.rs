@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::{
-    prelude::{Component, EventReader, Events},
+    prelude::{Component, EventReader},
     schedule::{IntoSystemConfig, SystemSet},
     system::{Res, ResMut, Resource},
 };
