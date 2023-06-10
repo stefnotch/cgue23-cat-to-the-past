@@ -55,6 +55,7 @@ pub(super) fn apply_player_character_controller_changes(
                     // TODO: understand why this is needed
                     Vector3::new(0.0, player_character_controller.collider_height / 2.0, 0.0),
                 )
+                .user_data(entity.to_bits() as u128)
                 .active_events(ActiveEvents::COLLISION_EVENTS)
                 .active_collision_types(ActiveCollisionTypes::all());
 
