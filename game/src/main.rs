@@ -89,17 +89,16 @@ fn flag_system(
 ) {
     for (flag_trigger, collision_events) in flag_triggers.iter() {
         for collision_event in collision_events.iter() {
-            match collision_event {
-                CollisionEvent::Started(_e2, CollisionEventFlags::SENSOR) => {
-                    level_flags.set_and_record(
-                        flag_trigger.level_id,
-                        flag_trigger.flag_id,
-                        true,
-                        &mut game_changes,
-                    );
-                }
-                _ => {}
-            }
+            let level_flag_value = match collision_event {
+                CollisionEvent::Started(_e2) => true,
+                CollisionEvent::Stopped(_e2) => false,
+            };
+            level_flags.set_and_record(
+                flag_trigger.level_id,
+                flag_trigger.flag_id,
+                level_flag_value,
+                &mut game_changes,
+            );
         }
     }
 }
@@ -112,7 +111,7 @@ fn next_level_trigger_system(
     for (level_id, collision_events) in level_triggers.iter() {
         for collision_event in collision_events.iter() {
             match collision_event {
-                CollisionEvent::Started(entity, CollisionEventFlags::SENSOR) => {
+                CollisionEvent::Started(entity) => {
                     if player_query.contains(*entity) {
                         current_level.start_next_level(*level_id);
                     }

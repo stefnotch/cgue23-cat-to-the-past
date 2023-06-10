@@ -9,9 +9,9 @@ pub use rapier3d::prelude::CollisionEventFlags;
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CollisionEvent {
     /// other entity, and the flags
-    Started(Entity, CollisionEventFlags),
+    Started(Entity),
     /// other entity, and the flags
-    Stopped(Entity, CollisionEventFlags),
+    Stopped(Entity),
 }
 
 pub fn handle_collision_event(
@@ -26,22 +26,22 @@ pub fn handle_collision_event(
     };
 
     match event {
-        RapierCollisionEvent::Started(handle1, handle2, flags) => {
+        RapierCollisionEvent::Started(handle1, handle2, _flags) => {
             let (entity1, entity2) = colliders2entities(handle1, handle2);
             if let Ok(mut e1) = query.get_mut(entity1) {
-                e1.add(CollisionEvent::Started(entity2, flags));
+                e1.add(CollisionEvent::Started(entity2));
             }
             if let Ok(mut e2) = query.get_mut(entity2) {
-                e2.add(CollisionEvent::Started(entity1, flags));
+                e2.add(CollisionEvent::Started(entity1));
             }
         }
-        RapierCollisionEvent::Stopped(handle1, handle2, flags) => {
+        RapierCollisionEvent::Stopped(handle1, handle2, _flags) => {
             let (entity1, entity2) = colliders2entities(handle1, handle2);
             if let Ok(mut e1) = query.get_mut(entity1) {
-                e1.add(CollisionEvent::Stopped(entity2, flags));
+                e1.add(CollisionEvent::Stopped(entity2));
             }
             if let Ok(mut e2) = query.get_mut(entity2) {
-                e2.add(CollisionEvent::Stopped(entity1, flags));
+                e2.add(CollisionEvent::Stopped(entity1));
             }
         }
     };

@@ -21,9 +21,11 @@ impl CurrentLevel {
     }
 
     pub fn start_next_level(&self, level_id: LevelId) {
+        println!("start_next_level: {:?}", level_id);
         if self.finished_levels.contains(&level_id) {
             return;
         }
+        println!("definitely start_next_level: {:?}", level_id);
 
         let mut start_next_level = self.start_next_level.lock().unwrap();
         *start_next_level = Some(level_id);
