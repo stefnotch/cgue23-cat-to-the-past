@@ -8,7 +8,7 @@ use nalgebra::{Point3, Quaternion, UnitQuaternion, Vector3};
 use physics::physics_context::{BoxCollider, RigidBody};
 use scene::asset::AssetId;
 use scene::debug_name::DebugName;
-use scene::light::{CastShadow, Light, PointLight};
+use scene::light::{CastsShadow, Light, LightCastShadow, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::{CpuMesh, CpuMeshVertex};
 use scene::model::{CpuPrimitive, Model};
@@ -39,6 +39,9 @@ use serde::Deserialize;
 #[derive(Component)]
 pub struct Door {}
 
+#[derive(Component)]
+pub struct Platform;
+
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 struct AnimationProperty {
@@ -54,7 +57,9 @@ struct GLTFNodeExtras {
     pub rigid_body: Option<String>,
     pub animation: Option<AnimationProperty>,
     pub door: Option<bool>,
+    pub platform: Option<bool>,
     pub pickupable: Option<bool>,
+    pub casts_shadow: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -113,7 +118,7 @@ impl SceneLoader {
                 commands.spawn((
                     name,
                     light,
-                    CastShadow,
+                    LightCastShadow,
                     Model {
                         primitives: vec![CpuPrimitive {
                             mesh: sphere.clone(),
@@ -131,6 +136,10 @@ impl SceneLoader {
                 };
 
                 let mut entity = commands.spawn((name, transform.clone(), level_component.clone()));
+
+                if let Some(_) = extras.casts_shadow {
+                    entity.insert(CastsShadow);
+                }
 
                 if let Some(flag) = extras.flag_trigger {
                     entity.insert((
@@ -163,6 +172,11 @@ impl SceneLoader {
 
                 if let Some(true) = extras.door {
                     entity.insert(Door {});
+                }
+
+                if let Some(true) = extras.platform {
+                    entity.insert(Platform);
+                    println!("HELP2");
                 }
 
                 if let Some(animation) = extras.animation {

@@ -4,7 +4,7 @@ mod levels;
 
 use app::entity_event::EntityEvent;
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::prelude::Query;
+use bevy_ecs::prelude::{not, Query};
 use bevy_ecs::schedule::IntoSystemConfig;
 use bevy_ecs::schedule::IntoSystemSetConfig;
 use debug::setup_debugging;
@@ -19,7 +19,7 @@ use scene::level::LevelId;
 
 use std::time::Instant;
 use time::time::Time;
-use time::time_manager::game_change;
+use time::time_manager::{game_change, is_rewinding};
 
 use bevy_ecs::system::{Commands, Res, ResMut};
 
@@ -30,6 +30,7 @@ use game::player::{PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
 
 use crate::levels::level0::Level0Plugin;
+use crate::levels::level2::Level2Plugin;
 use scene::transform::TransformBuilder;
 
 fn spawn_world(mut commands: Commands, scene_loader: Res<SceneLoader>) {
@@ -49,6 +50,7 @@ fn setup_levels(
 ) {
     level_flags.set_count(LevelId::new(0), 1, &mut game_changes);
     level_flags.set_count(LevelId::new(1), 2, &mut game_changes);
+    level_flags.set_count(LevelId::new(2), 2, &mut game_changes);
 }
 
 fn _print_fps(time: Res<Time>) {
@@ -66,13 +68,24 @@ fn flag_system(
 ) {
     for (flag_trigger, collision_events) in flag_triggers.iter() {
         for collision_event in collision_events.iter() {
-            if let CollisionEvent::Started(_e2, CollisionEventFlags::SENSOR) = collision_event {
-                level_flags.set_and_record(
-                    flag_trigger.level_id,
-                    flag_trigger.flag_id,
-                    true,
-                    &mut game_changes,
-                );
+            match collision_event {
+                CollisionEvent::Started(_e2, CollisionEventFlags::SENSOR) => {
+                    level_flags.set_and_record(
+                        flag_trigger.level_id,
+                        flag_trigger.flag_id,
+                        true,
+                        &mut game_changes,
+                    );
+                }
+                CollisionEvent::Stopped(_e2, CollisionEventFlags::SENSOR) => {
+                    level_flags.set_and_record(
+                        flag_trigger.level_id,
+                        flag_trigger.flag_id,
+                        false,
+                        &mut game_changes,
+                    );
+                }
+                _ => {}
             }
         }
     }
@@ -95,12 +108,22 @@ impl Plugin for GamePlugin {
                     .in_set(AppStage::UpdateLevel)
                     .after(Level0Plugin::system_set()),
             )
+            .with_plugin(Level2Plugin)
+            .with_set(
+                Level2Plugin::system_set()
+                    .in_set(AppStage::UpdateLevel)
+                    .after(Level1Plugin::system_set()),
+            )
             .with_set(
                 RewindPowerPlugin::system_set()
                     .in_set(AppStage::Update)
                     .before(UIPlugin::system_set()),
             )
-            .with_system(flag_system.in_set(AppStage::Update));
+            .with_system(
+                flag_system
+                    .in_set(AppStage::Update)
+                    .run_if(not(is_rewinding)),
+            );
     }
 }
 

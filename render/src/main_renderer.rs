@@ -16,7 +16,7 @@ use bevy_ecs::schedule::{IntoSystemConfig, SystemSet};
 use bevy_ecs::system::{NonSendMut, Query, Res};
 use scene::asset::Assets;
 use scene::camera::Camera;
-use scene::light::{CastShadow, Light};
+use scene::light::{CastsShadow, Light, LightCastShadow};
 use scene::transform::Transform;
 use scene::ui_component::UIComponent;
 use std::sync::Arc;
@@ -206,7 +206,8 @@ pub fn render(
     time_manager: Res<TimeManager>,
     query_models: Query<(&Transform, &GpuModel)>,
     query_lights: Query<(&Transform, &Light)>, // TODO: only query changed lights
-    query_shadow_light: Query<&Transform, (With<CastShadow>, With<Light>)>,
+    query_shadow_light: Query<&Transform, (With<LightCastShadow>, With<Light>)>,
+    query_shadow_casting_models: Query<(&Transform, &GpuModel), With<CastsShadow>>,
     mut frame_counter: Local<u64>,
     query_ui_components: Query<(&GpuUIComponent, &UIComponent)>,
     mut rewind_start_time: Local<f32>,
@@ -270,6 +271,8 @@ pub fn render(
         renderer.ui_renderer.resize(&renderer.swapchain.images);
 
         renderer.recreate_swapchain = false;
+
+        *frame_counter = 0;
     }
 
     // Before we can draw on the output, we have to *acquire* an image from the swapchain. If
@@ -305,6 +308,7 @@ pub fn render(
     let models = query_models.iter().collect();
     let lights = query_lights.iter().collect();
     let ui_components = query_ui_components.iter().collect();
+    let shadow_cast_models = query_shadow_casting_models.iter().collect();
 
     let nearest_shadow_light = query_shadow_light
         .iter()
@@ -328,7 +332,7 @@ pub fn render(
             .render(
                 &context,
                 rewind_time,
-                &models,
+                &shadow_cast_models,
                 nearest_shadow_light,
                 camera.as_ref(),
                 future,

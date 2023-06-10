@@ -24,4 +24,7 @@ impl Default for PointLight {
 }
 
 #[derive(Component)]
-pub struct CastShadow;
+pub struct LightCastShadow;
+
+#[derive(Component)]
+pub struct CastsShadow;
