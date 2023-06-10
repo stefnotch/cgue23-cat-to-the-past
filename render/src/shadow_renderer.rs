@@ -34,7 +34,7 @@ use vulkano::pipeline::{GraphicsPipeline, Pipeline, PipelineBindPoint};
 use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
 use vulkano::sync::GpuFuture;
 
-const CUBE_SIZE: u32 = 2048;
+const CUBE_SIZE: u32 = 4096;
 
 pub struct ShadowRenderer {
     render_pass: Arc<RenderPass>,

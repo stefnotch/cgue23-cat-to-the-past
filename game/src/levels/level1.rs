@@ -17,7 +17,7 @@ fn door_system(
     mut door_flag_value: Local<bool>,
 ) {
     let door_should_open =
-        level_flags.get(LevelId::new(1), 0) && level_flags.get(LevelId::new(1), 0);
+        level_flags.get(LevelId::new(1), 0) && level_flags.get(LevelId::new(1), 1);
     if door_should_open != *door_flag_value {
         *door_flag_value = door_should_open;
     } else {
