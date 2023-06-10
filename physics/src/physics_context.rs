@@ -1,8 +1,9 @@
 use app::entity_event::EntityEvent;
+use scene::level::NextLevelTrigger;
 use time::time::Time;
 
 use bevy_ecs::prelude::{Added, Commands, Component, Entity, Query, Res, ResMut, Resource, With};
-use bevy_ecs::query::{Changed, Without};
+use bevy_ecs::query::{Changed, Or, Without};
 
 use math::bounding_box::BoundingBox;
 use nalgebra::UnitQuaternion;
@@ -259,7 +260,7 @@ pub(crate) fn apply_rigid_body_type_change(
 
 pub(crate) fn apply_collider_sensor_change(
     mut physics_context: ResMut<PhysicsContext>,
-    mut query: Query<&RapierColliderHandle, With<FlagTrigger>>,
+    mut query: Query<&RapierColliderHandle, Or<(With<FlagTrigger>, With<NextLevelTrigger>)>>,
 ) {
     for RapierColliderHandle { handle } in query.iter_mut() {
         let collider = physics_context

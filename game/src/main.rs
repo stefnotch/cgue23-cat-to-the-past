@@ -104,7 +104,7 @@ fn flag_system(
     }
 }
 
-fn next_level_system(
+fn next_level_trigger_system(
     level_triggers: Query<(&LevelId, &EntityEvent<CollisionEvent>), With<NextLevelTrigger>>,
     player_query: Query<Entity, With<Player>>,
     current_level: Res<CurrentLevel>,
@@ -154,6 +154,11 @@ impl Plugin for GamePlugin {
                     .after(PickupPlugin::system_set()),
             )
             .with_plugin(RewindPowerPlugin)
+            .with_set(
+                RewindPowerPlugin::system_set()
+                    .in_set(AppStage::Update)
+                    .before(UIPlugin::system_set()),
+            )
             .with_plugin(Level0Plugin)
             .with_set(Level0Plugin::system_set().in_set(AppStage::UpdateLevel))
             .with_plugin(Level1Plugin)
@@ -168,19 +173,18 @@ impl Plugin for GamePlugin {
                     .in_set(AppStage::UpdateLevel)
                     .after(Level1Plugin::system_set()),
             )
-            .with_set(
-                RewindPowerPlugin::system_set()
-                    .in_set(AppStage::Update)
-                    .before(UIPlugin::system_set()),
-            )
-            .with_system(next_level_system.in_set(AppStage::Update))
+            .with_system(next_level_trigger_system.in_set(AppStage::Update))
             .with_system(
                 flag_system
                     .in_set(AppStage::Update)
                     .run_if(not(is_rewinding)),
             )
             .with_system(fall_out_of_world_system.in_set(AppStage::Update))
-            .with_system(setup_next_level.in_set(AppStage::Update));
+            .with_system(
+                setup_next_level
+                    .in_set(AppStage::Update)
+                    .before(RewindPowerPlugin::system_set()),
+            );
     }
 }
 
