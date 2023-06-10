@@ -10,6 +10,7 @@ use scene::texture::{
 };
 use scene::ui_component::{UIComponent, UITexturePosition};
 use std::sync::Arc;
+use time::time::Time;
 use time::time_manager::TimeManager;
 
 use crate::pickup_system::PickupInfo;
@@ -23,6 +24,8 @@ struct UIRewind;
 
 #[derive(Component)]
 struct UIProgressFill;
+#[derive(Component)]
+struct UIProgressBar;
 
 fn spawn_ui_components(mut commands: Commands) {
     let sampler_info = SamplerInfo {
@@ -100,16 +103,19 @@ fn spawn_ui_components(mut commands: Commands) {
     ));
 
     let progress = image::open("assets/textures/progress_outline_stepped.png").unwrap();
-    commands.spawn(UIComponent {
-        texture: create_cpu_texture(progress),
-        position: Point3::new(0.95, 0.05, 0.0),
-        texture_position: UITexturePosition {
-            scale: Vector2::new(1.0, 1.0),
-            texture_origin: Point2::new(0.5, 1.0),
-            angle: Rad(std::f32::consts::FRAC_PI_2),
+    commands.spawn((
+        UIComponent {
+            texture: create_cpu_texture(progress),
+            position: Point3::new(0.95, 0.05, 0.0),
+            texture_position: UITexturePosition {
+                scale: Vector2::new(1.0, 1.0),
+                texture_origin: Point2::new(0.5, 1.0),
+                angle: Rad(std::f32::consts::FRAC_PI_2),
+            },
+            visible: true,
         },
-        visible: true,
-    });
+        UIProgressBar,
+    ));
 }
 
 fn update_rewind(
@@ -133,12 +139,29 @@ fn update_rewind(
 }
 
 fn update_rewind_power(
+    time_manager: Res<TimeManager>,
+    time: Res<Time>,
     rewind_power: Res<RewindPower>,
     mut progress_fill_query: Query<&mut UIComponent, With<UIProgressFill>>,
+    mut progress_bar_query: Query<&mut UIComponent, (With<UIProgressBar>, Without<UIProgressFill>)>,
 ) {
     let mut progress_fill = progress_fill_query.single_mut();
+    let mut progress_bar = progress_bar_query.single_mut();
 
     progress_fill.texture_position.scale.y = rewind_power.get_percent();
+    let start_angle = std::f32::consts::FRAC_PI_2;
+    progress_fill.texture_position.angle = Rad(start_angle);
+    progress_bar.texture_position.angle = Rad(start_angle);
+
+    if time_manager.is_rewinding() {
+        if time_manager.level_delta_time().duration().is_zero() {
+            // if we cannot rewind anymore
+            let elapsed_time = time.time_since_startup().as_secs_f32();
+            let angle = Rad(start_angle + (elapsed_time * 50.0).sin() * 0.02);
+            progress_fill.texture_position.angle = angle;
+            progress_bar.texture_position.angle = angle;
+        }
+    }
 }
 
 fn update_pickup_crosshair(

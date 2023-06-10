@@ -330,7 +330,12 @@ pub fn render(
         .expect("at least one shadow light is required");
 
     let rewind_time = if time_manager.is_rewinding() {
-        *rewind_start_time - time_manager.level_time().as_secs_f32()
+        if time_manager.level_delta_time().duration().is_zero() {
+            // if we cannot rewind anymore
+            0.0
+        } else {
+            *rewind_start_time - time_manager.level_time().as_secs_f32()
+        }
     } else {
         *rewind_start_time = time_manager.level_time().as_secs_f32();
         0.0
