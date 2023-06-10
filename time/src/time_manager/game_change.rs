@@ -1,12 +1,12 @@
 use std::collections::VecDeque;
 
-use crate::events::NextLevel;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::{
     prelude::{not, EventReader},
     schedule::{IntoSystemConfig, IntoSystemSetConfig, SystemConfig, SystemSet},
     system::{Res, ResMut, Resource},
 };
+use levels::current_level::NextLevel;
 
 use super::{is_rewinding, level_time::LevelTime, TimeManager, TimeManagerPluginSet};
 

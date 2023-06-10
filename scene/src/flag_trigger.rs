@@ -1,6 +1,7 @@
 use bevy_ecs::prelude::Component;
+use levels::level_id::LevelId;
 
-use crate::level::{FlagId, LevelId};
+use crate::level::FlagId;
 
 #[derive(Component, Debug)]
 pub struct FlagTrigger {

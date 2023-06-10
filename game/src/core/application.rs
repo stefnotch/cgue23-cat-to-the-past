@@ -2,6 +2,7 @@ use animations::animation::AnimationPlugin;
 use app::plugin::Plugin;
 use app::App;
 use input::plugin::InputPlugin;
+use levels::LevelsPlugin;
 use loader::config_loader::LoadableConfig;
 use physics::plugin::PhysicsPlugin;
 use time::time::{Time, TimePlugin, TimePluginSet};
@@ -104,13 +105,17 @@ impl Application {
     }
 
     fn add_default_plugins(app: &mut App, config: &AppConfig) {
-        app.with_plugin(TimePlugin)
+        app //
+            .with_plugin(TimePlugin)
             .with_set(TimePluginSet::UpdateTime.in_set(AppStage::StartFrame))
+            .with_plugin(LevelsPlugin)
+            .with_set(LevelsPlugin::system_set().in_set(AppStage::StartFrame))
             .with_plugin(TimeManagerPlugin)
             .with_set(
                 TimeManagerPluginSet::StartFrame
                     .in_set(AppStage::StartFrame)
-                    .after(TimePluginSet::UpdateTime),
+                    .after(TimePluginSet::UpdateTime)
+                    .after(LevelsPlugin::system_set()),
             )
             .with_plugin(InputPlugin)
             .with_set(InputPlugin::system_set().in_set(AppStage::EventUpdate))

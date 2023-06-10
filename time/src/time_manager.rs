@@ -7,13 +7,13 @@ use crate::{
 };
 use std::time::Duration;
 
-use crate::events::NextLevel;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::{
     prelude::{Component, EventReader, Events},
     schedule::{IntoSystemConfig, SystemSet},
     system::{Res, ResMut, Resource},
 };
+use levels::current_level::NextLevel;
 
 use self::level_time::LevelTime;
 
@@ -181,7 +181,6 @@ impl Plugin for TimeManagerPlugin {
                 start_frame
                     .in_set(TimeManagerPluginSet::StartFrame)
                     .after(TimePluginSet::UpdateTime),
-            )
-            .with_resource(Events::<NextLevel>::default());
+            );
     }
 }

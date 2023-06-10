@@ -44,17 +44,13 @@ importer: gltf, we flatten the tree, we generate one axis aligned collider per m
 You'll need a [Rust toolchain installed](https://www.rust-lang.org/tools/install). After that, you can start the game with
 
 ```
-
 cargo run
-
 ```
 
 To get a release build without manually copying files, you can use
 
 ```
-
 npm build
-
 ```
 
 (I really want Rust build scripts that don't run during development.)
@@ -62,9 +58,7 @@ npm build
 ## Demos
 
 ```
-
 cargo run --bin bloom_demo
-
 ```
 
 where bloom_demo can be replaced with the name of any demo project in the `demos/src/bin` folder
@@ -81,7 +75,3 @@ where bloom_demo can be replaced with the name of any demo project in the `demos
 - https://github.com/FlaxEngine/FlaxSamples/blob/master/FirstPersonShooterTemplate/Source/FirstPersonShooter/PlayerScript.cs
 - https://madebyevan.com/shaders/grid/
 - https://www.shadertoy.com/view/MscSDf
-
-```
-
-```

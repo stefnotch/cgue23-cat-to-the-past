@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::system::{Res, ResMut, Resource};
-use scene::level::{FlagId, LevelId};
+use levels::level_id::LevelId;
+use scene::level::FlagId;
 use time::time_manager::{
     game_change::{GameChange, GameChangeHistory, GameChangeHistoryPlugin},
     TimeManager,

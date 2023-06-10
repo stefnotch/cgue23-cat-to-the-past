@@ -6,8 +6,8 @@ use bevy_ecs::{
     system::Local,
 };
 use game::level_flags::LevelFlags;
+use levels::level_id::LevelId;
 use loader::loader::Door;
-use scene::level::LevelId;
 use time::time_manager::TimeManager;
 
 fn door_system(

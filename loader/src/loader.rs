@@ -26,10 +26,11 @@ use std::{collections::HashMap, path::Path};
 use time::time_manager::TimeTracked;
 
 use app::entity_event::EntityEvent;
+use levels::level_id::LevelId;
 use physics::physics_context::RigidBodyType::{Dynamic, KinematicPositionBased};
 use physics::physics_events::CollisionEvent;
 use scene::flag_trigger::FlagTrigger;
-use scene::level::{LevelId, NextLevelTrigger, Spawnpoint};
+use scene::level::{NextLevelTrigger, Spawnpoint};
 use serde::Deserialize;
 
 // scene.json -> assets

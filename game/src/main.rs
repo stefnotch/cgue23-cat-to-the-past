@@ -2,6 +2,8 @@
 
 mod levels;
 
+use ::levels::current_level::CurrentLevel;
+use ::levels::level_id::LevelId;
 use app::entity_event::EntityEvent;
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::{not, Entity, Query};
@@ -12,18 +14,17 @@ use debug::setup_debugging;
 use game::level_flags::{FlagChange, LevelFlags};
 use game::pickup_system::PickupPlugin;
 use game::rewind_power::RewindPowerPlugin;
-use levels::level1::Level1Plugin;
 use loader::config_loader::LoadableConfig;
 use loader::loader::SceneLoader;
 use nalgebra::Point3;
 use scene::flag_trigger::FlagTrigger;
-use scene::level::{LevelId, NextLevelTrigger};
+use scene::level::NextLevelTrigger;
 
 use std::time::Instant;
 use time::time::Time;
 use time::time_manager::{game_change, is_rewinding};
 
-use bevy_ecs::system::{Commands, Res, ResMut, Resource};
+use bevy_ecs::system::{Commands, Res, ResMut};
 
 use game::core::application::{AppConfig, AppStage, Application};
 use game::game_ui::UIPlugin;
@@ -32,6 +33,7 @@ use game::player::{Player, PlayerControllerSettings, PlayerPlugin, PlayerSpawnSe
 use physics::physics_events::{CollisionEvent, CollisionEventFlags};
 
 use crate::levels::level0::Level0Plugin;
+use crate::levels::level1::Level1Plugin;
 use crate::levels::level2::Level2Plugin;
 use scene::transform::{Transform, TransformBuilder};
 
@@ -96,13 +98,14 @@ fn flag_system(
 fn next_level_system(
     level_triggers: Query<(&LevelId, &EntityEvent<CollisionEvent>), With<NextLevelTrigger>>,
     player_query: Query<Entity, With<Player>>,
+    current_level: Res<CurrentLevel>,
 ) {
     for (level_id, collision_events) in level_triggers.iter() {
         for collision_event in collision_events.iter() {
             match collision_event {
                 CollisionEvent::Started(entity, CollisionEventFlags::SENSOR) => {
                     if player_query.contains(*entity) {
-                        println!("Next level");
+                        current_level.start_next_level(*level_id);
                     }
                 }
                 _ => {}
@@ -152,6 +155,7 @@ impl Plugin for GamePlugin {
                     .in_set(AppStage::Update)
                     .before(UIPlugin::system_set()),
             )
+            .with_system(next_level_system.in_set(AppStage::Update))
             .with_system(
                 flag_system
                     .in_set(AppStage::Update)
@@ -169,7 +173,7 @@ fn main() {
 
     let player_spawn_settings = PlayerSpawnSettings {
         initial_transform: TransformBuilder::new()
-            .position([0.0, -3.0, 3.0].into())
+            .position([0.0, 1.0, 3.0].into())
             .build(),
         controller_settings: PlayerControllerSettings::default()
             .with_sensitivity(config.mouse_sensitivity),
