@@ -96,9 +96,13 @@ impl Plugin for GamePlugin {
     fn build(&mut self, app: &mut PluginAppAccess) {
         app.with_startup_system(spawn_world)
             .with_startup_system(setup_levels)
-            .with_plugin(UIPlugin)
-            .with_set(UIPlugin::system_set().in_set(AppStage::Update))
             .with_plugin(PickupPlugin)
+            .with_plugin(UIPlugin)
+            .with_set(
+                UIPlugin::system_set()
+                    .in_set(AppStage::Update)
+                    .after(PickupPlugin::system_set()),
+            )
             .with_plugin(RewindPowerPlugin)
             .with_plugin(Level0Plugin)
             .with_set(Level0Plugin::system_set().in_set(AppStage::UpdateLevel))

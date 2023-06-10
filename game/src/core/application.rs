@@ -140,12 +140,12 @@ impl Application {
             .with_plugin(RendererPlugin::new(config.brightness))
             .with_set(RendererPluginSets::Render.in_set(AppStage::Render))
             // Configuring the player plugin (but not adding it)
-            .with_set(PlayerPluginSets::UpdateInput.in_set(AppStage::UpdateLevel))
-            .with_set(PlayerPluginSets::Update.in_set(AppStage::UpdateLevel))
+            .with_set(PlayerPluginSets::UpdateInput.in_set(AppStage::BeforeUpdate))
+            .with_set(PlayerPluginSets::Update.in_set(AppStage::BeforeUpdate))
             .with_set(PlayerPluginSets::UpdateCamera.in_set(AppStage::BeforeRender))
             .with_set(
                 PickupPlugin::system_set()
-                    .in_set(AppStage::UpdateLevel)
+                    .in_set(AppStage::BeforeUpdate)
                     .after(PlayerPluginSets::Update),
             );
     }
@@ -176,7 +176,7 @@ impl Application {
         schedule.add_system(
             update_camera_aspect_ratio
                 .after(AppStage::EventUpdate)
-                .before(AppStage::Update),
+                .before(AppStage::BeforeUpdate),
         );
         schedule.add_system(
             update_camera

@@ -12,6 +12,7 @@ use scene::ui_component::{UIComponent, UITexturePosition};
 use std::sync::Arc;
 use time::time_manager::TimeManager;
 
+use crate::pickup_system::PickupInfo;
 use crate::rewind_power::RewindPower;
 
 #[derive(Component)]
@@ -140,12 +141,26 @@ fn update_rewind_power(
     progress_fill.texture_position.scale.y = rewind_power.get_percent();
 }
 
+fn update_pickup_crosshair(
+    pickup_info: Res<PickupInfo>,
+    mut crosshair_query: Query<&mut UIComponent, With<UICrosshair>>,
+) {
+    let mut crosshair = crosshair_query.single_mut();
+
+    if pickup_info.can_pickup {
+        crosshair.texture_position.scale = Vector2::new(1.5, 1.5);
+    } else {
+        crosshair.texture_position.scale = Vector2::new(1.0, 1.0);
+    }
+}
+
 pub struct UIPlugin;
 
 impl Plugin for UIPlugin {
     fn build(&mut self, app: &mut app::plugin::PluginAppAccess) {
         app.with_startup_system(spawn_ui_components)
             .with_system(update_rewind)
-            .with_system(update_rewind_power.after(update_rewind));
+            .with_system(update_rewind_power.after(update_rewind))
+            .with_system(update_pickup_crosshair.after(update_rewind_power));
     }
 }
