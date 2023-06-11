@@ -2,7 +2,6 @@ use app::plugin::Plugin;
 use bevy_ecs::system::{Res, ResMut, Resource};
 use time::time_manager::TimeManager;
 
-// TODO: Deal with next level (in the game logic)
 #[derive(Resource)]
 pub struct RewindPower {
     remaining_seconds: f32,
@@ -12,8 +11,8 @@ pub struct RewindPower {
 impl RewindPower {
     pub fn new() -> Self {
         Self {
-            remaining_seconds: 0.0,
-            max_seconds: 1.0,
+            remaining_seconds: 100.0,
+            max_seconds: 100.0,
         }
     }
 

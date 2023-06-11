@@ -13,6 +13,7 @@ use std::sync::Arc;
 use time::time::Time;
 use time::time_manager::TimeManager;
 
+use crate::game_over::GameOver;
 use crate::pickup_system::PickupInfo;
 use crate::rewind_power::RewindPower;
 
@@ -26,6 +27,8 @@ struct UIRewind;
 struct UIProgressFill;
 #[derive(Component)]
 struct UIProgressBar;
+#[derive(Component)]
+struct UIGameOver;
 
 fn spawn_ui_components(mut commands: Commands) {
     let sampler_info = SamplerInfo {
@@ -63,21 +66,24 @@ fn spawn_ui_components(mut commands: Commands) {
     ));
 
     let game_over_texture = image::open("assets/textures/game_over.png").unwrap();
-    commands.spawn(UIComponent {
-        texture: create_cpu_texture(game_over_texture),
-        position: Point3::new(0.5, 0.5, 0.0),
-        texture_position: UITexturePosition {
-            scale: Vector2::new(10.0, 10.0),
-            ..UITexturePosition::centered()
+    commands.spawn((
+        UIComponent {
+            texture: create_cpu_texture(game_over_texture),
+            position: Point3::new(0.5, 0.5, 0.0),
+            texture_position: UITexturePosition {
+                scale: Vector2::new(10.0, 10.0),
+                ..UITexturePosition::centered()
+            },
+            visible: false,
         },
-        visible: false,
-    });
+        UIGameOver,
+    ));
 
     let rewind_texture = image::open("assets/textures/rewind_arrow.png").unwrap();
     commands.spawn((
         UIComponent {
             texture: create_cpu_texture(rewind_texture),
-            position: Point3::new(0.5, 0.5, 0.0),
+            position: Point3::new(0.5, 0.5, -0.1),
             texture_position: UITexturePosition {
                 scale: Vector2::new(2.0, 2.0),
                 ..UITexturePosition::centered()
@@ -177,6 +183,14 @@ fn update_pickup_crosshair(
     }
 }
 
+fn update_game_over(
+    game_over: Res<GameOver>,
+    mut game_over_query: Query<&mut UIComponent, With<UIGameOver>>,
+) {
+    let mut game_over_component = game_over_query.single_mut();
+    game_over_component.visible = game_over.is_game_over();
+}
+
 pub struct UIPlugin;
 
 impl Plugin for UIPlugin {
@@ -184,6 +198,7 @@ impl Plugin for UIPlugin {
         app.with_startup_system(spawn_ui_components)
             .with_system(update_rewind)
             .with_system(update_rewind_power.after(update_rewind))
-            .with_system(update_pickup_crosshair.after(update_rewind_power));
+            .with_system(update_pickup_crosshair.after(update_rewind_power))
+            .with_system(update_game_over.after(update_pickup_crosshair));
     }
 }

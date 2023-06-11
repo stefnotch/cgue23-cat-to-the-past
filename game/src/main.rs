@@ -11,6 +11,7 @@ use bevy_ecs::query::{With, Without};
 use bevy_ecs::schedule::IntoSystemConfig;
 use bevy_ecs::schedule::IntoSystemSetConfig;
 use debug::setup_debugging;
+use game::game_over::GameOverPlugin;
 use game::level_flags::{FlagChange, LevelFlags};
 use game::pickup_system::PickupPlugin;
 use game::rewind_power::{RewindPower, RewindPowerPlugin};
@@ -146,17 +147,21 @@ impl Plugin for GamePlugin {
         app.with_startup_system(spawn_world)
             .with_startup_system(setup_levels)
             .with_plugin(PickupPlugin)
-            .with_plugin(UIPlugin)
-            .with_set(
-                UIPlugin::system_set()
-                    .in_set(AppStage::Update)
-                    .after(PickupPlugin::system_set()),
-            )
+            .with_plugin(GameOverPlugin)
             .with_plugin(RewindPowerPlugin)
             .with_set(
                 RewindPowerPlugin::system_set()
                     .in_set(AppStage::Update)
-                    .before(UIPlugin::system_set()),
+                    .before(UIPlugin::system_set())
+                    .before(GameOverPlugin::system_set()),
+            )
+            .with_set(GameOverPlugin::system_set().in_set(AppStage::Update))
+            .with_plugin(UIPlugin)
+            .with_set(
+                UIPlugin::system_set()
+                    .in_set(AppStage::Update)
+                    .after(PickupPlugin::system_set())
+                    .after(GameOverPlugin::system_set()),
             )
             .with_plugin(Level0Plugin)
             .with_set(Level0Plugin::system_set().in_set(AppStage::UpdateLevel))
@@ -179,11 +184,7 @@ impl Plugin for GamePlugin {
                     .run_if(not(is_rewinding)),
             )
             .with_system(fall_out_of_world_system.in_set(AppStage::Update))
-            .with_system(
-                setup_next_level
-                    .in_set(AppStage::Update)
-                    .before(RewindPowerPlugin::system_set()),
-            );
+            .with_system(setup_next_level.in_set(AppStage::BeforeUpdate));
     }
 }
 
