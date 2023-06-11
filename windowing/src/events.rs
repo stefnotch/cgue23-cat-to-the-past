@@ -1,5 +1,3 @@
-
-
 pub struct WindowResize {
     pub width: u32,
     pub height: u32,
