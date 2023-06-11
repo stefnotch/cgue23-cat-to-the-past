@@ -289,12 +289,12 @@ fn accelerate(
     last_velocity + acceleration_direction * acceleration
 }
 
-pub fn has_free_camera_activated(query: Query<&CameraMode, With<Player>>) -> bool {
+fn has_free_camera_activated(query: Query<&CameraMode, With<Player>>) -> bool {
     let camera_mode = query.single();
     camera_mode.free_cam_activated
 }
 
-pub fn free_cam_toggle_system(
+fn free_cam_toggle_system(
     mut query: Query<&mut CameraMode, With<Player>>,
     mut reader: EventReader<KeyboardInput>,
 ) {

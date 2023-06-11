@@ -1,4 +1,5 @@
 pub mod config;
+pub mod events;
 mod icon;
 pub mod window;
 

@@ -8,7 +8,6 @@ use physics::plugin::PhysicsPlugin;
 use time::time::{Time, TimePlugin, TimePluginSet};
 use windowing::window::{EventLoopContainer, WindowPlugin};
 
-use crate::input::events::{WindowFocusChanged, WindowResize};
 use crate::level_flags::LevelFlagsPlugin;
 use crate::pickup_system::PickupPlugin;
 use crate::player::{PlayerPlugin, PlayerPluginSets};
@@ -28,6 +27,7 @@ use windowing::event::{
     WindowEvent,
 };
 use windowing::event_loop::ControlFlow;
+use windowing::events::{WindowFocusChanged, WindowResize};
 
 use windowing::window::CursorGrabMode;
 
