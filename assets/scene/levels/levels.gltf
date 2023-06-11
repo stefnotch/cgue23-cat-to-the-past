@@ -56,7 +56,7 @@
 			]
 		}
 	},
-	"scene":3,
+	"scene":2,
 	"scenes":[
 		{
 			"extras":{
@@ -99,9 +99,7 @@
 				24,
 				25,
 				26,
-				27,
-				28,
-				29
+				27
 			]
 		},
 		{
@@ -110,6 +108,8 @@
 			},
 			"name":"Level2",
 			"nodes":[
+				28,
+				29,
 				30,
 				31,
 				32,
@@ -122,11 +122,7 @@
 				39,
 				40,
 				41,
-				42,
-				43,
-				44,
-				45,
-				46
+				42
 			]
 		},
 		{
@@ -135,6 +131,10 @@
 			},
 			"name":"Level3",
 			"nodes":[
+				43,
+				44,
+				45,
+				46,
 				47,
 				48,
 				49,
@@ -148,11 +148,7 @@
 				57,
 				58,
 				59,
-				60,
-				61,
-				62,
-				63,
-				64
+				60
 			]
 		}
 	],
@@ -429,43 +425,11 @@
 		},
 		{
 			"extras":{
-				"flag_trigger":1
+				"casts_shadow":true,
+				"flag_trigger":0,
+				"pressure_plate":true
 			},
 			"mesh":18,
-			"name":"Sensor2",
-			"scale":[
-				1.25,
-				1,
-				1.25
-			],
-			"translation":[
-				-3,
-				7,
-				-19
-			]
-		},
-		{
-			"extras":{
-				"flag_trigger":0
-			},
-			"mesh":19,
-			"name":"Sensor1",
-			"scale":[
-				1.25,
-				1,
-				1.25
-			],
-			"translation":[
-				4,
-				1,
-				-10
-			]
-		},
-		{
-			"extras":{
-				"casts_shadow":true
-			},
-			"mesh":20,
 			"name":"Plate2",
 			"scale":[
 				1.25,
@@ -476,23 +440,6 @@
 				-3,
 				7,
 				-19
-			]
-		},
-		{
-			"extras":{
-				"casts_shadow":true
-			},
-			"mesh":21,
-			"name":"Plate1",
-			"scale":[
-				1.25,
-				1,
-				1.25
-			],
-			"translation":[
-				4,
-				1,
-				-10
 			]
 		},
 		{
@@ -518,7 +465,7 @@
 			"extras":{
 				"box_collider":true
 			},
-			"mesh":22,
+			"mesh":19,
 			"name":"Floor",
 			"translation":[
 				6,
@@ -540,7 +487,7 @@
 				"box_collider":true,
 				"door":true
 			},
-			"mesh":23,
+			"mesh":20,
 			"name":"Door.001",
 			"translation":[
 				-4,
@@ -555,7 +502,7 @@
 				"rigid_body":"dynamic",
 				"casts_shadow":true
 			},
-			"mesh":24,
+			"mesh":21,
 			"name":"CompanionCube",
 			"translation":[
 				-3,
@@ -567,7 +514,7 @@
 			"extras":{
 				"level_trigger":true
 			},
-			"mesh":25,
+			"mesh":22,
 			"name":"LevelTrigger.001",
 			"translation":[
 				2,
@@ -592,9 +539,28 @@
 		},
 		{
 			"extras":{
+				"casts_shadow":true,
+				"flag_trigger":1,
+				"pressure_plate":true
+			},
+			"mesh":23,
+			"name":"Plate2.003",
+			"scale":[
+				1.25,
+				1,
+				1.25
+			],
+			"translation":[
+				4,
+				1,
+				-10
+			]
+		},
+		{
+			"extras":{
 				"box_collider":true
 			},
-			"mesh":26,
+			"mesh":24,
 			"name":"UnitCube.003",
 			"translation":[
 				-6,
@@ -606,7 +572,7 @@
 			"extras":{
 				"box_collider":true
 			},
-			"mesh":27,
+			"mesh":25,
 			"name":"Floor.002",
 			"translation":[
 				6,
@@ -621,7 +587,7 @@
 				"rigid_body":"dynamic",
 				"casts_shadow":true
 			},
-			"mesh":28,
+			"mesh":26,
 			"name":"CompanionCube.001",
 			"translation":[
 				-4,
@@ -633,7 +599,7 @@
 			"extras":{
 				"box_collider":true
 			},
-			"mesh":29,
+			"mesh":27,
 			"name":"UnitCube",
 			"translation":[
 				-6,
@@ -645,7 +611,7 @@
 			"extras":{
 				"box_collider":true
 			},
-			"mesh":30,
+			"mesh":28,
 			"name":"UnitCube.002",
 			"translation":[
 				6,
@@ -668,7 +634,7 @@
 				"box_collider":true,
 				"casts_shadow":true
 			},
-			"mesh":31,
+			"mesh":29,
 			"name":"UnitCube.004",
 			"translation":[
 				-5,
@@ -690,7 +656,7 @@
 				"box_collider":true,
 				"door":true
 			},
-			"mesh":32,
+			"mesh":30,
 			"name":"Door.002",
 			"translation":[
 				-4,
@@ -700,26 +666,11 @@
 		},
 		{
 			"extras":{
+				"casts_shadow":true,
+				"pressure_plate":true,
 				"flag_trigger":1
 			},
-			"mesh":33,
-			"name":"Sensor2.001",
-			"scale":[
-				1.25,
-				1,
-				1.25
-			],
-			"translation":[
-				4,
-				12,
-				-34
-			]
-		},
-		{
-			"extras":{
-				"casts_shadow":true
-			},
-			"mesh":34,
+			"mesh":31,
 			"name":"Plate2.001",
 			"scale":[
 				1.25,
@@ -734,26 +685,11 @@
 		},
 		{
 			"extras":{
-				"flag_trigger":0
+				"casts_shadow":true,
+				"flag_trigger":0,
+				"pressure_plate":true
 			},
-			"mesh":35,
-			"name":"Sensor2.002",
-			"scale":[
-				1.25,
-				1,
-				1.25
-			],
-			"translation":[
-				3,
-				7,
-				-26
-			]
-		},
-		{
-			"extras":{
-				"casts_shadow":true
-			},
-			"mesh":36,
+			"mesh":32,
 			"name":"Plate2.002",
 			"scale":[
 				1.25,
@@ -789,7 +725,7 @@
 			"extras":{
 				"box_collider":true
 			},
-			"mesh":37,
+			"mesh":33,
 			"name":"WallNRight.002",
 			"translation":[
 				2,
@@ -801,7 +737,7 @@
 			"extras":{
 				"box_collider":true
 			},
-			"mesh":38,
+			"mesh":34,
 			"name":"WallNLeft.002",
 			"translation":[
 				-5,
@@ -813,7 +749,7 @@
 			"extras":{
 				"box_collider":true
 			},
-			"mesh":39,
+			"mesh":35,
 			"name":"UnitCube.005",
 			"translation":[
 				-1,
@@ -825,7 +761,7 @@
 			"extras":{
 				"level_trigger":true
 			},
-			"mesh":40,
+			"mesh":36,
 			"name":"LevelTrigger.002",
 			"translation":[
 				2,
@@ -852,7 +788,7 @@
 			"extras":{
 				"box_collider":true
 			},
-			"mesh":41,
+			"mesh":37,
 			"name":"Floor.001",
 			"translation":[
 				-6,
@@ -864,7 +800,7 @@
 			"extras":{
 				"box_collider":true
 			},
-			"mesh":42,
+			"mesh":38,
 			"name":"Right Wall",
 			"translation":[
 				-11,
@@ -876,7 +812,7 @@
 			"extras":{
 				"box_collider":true
 			},
-			"mesh":43,
+			"mesh":39,
 			"name":"Left Wall",
 			"translation":[
 				-20,
@@ -888,7 +824,7 @@
 			"extras":{
 				"box_collider":true
 			},
-			"mesh":44,
+			"mesh":40,
 			"name":"Left Ledge",
 			"translation":[
 				-14,
@@ -900,7 +836,7 @@
 			"extras":{
 				"box_collider":true
 			},
-			"mesh":45,
+			"mesh":41,
 			"name":"Right Ledge",
 			"translation":[
 				2.5,
@@ -914,7 +850,7 @@
 				"pickupable":true,
 				"rigid_body":"dynamic"
 			},
-			"mesh":46,
+			"mesh":42,
 			"name":"CompanionCube.002",
 			"translation":[
 				2,
@@ -928,7 +864,7 @@
 				"pickupable":true,
 				"rigid_body":"dynamic"
 			},
-			"mesh":47,
+			"mesh":43,
 			"name":"CompanionCube.008",
 			"translation":[
 				2,
@@ -942,7 +878,7 @@
 				"pickupable":true,
 				"rigid_body":"dynamic"
 			},
-			"mesh":48,
+			"mesh":44,
 			"name":"CompanionCube.009",
 			"translation":[
 				2,
@@ -955,7 +891,7 @@
 				"box_collider":true,
 				"rigid_body":"dynamic"
 			},
-			"mesh":49,
+			"mesh":45,
 			"name":"CompanionCube.010",
 			"translation":[
 				1.5,
@@ -988,7 +924,7 @@
 				"pickupable":true,
 				"rigid_body":"dynamic"
 			},
-			"mesh":50,
+			"mesh":46,
 			"name":"CompanionCube.003",
 			"translation":[
 				-1,
@@ -1002,7 +938,7 @@
 				"pickupable":true,
 				"rigid_body":"dynamic"
 			},
-			"mesh":51,
+			"mesh":47,
 			"name":"CompanionCube.004",
 			"translation":[
 				-1,
@@ -1016,7 +952,7 @@
 				"pickupable":true,
 				"rigid_body":"dynamic"
 			},
-			"mesh":52,
+			"mesh":48,
 			"name":"CompanionCube.005",
 			"translation":[
 				-1,
@@ -1029,7 +965,7 @@
 				"box_collider":true,
 				"casts_shadow":true
 			},
-			"mesh":53,
+			"mesh":49,
 			"name":"Step2.001",
 			"translation":[
 				-15,
@@ -1042,7 +978,7 @@
 				"box_collider":true,
 				"rigid_body":"dynamic"
 			},
-			"mesh":54,
+			"mesh":50,
 			"name":"CompanionCube.006",
 			"translation":[
 				-1.5,
@@ -1054,7 +990,7 @@
 			"extras":{
 				"box_collider":true
 			},
-			"mesh":55,
+			"mesh":51,
 			"name":"Back Wall",
 			"translation":[
 				-20,
@@ -1066,7 +1002,7 @@
 			"extras":{
 				"level_trigger":true
 			},
-			"mesh":56,
+			"mesh":52,
 			"name":"LevelTrigger",
 			"translation":[
 				2,
@@ -1518,7 +1454,7 @@
 			]
 		},
 		{
-			"name":"Cube.046",
+			"name":"Cube.048",
 			"primitives":[
 				{
 					"attributes":{
@@ -1531,7 +1467,7 @@
 			]
 		},
 		{
-			"name":"Cube.047",
+			"name":"Cube.050",
 			"primitives":[
 				{
 					"attributes":{
@@ -1539,12 +1475,13 @@
 						"TEXCOORD_0":62,
 						"NORMAL":63
 					},
-					"indices":7
+					"indices":7,
+					"material":4
 				}
 			]
 		},
 		{
-			"name":"Cube.048",
+			"name":"Cube.051",
 			"primitives":[
 				{
 					"attributes":{
@@ -1552,12 +1489,13 @@
 						"TEXCOORD_0":65,
 						"NORMAL":66
 					},
-					"indices":7
+					"indices":7,
+					"material":5
 				}
 			]
 		},
 		{
-			"name":"Cube.049",
+			"name":"Cube.053",
 			"primitives":[
 				{
 					"attributes":{
@@ -1570,7 +1508,7 @@
 			]
 		},
 		{
-			"name":"Cube.050",
+			"name":"Cube.016",
 			"primitives":[
 				{
 					"attributes":{
@@ -1578,13 +1516,12 @@
 						"TEXCOORD_0":71,
 						"NORMAL":72
 					},
-					"indices":7,
-					"material":4
+					"indices":3
 				}
 			]
 		},
 		{
-			"name":"Cube.051",
+			"name":"Cube.023",
 			"primitives":[
 				{
 					"attributes":{
@@ -1592,13 +1529,12 @@
 						"TEXCOORD_0":74,
 						"NORMAL":75
 					},
-					"indices":7,
-					"material":5
+					"indices":7
 				}
 			]
 		},
 		{
-			"name":"Cube.053",
+			"name":"Cube.054",
 			"primitives":[
 				{
 					"attributes":{
@@ -1606,12 +1542,13 @@
 						"TEXCOORD_0":77,
 						"NORMAL":78
 					},
-					"indices":7
+					"indices":7,
+					"material":6
 				}
 			]
 		},
 		{
-			"name":"Cube.016",
+			"name":"Cube.055",
 			"primitives":[
 				{
 					"attributes":{
@@ -1619,12 +1556,13 @@
 						"TEXCOORD_0":80,
 						"NORMAL":81
 					},
-					"indices":3
+					"indices":7,
+					"material":6
 				}
 			]
 		},
 		{
-			"name":"Cube.054",
+			"name":"Cube.056",
 			"primitives":[
 				{
 					"attributes":{
@@ -1637,7 +1575,7 @@
 			]
 		},
 		{
-			"name":"Cube.055",
+			"name":"Cube.001",
 			"primitives":[
 				{
 					"attributes":{
@@ -1651,7 +1589,7 @@
 			]
 		},
 		{
-			"name":"Cube.056",
+			"name":"Cube.057",
 			"primitives":[
 				{
 					"attributes":{
@@ -1659,12 +1597,13 @@
 						"TEXCOORD_0":89,
 						"NORMAL":90
 					},
-					"indices":7
+					"indices":7,
+					"material":6
 				}
 			]
 		},
 		{
-			"name":"Cube.001",
+			"name":"Cube.059",
 			"primitives":[
 				{
 					"attributes":{
@@ -1672,12 +1611,13 @@
 						"TEXCOORD_0":92,
 						"NORMAL":93
 					},
-					"indices":7
+					"indices":7,
+					"material":6
 				}
 			]
 		},
 		{
-			"name":"Cube.057",
+			"name":"Cube.061",
 			"primitives":[
 				{
 					"attributes":{
@@ -1685,12 +1625,13 @@
 						"TEXCOORD_0":95,
 						"NORMAL":96
 					},
-					"indices":7
+					"indices":7,
+					"material":7
 				}
 			]
 		},
 		{
-			"name":"Cube.059",
+			"name":"Cube.063",
 			"primitives":[
 				{
 					"attributes":{
@@ -1703,66 +1644,13 @@
 			]
 		},
 		{
-			"name":"Cube.061",
+			"name":"Cube.065",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":100,
 						"TEXCOORD_0":101,
 						"NORMAL":102
-					},
-					"indices":7,
-					"material":7
-				}
-			]
-		},
-		{
-			"name":"Cube.062",
-			"primitives":[
-				{
-					"attributes":{
-						"POSITION":103,
-						"TEXCOORD_0":104,
-						"NORMAL":105
-					},
-					"indices":7
-				}
-			]
-		},
-		{
-			"name":"Cube.063",
-			"primitives":[
-				{
-					"attributes":{
-						"POSITION":106,
-						"TEXCOORD_0":107,
-						"NORMAL":108
-					},
-					"indices":7
-				}
-			]
-		},
-		{
-			"name":"Cube.064",
-			"primitives":[
-				{
-					"attributes":{
-						"POSITION":109,
-						"TEXCOORD_0":110,
-						"NORMAL":111
-					},
-					"indices":7
-				}
-			]
-		},
-		{
-			"name":"Cube.065",
-			"primitives":[
-				{
-					"attributes":{
-						"POSITION":112,
-						"TEXCOORD_0":113,
-						"NORMAL":114
 					},
 					"indices":7
 				}
@@ -1773,9 +1661,9 @@
 			"primitives":[
 				{
 					"attributes":{
-						"POSITION":115,
-						"TEXCOORD_0":116,
-						"NORMAL":117
+						"POSITION":103,
+						"TEXCOORD_0":104,
+						"NORMAL":105
 					},
 					"indices":7,
 					"material":8
@@ -1787,9 +1675,9 @@
 			"primitives":[
 				{
 					"attributes":{
-						"POSITION":118,
-						"TEXCOORD_0":119,
-						"NORMAL":120
+						"POSITION":106,
+						"TEXCOORD_0":107,
+						"NORMAL":108
 					},
 					"indices":7,
 					"material":8
@@ -1801,9 +1689,9 @@
 			"primitives":[
 				{
 					"attributes":{
-						"POSITION":121,
-						"TEXCOORD_0":122,
-						"NORMAL":123
+						"POSITION":109,
+						"TEXCOORD_0":110,
+						"NORMAL":111
 					},
 					"indices":7,
 					"material":8
@@ -1815,9 +1703,9 @@
 			"primitives":[
 				{
 					"attributes":{
-						"POSITION":124,
-						"TEXCOORD_0":125,
-						"NORMAL":126
+						"POSITION":112,
+						"TEXCOORD_0":113,
+						"NORMAL":114
 					},
 					"indices":3
 				}
@@ -1825,6 +1713,62 @@
 		},
 		{
 			"name":"Cube.068",
+			"primitives":[
+				{
+					"attributes":{
+						"POSITION":115,
+						"TEXCOORD_0":116,
+						"NORMAL":117
+					},
+					"indices":7,
+					"material":0
+				}
+			]
+		},
+		{
+			"name":"Cube.069",
+			"primitives":[
+				{
+					"attributes":{
+						"POSITION":118,
+						"TEXCOORD_0":119,
+						"NORMAL":120
+					},
+					"indices":7,
+					"material":0
+				}
+			]
+		},
+		{
+			"name":"Cube.070",
+			"primitives":[
+				{
+					"attributes":{
+						"POSITION":121,
+						"TEXCOORD_0":122,
+						"NORMAL":123
+					},
+					"indices":7,
+					"material":0
+				}
+			]
+		},
+		{
+			"name":"Cube.071",
+			"primitives":[
+				{
+					"attributes":{
+						"POSITION":124,
+						"TEXCOORD_0":125,
+						"NORMAL":126
+					},
+					"indices":7,
+					"material":0
+				}
+			]
+		},
+		{
+			"name":"Cube.072",
 			"primitives":[
 				{
 					"attributes":{
@@ -1838,7 +1782,7 @@
 			]
 		},
 		{
-			"name":"Cube.069",
+			"name":"Cube.074",
 			"primitives":[
 				{
 					"attributes":{
@@ -1846,13 +1790,12 @@
 						"TEXCOORD_0":131,
 						"NORMAL":132
 					},
-					"indices":7,
-					"material":0
+					"indices":7
 				}
 			]
 		},
 		{
-			"name":"Cube.070",
+			"name":"Cube.075",
 			"primitives":[
 				{
 					"attributes":{
@@ -1860,13 +1803,12 @@
 						"TEXCOORD_0":134,
 						"NORMAL":135
 					},
-					"indices":7,
-					"material":0
+					"indices":7
 				}
 			]
 		},
 		{
-			"name":"Cube.071",
+			"name":"Cube.076",
 			"primitives":[
 				{
 					"attributes":{
@@ -1874,13 +1816,12 @@
 						"TEXCOORD_0":137,
 						"NORMAL":138
 					},
-					"indices":7,
-					"material":0
+					"indices":7
 				}
 			]
 		},
 		{
-			"name":"Cube.072",
+			"name":"Cube.077",
 			"primitives":[
 				{
 					"attributes":{
@@ -1894,7 +1835,7 @@
 			]
 		},
 		{
-			"name":"Cube.074",
+			"name":"Cube.013",
 			"primitives":[
 				{
 					"attributes":{
@@ -1907,7 +1848,7 @@
 			]
 		},
 		{
-			"name":"Cube.075",
+			"name":"Cube.014",
 			"primitives":[
 				{
 					"attributes":{
@@ -1920,7 +1861,7 @@
 			]
 		},
 		{
-			"name":"Cube.076",
+			"name":"Cube.015",
 			"primitives":[
 				{
 					"attributes":{
@@ -1933,7 +1874,7 @@
 			]
 		},
 		{
-			"name":"Cube.077",
+			"name":"Cube.017",
 			"primitives":[
 				{
 					"attributes":{
@@ -1947,66 +1888,13 @@
 			]
 		},
 		{
-			"name":"Cube.013",
+			"name":"Cube.018",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":154,
 						"TEXCOORD_0":155,
 						"NORMAL":156
-					},
-					"indices":7
-				}
-			]
-		},
-		{
-			"name":"Cube.014",
-			"primitives":[
-				{
-					"attributes":{
-						"POSITION":157,
-						"TEXCOORD_0":158,
-						"NORMAL":159
-					},
-					"indices":7
-				}
-			]
-		},
-		{
-			"name":"Cube.015",
-			"primitives":[
-				{
-					"attributes":{
-						"POSITION":160,
-						"TEXCOORD_0":161,
-						"NORMAL":162
-					},
-					"indices":7
-				}
-			]
-		},
-		{
-			"name":"Cube.017",
-			"primitives":[
-				{
-					"attributes":{
-						"POSITION":163,
-						"TEXCOORD_0":164,
-						"NORMAL":165
-					},
-					"indices":7,
-					"material":0
-				}
-			]
-		},
-		{
-			"name":"Cube.018",
-			"primitives":[
-				{
-					"attributes":{
-						"POSITION":166,
-						"TEXCOORD_0":167,
-						"NORMAL":168
 					},
 					"indices":7,
 					"material":0
@@ -2018,9 +1906,9 @@
 			"primitives":[
 				{
 					"attributes":{
-						"POSITION":169,
-						"TEXCOORD_0":170,
-						"NORMAL":171
+						"POSITION":157,
+						"TEXCOORD_0":158,
+						"NORMAL":159
 					},
 					"indices":7,
 					"material":0
@@ -2032,9 +1920,9 @@
 			"primitives":[
 				{
 					"attributes":{
-						"POSITION":172,
-						"TEXCOORD_0":173,
-						"NORMAL":174
+						"POSITION":160,
+						"TEXCOORD_0":161,
+						"NORMAL":162
 					},
 					"indices":3
 				}
@@ -2576,7 +2464,7 @@
 			"count":24,
 			"max":[
 				0.5,
-				0.6000000238418579,
+				-0.3999999761581421,
 				0.5
 			],
 			"min":[
@@ -2604,13 +2492,13 @@
 			"count":24,
 			"max":[
 				0.5,
-				0.6000000238418579,
+				0.5,
 				0.5
 			],
 			"min":[
+				-12.5,
 				-0.5,
-				-0.5,
-				-0.5
+				-14.5
 			],
 			"type":"VEC3"
 		},
@@ -2631,14 +2519,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				0.5,
-				-0.3999999761581421,
-				0.5
+				5.5,
+				1.5,
+				-4.875
 			],
 			"min":[
-				-0.5,
-				-0.5,
-				-0.5
+				2.5,
+				-1.5,
+				-5.125
 			],
 			"type":"VEC3"
 		},
@@ -2660,7 +2548,7 @@
 			"count":24,
 			"max":[
 				0.5,
-				-0.3999999761581421,
+				0.5,
 				0.5
 			],
 			"min":[
@@ -2688,13 +2576,13 @@
 			"count":24,
 			"max":[
 				0.5,
-				0.5,
-				0.5
+				2.5999999046325684,
+				1.5
 			],
 			"min":[
-				-12.5,
+				-4.5,
 				-0.5,
-				-14.5
+				1
 			],
 			"type":"VEC3"
 		},
@@ -2715,14 +2603,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				5.5,
-				1.5,
-				-4.875
+				0.5,
+				-0.3999999761581421,
+				0.5
 			],
 			"min":[
-				2.5,
-				-1.5,
-				-5.125
+				-0.5,
+				-0.5,
+				-0.5
 			],
 			"type":"VEC3"
 		},
@@ -2743,14 +2631,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				0.5,
-				0.5,
+				11.5,
+				4.5,
 				0.5
 			],
 			"min":[
+				0.5,
 				-0.5,
-				-0.5,
-				-0.5
+				-6.5
 			],
 			"type":"VEC3"
 		},
@@ -2772,13 +2660,13 @@
 			"count":24,
 			"max":[
 				0.5,
-				2.5999999046325684,
-				1.5
+				0.5,
+				0.5
 			],
 			"min":[
-				-4.5,
+				-12.5,
 				-0.5,
-				1
+				-15.5
 			],
 			"type":"VEC3"
 		},
@@ -2799,14 +2687,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				11.5,
-				4.5,
+				0.5,
+				0.5,
 				0.5
 			],
 			"min":[
-				0.5,
 				-0.5,
-				-6.5
+				-0.5,
+				-0.5
 			],
 			"type":"VEC3"
 		},
@@ -2828,11 +2716,11 @@
 			"count":24,
 			"max":[
 				0.5,
-				0.5,
+				8.5,
 				0.5
 			],
 			"min":[
-				-12.5,
+				-0.5,
 				-0.5,
 				-15.5
 			],
@@ -2856,13 +2744,13 @@
 			"count":24,
 			"max":[
 				0.5,
-				0.5,
+				8.5,
 				0.5
 			],
 			"min":[
 				-0.5,
 				-0.5,
-				-0.5
+				-15.5
 			],
 			"type":"VEC3"
 		},
@@ -2883,9 +2771,9 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
+				2.5,
 				0.5,
-				8.5,
-				0.5
+				-12.5
 			],
 			"min":[
 				-0.5,
@@ -2911,14 +2799,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				0.5,
-				8.5,
-				0.5
+				5.5,
+				1.5,
+				-4.875
 			],
 			"min":[
-				-0.5,
-				-0.5,
-				-15.5
+				2.5,
+				-1.5,
+				-5.125
 			],
 			"type":"VEC3"
 		},
@@ -2939,14 +2827,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				2.5,
 				0.5,
-				-12.5
+				-0.3999999761581421,
+				0.5
 			],
 			"min":[
 				-0.5,
 				-0.5,
-				-15.5
+				-0.5
 			],
 			"type":"VEC3"
 		},
@@ -2967,14 +2855,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				5.5,
-				1.5,
-				-4.875
+				0.5,
+				-0.3999999761581421,
+				0.5
 			],
 			"min":[
-				2.5,
-				-1.5,
-				-5.125
+				-0.5,
+				-0.5,
+				-0.5
 			],
 			"type":"VEC3"
 		},
@@ -2995,8 +2883,8 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				0.5,
-				0.6000000238418579,
+				3.5,
+				3.5,
 				0.5
 			],
 			"min":[
@@ -3023,8 +2911,8 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				0.5,
-				-0.3999999761581421,
+				3.5,
+				3.5,
 				0.5
 			],
 			"min":[
@@ -3051,8 +2939,8 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
+				2.5,
 				0.5,
-				0.6000000238418579,
 				0.5
 			],
 			"min":[
@@ -3080,13 +2968,13 @@
 			"count":24,
 			"max":[
 				0.5,
-				-0.3999999761581421,
-				0.5
+				2.5999999046325684,
+				1.5
 			],
 			"min":[
+				-4.5,
 				-0.5,
-				-0.5,
-				-0.5
+				1
 			],
 			"type":"VEC3"
 		},
@@ -3107,14 +2995,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				3.5,
-				3.5,
+				10.5,
+				0.5,
 				0.5
 			],
 			"min":[
+				1.5,
 				-0.5,
-				-0.5,
-				-0.5
+				-12.5
 			],
 			"type":"VEC3"
 		},
@@ -3135,14 +3023,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				3.5,
-				3.5,
+				16.5,
+				0.5,
 				0.5
 			],
 			"min":[
-				-0.5,
-				-0.5,
-				-0.5
+				15.5,
+				-3.5,
+				-11.5
 			],
 			"type":"VEC3"
 		},
@@ -3163,14 +3051,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				2.5,
-				0.5,
-				0.5
+				16.5,
+				-0.5,
+				-5.5
 			],
 			"min":[
-				-0.5,
-				-0.5,
-				-0.5
+				15.5,
+				-3.5,
+				-11.5
 			],
 			"type":"VEC3"
 		},
@@ -3191,14 +3079,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
+				10.5,
 				0.5,
-				2.5999999046325684,
-				1.5
+				-5.5
 			],
 			"min":[
-				-4.5,
+				3.5,
 				-0.5,
-				1
+				-11.5
 			],
 			"type":"VEC3"
 		},
@@ -3226,7 +3114,7 @@
 			"min":[
 				1.5,
 				-0.5,
-				-12.5
+				-11.5
 			],
 			"type":"VEC3"
 		},
@@ -3247,14 +3135,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				16.5,
+				0.5,
 				0.5,
 				0.5
 			],
 			"min":[
-				15.5,
-				-3.5,
-				-11.5
+				-0.5,
+				-0.5,
+				-0.5
 			],
 			"type":"VEC3"
 		},
@@ -3275,14 +3163,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				16.5,
-				-0.5,
-				-5.5
+				0.5,
+				0.5,
+				0.5
 			],
 			"min":[
-				15.5,
-				-3.5,
-				-11.5
+				-0.5,
+				-0.5,
+				-0.5
 			],
 			"type":"VEC3"
 		},
@@ -3303,14 +3191,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				10.5,
 				0.5,
-				-5.5
+				0.5,
+				0.5
 			],
 			"min":[
-				3.5,
 				-0.5,
-				-11.5
+				-0.5,
+				-0.5
 			],
 			"type":"VEC3"
 		},
@@ -3331,14 +3219,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				10.5,
-				0.5,
-				0.5
+				1.5,
+				0,
+				1.5
 			],
 			"min":[
-				1.5,
 				-0.5,
-				-11.5
+				-0.5,
+				-0.5
 			],
 			"type":"VEC3"
 		},
@@ -3443,14 +3331,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				1.5,
-				0,
-				1.5
+				11.5,
+				2.5,
+				0.5
 			],
 			"min":[
+				4.5,
 				-0.5,
-				-0.5,
-				-0.5
+				-5.5
 			],
 			"type":"VEC3"
 		},
@@ -3471,9 +3359,9 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				0.5,
-				0.5,
-				0.5
+				1.5,
+				0,
+				1.5
 			],
 			"min":[
 				-0.5,
@@ -3499,14 +3387,14 @@
 			"componentType":5126,
 			"count":24,
 			"max":[
-				0.5,
-				0.5,
-				0.5
+				33.5,
+				5.5,
+				-10.5
 			],
 			"min":[
-				-0.5,
-				-0.5,
-				-0.5
+				9.5,
+				-3.5,
+				-11.5
 			],
 			"type":"VEC3"
 		},
@@ -3528,118 +3416,6 @@
 			"count":24,
 			"max":[
 				0.5,
-				0.5,
-				0.5
-			],
-			"min":[
-				-0.5,
-				-0.5,
-				-0.5
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":161,
-			"componentType":5126,
-			"count":24,
-			"type":"VEC2"
-		},
-		{
-			"bufferView":162,
-			"componentType":5126,
-			"count":24,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":163,
-			"componentType":5126,
-			"count":24,
-			"max":[
-				11.5,
-				2.5,
-				0.5
-			],
-			"min":[
-				4.5,
-				-0.5,
-				-5.5
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":164,
-			"componentType":5126,
-			"count":24,
-			"type":"VEC2"
-		},
-		{
-			"bufferView":165,
-			"componentType":5126,
-			"count":24,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":166,
-			"componentType":5126,
-			"count":24,
-			"max":[
-				1.5,
-				0,
-				1.5
-			],
-			"min":[
-				-0.5,
-				-0.5,
-				-0.5
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":167,
-			"componentType":5126,
-			"count":24,
-			"type":"VEC2"
-		},
-		{
-			"bufferView":168,
-			"componentType":5126,
-			"count":24,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":169,
-			"componentType":5126,
-			"count":24,
-			"max":[
-				33.5,
-				5.5,
-				-10.5
-			],
-			"min":[
-				9.5,
-				-3.5,
-				-11.5
-			],
-			"type":"VEC3"
-		},
-		{
-			"bufferView":170,
-			"componentType":5126,
-			"count":24,
-			"type":"VEC2"
-		},
-		{
-			"bufferView":171,
-			"componentType":5126,
-			"count":24,
-			"type":"VEC3"
-		},
-		{
-			"bufferView":172,
-			"componentType":5126,
-			"count":24,
-			"max":[
-				0.5,
 				2.5999999046325684,
 				1.5
 			],
@@ -3651,13 +3427,13 @@
 			"type":"VEC3"
 		},
 		{
-			"bufferView":173,
+			"bufferView":161,
 			"componentType":5126,
 			"count":24,
 			"type":"VEC2"
 		},
 		{
-			"bufferView":174,
+			"bufferView":162,
 			"componentType":5126,
 			"count":24,
 			"type":"VEC3"
@@ -4641,83 +4417,11 @@
 			"byteLength":288,
 			"byteOffset":67416,
 			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":288,
-			"byteOffset":67704,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":192,
-			"byteOffset":67992,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":288,
-			"byteOffset":68184,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":288,
-			"byteOffset":68472,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":192,
-			"byteOffset":68760,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":288,
-			"byteOffset":68952,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":288,
-			"byteOffset":69240,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":192,
-			"byteOffset":69528,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":288,
-			"byteOffset":69720,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":288,
-			"byteOffset":70008,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":192,
-			"byteOffset":70296,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":288,
-			"byteOffset":70488,
-			"target":34962
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":70776,
+			"byteLength":67704,
 			"uri":"levels.bin"
 		}
 	]

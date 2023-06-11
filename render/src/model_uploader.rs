@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use bevy_ecs::prelude::Changed;
 use bevy_ecs::{
     prelude::Entity,
     query::Without,
@@ -85,6 +86,30 @@ pub fn create_gpu_models(
 
         let gpu_model = GpuModel { primitives };
         commands.entity(entity).insert(gpu_model);
+    }
+}
+
+pub fn update_gpu_models(
+    context: Res<Context>,
+    mut texture_assets: ResMut<Assets<Texture>>,
+    mut material_assets: ResMut<Assets<Material>>,
+    mut samplers: ResMut<SamplerInfoMap>,
+    mut query_models: Query<(&mut GpuModel, &Model), Changed<Model>>,
+) {
+    for (mut gpu_model, cpu_model) in query_models.iter_mut() {
+        for (gpu_primitive, cpu_primitive) in gpu_model
+            .primitives
+            .iter_mut()
+            .zip(cpu_model.primitives.iter())
+        {
+            gpu_primitive.material = create_gpu_material(
+                &mut material_assets,
+                &mut texture_assets,
+                &mut samplers,
+                cpu_primitive.material.as_ref(),
+                &context,
+            );
+        }
     }
 }
 

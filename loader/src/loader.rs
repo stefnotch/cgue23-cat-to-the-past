@@ -43,6 +43,12 @@ pub struct Door {}
 #[derive(Component)]
 pub struct Platform;
 
+#[derive(Component)]
+pub struct PressurePlate {
+    pub active_material: Arc<CpuMaterial>,
+    pub inactive_material: Arc<CpuMaterial>,
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 struct AnimationProperty {
@@ -62,6 +68,7 @@ struct GLTFNodeExtras {
     pub platform: Option<bool>,
     pub pickupable: Option<bool>,
     pub casts_shadow: Option<bool>,
+    pub pressure_plate: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -86,6 +93,20 @@ impl SceneLoader {
         let (doc, buffers, images) = import(path)?;
 
         let mut scene_loading_data = SceneLoadingData::new(buffers, images);
+
+        let inactive_pressure_plate_material = Arc::new(CpuMaterial {
+            base_color: [0.0, 0.5, 0.8].into(),
+            ..CpuMaterial::default()
+        });
+
+        let active_pressure_plate_material = Arc::new(CpuMaterial {
+            base_color: inactive_pressure_plate_material.base_color.into(),
+            emissivity: inactive_pressure_plate_material
+                .base_color
+                .scale(2.0)
+                .into(),
+            ..CpuMaterial::default()
+        });
 
         for scene in doc.scenes() {
             let scene_extras = scene
@@ -146,6 +167,7 @@ impl SceneLoader {
                     entity.insert(CastsShadow);
                 }
 
+                let mut has_model = true;
                 if let Some(flag) = extras.flag_trigger {
                     entity.insert((
                         FlagTrigger {
@@ -155,15 +177,14 @@ impl SceneLoader {
                         box_collider.clone(),
                         EntityEvent::<CollisionEvent>::default(),
                     ));
+                    has_model = false;
                 } else if let Some(true) = extras.level_trigger {
                     entity.insert((
                         NextLevelTrigger,
                         box_collider.clone(),
                         EntityEvent::<CollisionEvent>::default(),
                     ));
-                } else {
-                    // add model component
-                    entity.insert(model);
+                    has_model = false;
                 }
 
                 // add box collider component
@@ -183,6 +204,14 @@ impl SceneLoader {
 
                 if let Some(true) = extras.door {
                     entity.insert(Door {});
+                }
+
+                if let Some(true) = extras.pressure_plate {
+                    entity.insert(PressurePlate {
+                        active_material: active_pressure_plate_material.clone(),
+                        inactive_material: inactive_pressure_plate_material.clone(),
+                    });
+                    has_model = true;
                 }
 
                 if let Some(true) = extras.platform {
@@ -211,6 +240,11 @@ impl SceneLoader {
 
                 if let Some(true) = extras.pickupable {
                     entity.insert(Pickupable);
+                }
+
+                if has_model {
+                    // add model component
+                    entity.insert(model);
                 }
             }
         }

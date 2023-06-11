@@ -15,7 +15,7 @@ use game::level_flags::{FlagChange, LevelFlags};
 use game::pickup_system::PickupPlugin;
 use game::rewind_power::{RewindPower, RewindPowerPlugin};
 use loader::config_loader::LoadableConfig;
-use loader::loader::SceneLoader;
+use loader::loader::{PressurePlate, SceneLoader};
 use scene::flag_trigger::FlagTrigger;
 use scene::level::{NextLevelTrigger, Spawnpoint};
 
@@ -30,6 +30,7 @@ use game::game_ui::UIPlugin;
 use game::player::{Player, PlayerControllerSettings, PlayerPlugin, PlayerSpawnSettings};
 
 use physics::physics_events::CollisionEvent;
+use scene::model::Model;
 
 use crate::levels::level0::Level0Plugin;
 use crate::levels::level1::Level1Plugin;
@@ -99,6 +100,22 @@ fn flag_system(
                 level_flag_value,
                 &mut game_changes,
             );
+        }
+    }
+}
+
+fn pressure_plate_system(
+    mut query: Query<(&mut Model, &PressurePlate, &FlagTrigger)>,
+    level_flags: Res<LevelFlags>,
+) {
+    for (mut model, pressure_plate, flag_trigger) in query.iter_mut() {
+        for primitive in model.primitives.iter_mut() {
+            let active = level_flags.get(flag_trigger.level_id, flag_trigger.flag_id);
+            primitive.material = if active {
+                pressure_plate.active_material.clone()
+            } else {
+                pressure_plate.inactive_material.clone()
+            };
         }
     }
 }
@@ -177,6 +194,11 @@ impl Plugin for GamePlugin {
                 flag_system
                     .in_set(AppStage::Update)
                     .run_if(not(is_rewinding)),
+            )
+            .with_system(
+                pressure_plate_system
+                    .in_set(AppStage::Update)
+                    .before(flag_system),
             )
             .with_system(fall_out_of_world_system.in_set(AppStage::Update))
             .with_system(

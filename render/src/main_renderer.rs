@@ -1,7 +1,9 @@
 use crate::bloom_renderer::BloomRenderer;
 use crate::context::Context;
 use crate::create_gpu_models;
-use crate::model_uploader::{create_ui_component, ModelUploaderAllocator, SamplerInfoMap};
+use crate::model_uploader::{
+    create_ui_component, update_gpu_models, ModelUploaderAllocator, SamplerInfoMap,
+};
 use crate::quad_renderer::QuadRenderer;
 use crate::scene::material::Material;
 use crate::scene::mesh::Mesh;
@@ -187,9 +189,15 @@ impl Plugin for RendererPlugin {
                     .before(render),
             )
             .with_system(
-                create_ui_component
+                update_gpu_models
                     .in_set(RendererPluginSets::Render)
                     .after(create_gpu_models)
+                    .before(render),
+            )
+            .with_system(
+                create_ui_component
+                    .in_set(RendererPluginSets::Render)
+                    .after(update_gpu_models)
                     .before(render),
             )
             .with_system(render.in_set(RendererPluginSets::Render))
