@@ -302,6 +302,12 @@ fn update_camera_aspect_ratio(mut camera: ResMut<Camera>, mut reader: EventReade
     }
 }
 
-fn read_input(mut time_manager: ResMut<TimeManager>, mouse_input: Res<InputMap>) {
-    time_manager.will_rewind_next_frame = mouse_input.is_mouse_pressed(MouseButton::Right);
+fn read_input(mut time_manager: ResMut<TimeManager>, input: Res<InputMap>) {
+    if input.is_mouse_pressed(MouseButton::Right) {
+        if input.is_pressed(VirtualKeyCode::LShift) || input.is_pressed(VirtualKeyCode::RShift) {
+            time_manager.rewind_next_frame = Some(3.0);
+        } else {
+            time_manager.rewind_next_frame = Some(1.0);
+        }
+    }
 }

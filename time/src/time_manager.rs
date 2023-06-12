@@ -47,7 +47,8 @@ pub enum TimeState {
 #[derive(Resource)]
 pub struct TimeManager {
     level_delta_time: SignedDuration,
-    pub will_rewind_next_frame: bool,
+    /// If this is Some, then we're rewinding with a certain factor/speed
+    pub rewind_next_frame: Option<f32>,
     time_state: TimeState,
     level_time: LevelTime,
 }
@@ -60,7 +61,7 @@ impl TimeManager {
     fn new() -> Self {
         Self {
             level_delta_time: Default::default(),
-            will_rewind_next_frame: false,
+            rewind_next_frame: None,
             time_state: TimeState::Normal,
             level_time: LevelTime::zero(),
         }
@@ -69,9 +70,11 @@ impl TimeManager {
     pub fn start_frame(&mut self, delta: Duration) {
         let old_level_time = self.level_time;
 
-        if self.will_rewind_next_frame {
+        if let Some(rewind_speed_factor) = self.rewind_next_frame.take() {
             // Rewinding
-            self.level_time = self.level_time.sub_or_zero(delta);
+            self.level_time = self
+                .level_time
+                .sub_or_zero(delta.mul_f32(rewind_speed_factor));
             match self.time_state {
                 TimeState::Normal => {
                     self.time_state = TimeState::StartRewinding;

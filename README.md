@@ -20,6 +20,7 @@ Should make for an interesting puzzle game. Or a stealth:tm: game, because you c
   - WASD + Space to move around in the freecam mode
 - Right mouse button for time rewinding
 - Left mouse button for interacting
+- Shift to speed up rewinding. Not actually needed to solve any levels.
 - Esc to quit
 
 ## File structure
