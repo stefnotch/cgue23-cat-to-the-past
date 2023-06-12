@@ -119,8 +119,6 @@ impl Application {
             )
             .with_plugin(InputPlugin)
             .with_set(InputPlugin::system_set().in_set(AppStage::EventUpdate))
-            .with_plugin(LevelFlagsPlugin)
-            .with_set(LevelFlagsPlugin::system_set().in_set(AppStage::BeforeUpdate))
             .with_plugin(AnimationPlugin)
             .with_set(
                 AnimationPlugin::system_set()

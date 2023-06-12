@@ -3,11 +3,13 @@ use app::plugin::Plugin;
 use bevy_ecs::{
     prelude::{Query, Res},
     query::With,
-    system::Local,
+    schedule::IntoSystemConfig,
+    system::{Local, ResMut},
 };
-use game::level_flags::LevelFlags;
+use game::level_flags::{FlagChange, LevelFlags};
 use levels::level_id::LevelId;
 use loader::loader::Door;
+use time::time_manager::game_change::GameChangeHistory;
 use time::time_manager::TimeManager;
 
 fn door_system(
@@ -18,9 +20,9 @@ fn door_system(
 ) {
     let level_id = LevelId::new(0);
 
-    let door_should_open = level_flags.get(level_id, 0);
-    if door_should_open != *door_flag_value {
-        *door_flag_value = door_should_open;
+    let door_should_close = level_flags.get(level_id, 1);
+    if door_should_close != *door_flag_value {
+        *door_flag_value = door_should_close;
     } else {
         return;
     }
@@ -30,8 +32,21 @@ fn door_system(
         .find(|(_, level)| level == &&level_id)
         .unwrap()
         .0;
-    if door_should_open {
+    if door_should_close {
         animation.play_forwards(*time.level_time());
+    } else if !door_should_close {
+        animation.play_backwards(*time.level_time());
+    }
+}
+
+fn laser_system(
+    mut level_flags: ResMut<LevelFlags>,
+    mut game_change_history: ResMut<GameChangeHistory<FlagChange>>,
+) {
+    let level_id = LevelId::new(0);
+    let laser_activated = level_flags.get(level_id, 0);
+    if laser_activated {
+        level_flags.set_and_record(level_id, 1, true, &mut game_change_history);
     }
 }
 
@@ -39,6 +54,9 @@ pub struct Level0Plugin;
 
 impl Plugin for Level0Plugin {
     fn build(&mut self, app: &mut app::plugin::PluginAppAccess) {
-        app.with_system(door_system);
+        app
+            //
+            .with_system(laser_system)
+            .with_system(door_system.after(laser_system));
     }
 }

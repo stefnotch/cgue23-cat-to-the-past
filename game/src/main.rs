@@ -12,7 +12,7 @@ use bevy_ecs::schedule::IntoSystemConfig;
 use bevy_ecs::schedule::IntoSystemSetConfig;
 use debug::setup_debugging;
 use game::game_over::GameOverPlugin;
-use game::level_flags::{FlagChange, LevelFlags};
+use game::level_flags::{FlagChange, LevelFlags, LevelFlagsPlugin};
 use game::pickup_system::PickupPlugin;
 use game::rewind_power::{RewindPower, RewindPowerPlugin};
 use loader::config_loader::LoadableConfig;
@@ -49,19 +49,18 @@ fn spawn_world(mut commands: Commands, scene_loader: Res<SceneLoader>) {
     );
 }
 
-fn setup_levels(
-    mut level_flags: ResMut<LevelFlags>,
-    mut game_changes: ResMut<game_change::GameChangeHistory<FlagChange>>,
-) {
-    level_flags.set_count(LevelId::new(0), 1, &mut game_changes);
-    level_flags.set_count(LevelId::new(1), 2, &mut game_changes);
-    level_flags.set_count(LevelId::new(2), 2, &mut game_changes);
-    level_flags.set_count(LevelId::new(3), 0, &mut game_changes);
+fn setup_levels(mut level_flags: ResMut<LevelFlags>) {
+    level_flags.set_count(LevelId::new(0), 2);
+    level_flags.set_count(LevelId::new(1), 2);
+    level_flags.set_count(LevelId::new(2), 2);
+    level_flags.set_count(LevelId::new(3), 0);
 }
 
 fn setup_next_level(
     mut next_level_events: EventReader<NextLevel>,
     mut rewind_power: ResMut<RewindPower>,
+    mut game_changes: ResMut<game_change::GameChangeHistory<FlagChange>>,
+    mut level_flags: ResMut<LevelFlags>,
 ) {
     for next_level in next_level_events.iter() {
         let rewind_power_per_level = match next_level.level_id.id() {
@@ -73,6 +72,7 @@ fn setup_next_level(
         };
 
         rewind_power.set_rewind_power(rewind_power_per_level);
+        level_flags.reset_and_record(next_level.level_id, &mut game_changes);
     }
 }
 
@@ -206,7 +206,13 @@ impl Plugin for GamePlugin {
                     .before(flag_system),
             )
             .with_system(fall_out_of_world_system.in_set(AppStage::Update))
-            .with_system(setup_next_level.in_set(AppStage::BeforeUpdate));
+            .with_plugin(LevelFlagsPlugin)
+            .with_set(LevelFlagsPlugin::system_set().in_set(AppStage::BeforeUpdate))
+            .with_system(
+                setup_next_level
+                    .in_set(AppStage::BeforeUpdate)
+                    .after(LevelFlagsPlugin::system_set()),
+            );
     }
 }
 

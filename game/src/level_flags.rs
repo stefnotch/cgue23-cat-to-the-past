@@ -21,23 +21,9 @@ impl LevelFlags {
         }
     }
 
-    pub fn set_count(
-        &mut self,
-        level_id: LevelId,
-        count: usize,
-        game_change_history: &mut GameChangeHistory<FlagChange>,
-    ) {
+    pub fn set_count(&mut self, level_id: LevelId, count: usize) {
         let old_value = self.flags.insert(level_id, vec![false; count]);
         assert!(old_value.is_none());
-
-        // Record the starting values
-        for flag_id in 0..count {
-            game_change_history.add_command(FlagChange {
-                level_id,
-                flag_id: flag_id as FlagId,
-                value: false,
-            });
-        }
     }
 
     pub fn set_and_record(
@@ -56,6 +42,22 @@ impl LevelFlags {
             flag_id,
             value,
         });
+    }
+
+    pub fn reset_and_record(
+        &mut self,
+        level_id: LevelId,
+        game_change_history: &mut GameChangeHistory<FlagChange>,
+    ) {
+        let count = self.flags.get(&level_id).unwrap().len();
+        for flag_id in 0..count {
+            self.set(level_id, flag_id, false);
+            game_change_history.add_command(FlagChange {
+                level_id,
+                flag_id: flag_id as FlagId,
+                value: false,
+            });
+        }
     }
 
     /// Internal method

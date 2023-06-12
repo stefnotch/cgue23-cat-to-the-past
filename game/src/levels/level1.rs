@@ -32,6 +32,8 @@ fn door_system(
         .0;
     if door_should_open {
         animation.play_forwards(*time.level_time());
+    } else if !door_should_open {
+        animation.play_backwards(*time.level_time());
     }
 }
 
