@@ -1,11 +1,15 @@
 use std::collections::HashMap;
 
 use bevy_ecs::{
+    prelude::EventReader,
     query::Changed,
     system::{Query, Res, ResMut},
 };
 
-use levels::{current_level::CurrentLevel, level_id::LevelId};
+use levels::{
+    current_level::{CurrentLevel, NextLevel},
+    level_id::LevelId,
+};
 use scene::transform::Transform;
 
 use time::time_manager::{
@@ -25,6 +29,20 @@ pub fn time_manager_track_transform(
             continue;
         }
         history.add_command(TransformChange::new(time_tracked, transform.clone()));
+    }
+}
+pub fn time_manager_start_track_transform(
+    mut next_level_events: EventReader<NextLevel>,
+    mut history: ResMut<GameChangeHistory<TransformChange>>,
+    query: Query<(&TimeTracked, &Transform, &LevelId)>,
+) {
+    for next_level_event in next_level_events.iter() {
+        for (time_tracked, transform, level_id) in &query {
+            if level_id != &next_level_event.level_id {
+                continue;
+            }
+            history.add_command(TransformChange::new(time_tracked, transform.clone()));
+        }
     }
 }
 

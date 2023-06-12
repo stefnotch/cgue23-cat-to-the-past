@@ -59,8 +59,6 @@ fn setup_levels(mut level_flags: ResMut<LevelFlags>) {
 fn setup_next_level(
     mut next_level_events: EventReader<NextLevel>,
     mut rewind_power: ResMut<RewindPower>,
-    mut game_changes: ResMut<game_change::GameChangeHistory<FlagChange>>,
-    mut level_flags: ResMut<LevelFlags>,
 ) {
     for next_level in next_level_events.iter() {
         let rewind_power_per_level = match next_level.level_id.id() {
@@ -72,7 +70,6 @@ fn setup_next_level(
         };
 
         rewind_power.set_rewind_power(rewind_power_per_level);
-        level_flags.reset_and_record(next_level.level_id, &mut game_changes);
     }
 }
 

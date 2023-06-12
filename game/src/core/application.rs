@@ -8,7 +8,6 @@ use physics::plugin::PhysicsPlugin;
 use time::time::{Time, TimePlugin, TimePluginSet};
 use windowing::window::{EventLoopContainer, WindowPlugin};
 
-use crate::level_flags::LevelFlagsPlugin;
 use crate::pickup_system::PickupPlugin;
 use crate::player::{PlayerPlugin, PlayerPluginSets};
 use angle::Deg;
@@ -36,6 +35,8 @@ use crate::core::transform_change::{
 };
 use time::time_manager::game_change::GameChangeHistoryPlugin;
 use time::time_manager::{TimeManager, TimeManagerPlugin, TimeManagerPluginSet};
+
+use super::transform_change::time_manager_start_track_transform;
 
 pub struct AppConfig {
     pub window: WindowConfig,
@@ -130,7 +131,10 @@ impl Application {
             // Transform tracking
             .with_plugin(
                 GameChangeHistoryPlugin::<TransformChange>::new()
-                    .with_tracker(time_manager_track_transform)
+                    .with_tracker(time_manager_start_track_transform)
+                    .with_tracker(
+                        time_manager_track_transform.after(time_manager_start_track_transform),
+                    )
                     .with_rewinder(time_manager_rewind_transform),
             )
             .with_set(

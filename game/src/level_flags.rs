@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::system::{Res, ResMut, Resource};
-use levels::level_id::LevelId;
+use bevy_ecs::{
+    prelude::EventReader,
+    system::{Res, ResMut, Resource},
+};
+use levels::{current_level::NextLevel, level_id::LevelId};
 use scene::level::FlagId;
 use time::time_manager::{
     game_change::{GameChange, GameChangeHistory, GameChangeHistoryPlugin},
@@ -44,14 +47,13 @@ impl LevelFlags {
         });
     }
 
-    pub fn reset_and_record(
-        &mut self,
+    pub fn record_all(
+        &self,
         level_id: LevelId,
         game_change_history: &mut GameChangeHistory<FlagChange>,
     ) {
         let count = self.flags.get(&level_id).unwrap().len();
         for flag_id in 0..count {
-            self.set(level_id, flag_id, false);
             game_change_history.add_command(FlagChange {
                 level_id,
                 flag_id: flag_id as FlagId,
@@ -106,6 +108,16 @@ fn level_flags_rewind(
     }
 }
 
+fn level_flags_start_track(
+    mut next_level_events: EventReader<NextLevel>,
+    level_flags: Res<LevelFlags>,
+    mut history: ResMut<GameChangeHistory<FlagChange>>,
+) {
+    for next_level_event in next_level_events.iter() {
+        level_flags.record_all(next_level_event.level_id, &mut history);
+    }
+}
+
 pub struct LevelFlagsPlugin;
 
 impl Plugin for LevelFlagsPlugin {
@@ -113,7 +125,9 @@ impl Plugin for LevelFlagsPlugin {
         app //
             .with_resource(LevelFlags::new())
             .with_plugin(
-                GameChangeHistoryPlugin::<FlagChange>::new().with_rewinder(level_flags_rewind),
+                GameChangeHistoryPlugin::<FlagChange>::new()
+                    .with_tracker(level_flags_start_track)
+                    .with_rewinder(level_flags_rewind),
             );
     }
 }

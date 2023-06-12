@@ -1,9 +1,11 @@
+use bevy_ecs::prelude::EventReader;
 use bevy_ecs::query::Changed;
 use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
 use bevy_ecs::system::ResMut;
 use bevy_ecs::world::Mut;
 use levels::current_level::CurrentLevel;
+use levels::current_level::NextLevel;
 use levels::level_id::LevelId;
 use std::collections::HashMap;
 use time::time_manager::game_change::GameChange;
@@ -37,6 +39,25 @@ pub(super) fn animations_track(
             end_time: animation.end_time,
             reverse: animation.reverse,
         });
+    }
+}
+
+pub(super) fn animations_start_track(
+    mut next_level_events: EventReader<NextLevel>,
+    mut history: ResMut<GameChangeHistory<PlayingAnimationChange>>,
+    query: Query<(&PlayingAnimation, &LevelId)>,
+) {
+    for next_level_event in next_level_events.iter() {
+        for (animation, level_id) in &query {
+            if level_id != &next_level_event.level_id {
+                continue;
+            }
+            history.add_command(PlayingAnimationChange {
+                id: animation.id,
+                end_time: animation.end_time,
+                reverse: animation.reverse,
+            });
+        }
     }
 }
 

@@ -231,6 +231,8 @@ where
         }
     }
 
+    /// Track the game state changes
+    /// Remember to re-track the starting state at the start of each level.
     pub fn with_tracker<Params>(self, system: impl IntoSystemConfig<Params>) -> Self {
         let system_config = system.in_set(GameChangeHistoryPluginSet::<T>::Track);
 

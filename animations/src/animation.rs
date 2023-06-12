@@ -11,7 +11,9 @@ use time::time_manager::{
     game_change::GameChangeHistoryPlugin, level_time::LevelTime, TimeManager, TimeTrackedId,
 };
 
-use crate::animation_change::{animations_rewind, animations_track, PlayingAnimationChange};
+use crate::animation_change::{
+    animations_rewind, animations_start_track, animations_track, PlayingAnimationChange,
+};
 
 pub struct Animation {
     pub start_transform: Transform,
@@ -103,7 +105,8 @@ impl Plugin for AnimationPlugin {
         app //
             .with_plugin(
                 GameChangeHistoryPlugin::<PlayingAnimationChange>::new()
-                    .with_tracker(animations_track)
+                    .with_tracker(animations_start_track)
+                    .with_tracker(animations_track.after(animations_start_track))
                     .with_rewinder(animations_rewind),
             )
             .with_system(

@@ -4,8 +4,8 @@ use time::time_manager::game_change::GameChangeHistoryPlugin;
 
 use crate::{
     physics_change::{
-        time_manager_rewind_rigid_body_type, time_manager_track_rigid_body_type,
-        RigidBodyTypeChange, RigidBodyTypes,
+        time_manager_rewind_rigid_body_type, time_manager_start_track_rigid_body_type,
+        time_manager_track_rigid_body_type, RigidBodyTypeChange, RigidBodyTypes,
     },
     physics_context::{
         apply_collider_changes, apply_collider_sensor_change, apply_rigid_body_added,
@@ -46,7 +46,11 @@ impl Plugin for PhysicsPlugin {
             .with_resource(RigidBodyTypes::default())
             .with_plugin(
                 GameChangeHistoryPlugin::<RigidBodyTypeChange>::new()
-                    .with_tracker(time_manager_track_rigid_body_type)
+                    .with_tracker(time_manager_start_track_rigid_body_type)
+                    .with_tracker(
+                        time_manager_track_rigid_body_type
+                            .after(time_manager_start_track_rigid_body_type),
+                    )
                     .with_rewinder(time_manager_rewind_rigid_body_type),
             )
             .with_set(

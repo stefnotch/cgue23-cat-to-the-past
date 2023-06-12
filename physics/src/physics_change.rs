@@ -1,11 +1,15 @@
 use std::collections::HashMap;
 
 use bevy_ecs::{
+    prelude::EventReader,
     query::{Changed, Without},
     system::{Query, Res, ResMut, Resource},
     world::Mut,
 };
-use levels::{current_level::CurrentLevel, level_id::LevelId};
+use levels::{
+    current_level::{CurrentLevel, NextLevel},
+    level_id::LevelId,
+};
 use rapier3d::prelude::RigidBodyType;
 
 use scene::pickup::Pickupable;
@@ -43,6 +47,21 @@ pub(super) fn time_manager_track_rigid_body_type(
             continue;
         }
         history.add_command(RigidBodyTypeChange::new(time_tracked, rigidbody.0));
+    }
+}
+
+pub(super) fn time_manager_start_track_rigid_body_type(
+    mut next_level_events: EventReader<NextLevel>,
+    mut history: ResMut<GameChangeHistory<RigidBodyTypeChange>>,
+    query: Query<(&TimeTracked, &RigidBody, &LevelId), Without<Pickupable>>,
+) {
+    for next_level_event in next_level_events.iter() {
+        for (time_tracked, rigidbody, level_id) in &query {
+            if level_id != &next_level_event.level_id {
+                continue;
+            }
+            history.add_command(RigidBodyTypeChange::new(time_tracked, rigidbody.0));
+        }
     }
 }
 
