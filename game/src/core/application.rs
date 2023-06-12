@@ -13,7 +13,6 @@ use crate::player::{PlayerPlugin, PlayerPluginSets};
 use angle::Deg;
 use bevy_ecs::prelude::*;
 use input::events::{KeyboardInput, MouseInput, MouseMovement};
-use input::input_map::InputMap;
 use loader::loader::SceneLoader;
 use nalgebra::{Point3, UnitQuaternion};
 use render::context::Context;
@@ -22,8 +21,7 @@ use scene::camera::{update_camera, Camera};
 use windowing::config::WindowConfig;
 use windowing::dpi::PhysicalSize;
 use windowing::event::{
-    DeviceEvent, Event, KeyboardInput as KeyboardInputWinit, MouseButton, VirtualKeyCode,
-    WindowEvent,
+    DeviceEvent, Event, KeyboardInput as KeyboardInputWinit, VirtualKeyCode, WindowEvent,
 };
 use windowing::event_loop::ControlFlow;
 use windowing::events::{WindowFocusChanged, WindowResize};
@@ -34,7 +32,7 @@ use crate::core::transform_change::{
     time_manager_rewind_transform, time_manager_track_transform, TransformChange,
 };
 use time::time_manager::game_change::GameChangeHistoryPlugin;
-use time::time_manager::{TimeManager, TimeManagerPlugin, TimeManagerPluginSet};
+use time::time_manager::{TimeManagerPlugin, TimeManagerPluginSet};
 
 use super::transform_change::time_manager_start_track_transform;
 
@@ -199,8 +197,6 @@ impl Application {
         schedule
             .add_system(Events::<WindowFocusChanged>::update_system.in_set(AppStage::EventUpdate));
 
-        schedule.add_system(read_input.in_set(AppStage::EndFrame));
-
         schedule.add_system(lock_mouse.in_set(AppStage::BeforeUpdate));
 
         self.app.run_startup();
@@ -299,15 +295,5 @@ fn lock_mouse(context: Res<Context>, mut event: EventReader<WindowFocusChanged>)
 fn update_camera_aspect_ratio(mut camera: ResMut<Camera>, mut reader: EventReader<WindowResize>) {
     for event in reader.iter() {
         camera.update_aspect_ratio(event.width as f32 / event.height as f32);
-    }
-}
-
-fn read_input(mut time_manager: ResMut<TimeManager>, input: Res<InputMap>) {
-    if input.is_mouse_pressed(MouseButton::Right) {
-        if input.is_pressed(VirtualKeyCode::LShift) || input.is_pressed(VirtualKeyCode::RShift) {
-            time_manager.rewind_next_frame = Some(3.0);
-        } else {
-            time_manager.rewind_next_frame = Some(1.0);
-        }
     }
 }

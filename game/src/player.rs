@@ -14,6 +14,8 @@ use time::time_manager::is_rewinding;
 use windowing::event::ElementState;
 use windowing::event::VirtualKeyCode;
 
+use crate::game_over::GameOver;
+
 #[derive(Component)]
 pub struct CameraMode {
     free_cam_activated: bool,
@@ -183,7 +185,11 @@ fn update_player(
     )>,
     input: Res<InputMap>,
     time: Res<Time>,
+    game_over: Res<GameOver>,
 ) {
+    if game_over.is_game_over() {
+        return;
+    }
     let (mut player, mut character_controller, settings) = query.single_mut();
 
     let input_direction = input_to_direction(&input);

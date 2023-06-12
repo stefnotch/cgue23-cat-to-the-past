@@ -2,7 +2,7 @@
 
 mod levels;
 
-use ::levels::current_level::{CurrentLevel, NextLevel};
+use ::levels::current_level::{CurrentLevel, ResetLevel};
 use ::levels::level_id::LevelId;
 use app::entity_event::EntityEvent;
 use app::plugin::{Plugin, PluginAppAccess};
@@ -11,18 +11,20 @@ use bevy_ecs::query::{With, Without};
 use bevy_ecs::schedule::IntoSystemConfig;
 use bevy_ecs::schedule::IntoSystemSetConfig;
 use debug::setup_debugging;
-use game::game_over::GameOverPlugin;
+use game::game_over::{GameOver, GameOverPlugin};
 use game::level_flags::{FlagChange, LevelFlags, LevelFlagsPlugin};
 use game::pickup_system::PickupPlugin;
 use game::rewind_power::{RewindPower, RewindPowerPlugin};
+use input::input_map::InputMap;
 use loader::config_loader::LoadableConfig;
 use loader::loader::{PressurePlate, SceneLoader};
 use scene::flag_trigger::FlagTrigger;
 use scene::level::{NextLevelTrigger, Spawnpoint};
+use windowing::event::{MouseButton, VirtualKeyCode};
 
 use std::time::Instant;
 use time::time::Time;
-use time::time_manager::{game_change, is_rewinding};
+use time::time_manager::{game_change, is_rewinding, TimeManager};
 
 use bevy_ecs::system::{Commands, Res, ResMut};
 
@@ -56,13 +58,13 @@ fn setup_levels(mut level_flags: ResMut<LevelFlags>) {
     level_flags.set_count(LevelId::new(3), 0);
 }
 
-fn setup_next_level(
-    mut next_level_events: EventReader<NextLevel>,
+fn reset_rewind_power(
+    mut reset_level_events: EventReader<ResetLevel>,
     mut rewind_power: ResMut<RewindPower>,
 ) {
-    for next_level in next_level_events.iter() {
-        let rewind_power_per_level = match next_level.level_id.id() {
-            0 => 60.0,
+    for reset_level in reset_level_events.iter() {
+        let rewind_power_per_level = match reset_level.level_id.id() {
+            0 => 6.0,
             1 => 60.0,
             2 => 60.0,
             3 => 60.0,
@@ -149,14 +151,31 @@ fn fall_out_of_world_system(
     spawnpoints: Query<(&Transform, &LevelId), (With<Spawnpoint>, Without<Player>)>,
 ) {
     for mut transform in players_query.iter_mut() {
-        let spawnpoint = spawnpoints
-            .iter()
-            .find(|(_, level_id)| level_id == &&current_level.level_id)
-            .unwrap()
-            .0;
-
         if transform.position.y < -10.0 {
+            let spawnpoint = spawnpoints
+                .iter()
+                .find(|(_, level_id)| level_id == &&current_level.level_id)
+                .unwrap()
+                .0;
             transform.position = spawnpoint.position;
+        }
+    }
+}
+
+fn read_rewind_input(
+    time_manager: Res<TimeManager>,
+    input: Res<InputMap>,
+    game_over: Res<GameOver>,
+) {
+    if game_over.is_game_over() {
+        return;
+    }
+
+    if input.is_mouse_pressed(MouseButton::Right) {
+        if input.is_pressed(VirtualKeyCode::LShift) || input.is_pressed(VirtualKeyCode::RShift) {
+            time_manager.rewind_next_frame(3.0);
+        } else {
+            time_manager.rewind_next_frame(1.0);
         }
     }
 }
@@ -168,20 +187,24 @@ impl Plugin for GamePlugin {
             .with_startup_system(setup_levels)
             .with_plugin(PickupPlugin)
             .with_plugin(GameOverPlugin)
+            .with_set(GameOverPlugin::system_set().in_set(AppStage::EventUpdate))
+            .with_plugin(LevelFlagsPlugin)
+            .with_set(
+                LevelFlagsPlugin::system_set()
+                    .in_set(AppStage::BeforeUpdate)
+                    .after(GameOverPlugin::system_set()),
+            )
             .with_plugin(RewindPowerPlugin)
             .with_set(
                 RewindPowerPlugin::system_set()
                     .in_set(AppStage::Update)
-                    .before(UIPlugin::system_set())
-                    .before(GameOverPlugin::system_set()),
+                    .before(UIPlugin::system_set()),
             )
-            .with_set(GameOverPlugin::system_set().in_set(AppStage::Update))
             .with_plugin(UIPlugin)
             .with_set(
                 UIPlugin::system_set()
                     .in_set(AppStage::Update)
-                    .after(PickupPlugin::system_set())
-                    .after(GameOverPlugin::system_set()),
+                    .after(PickupPlugin::system_set()),
             )
             .with_plugin(Level0Plugin)
             .with_set(Level0Plugin::system_set().in_set(AppStage::UpdateLevel))
@@ -209,13 +232,12 @@ impl Plugin for GamePlugin {
                     .before(flag_system),
             )
             .with_system(fall_out_of_world_system.in_set(AppStage::Update))
-            .with_plugin(LevelFlagsPlugin)
-            .with_set(LevelFlagsPlugin::system_set().in_set(AppStage::BeforeUpdate))
             .with_system(
-                setup_next_level
+                reset_rewind_power
                     .in_set(AppStage::BeforeUpdate)
                     .after(LevelFlagsPlugin::system_set()),
-            );
+            )
+            .with_system(read_rewind_input.in_set(AppStage::BeforeUpdate));
     }
 }
 

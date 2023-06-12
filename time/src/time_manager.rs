@@ -5,7 +5,7 @@ use crate::{
     signed_duration::SignedDuration,
     time::{Time, TimePluginSet},
 };
-use std::time::Duration;
+use std::{sync::Mutex, time::Duration};
 
 use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::{
@@ -48,7 +48,7 @@ pub enum TimeState {
 pub struct TimeManager {
     level_delta_time: SignedDuration,
     /// If this is Some, then we're rewinding with a certain factor/speed
-    pub rewind_next_frame: Option<f32>,
+    rewind_next_frame: Mutex<Option<f32>>,
     time_state: TimeState,
     level_time: LevelTime,
 }
@@ -61,7 +61,7 @@ impl TimeManager {
     fn new() -> Self {
         Self {
             level_delta_time: Default::default(),
-            rewind_next_frame: None,
+            rewind_next_frame: Mutex::new(None),
             time_state: TimeState::Normal,
             level_time: LevelTime::zero(),
         }
@@ -70,7 +70,7 @@ impl TimeManager {
     pub fn start_frame(&mut self, delta: Duration) {
         let old_level_time = self.level_time;
 
-        if let Some(rewind_speed_factor) = self.rewind_next_frame.take() {
+        if let Some(rewind_speed_factor) = self.rewind_next_frame.lock().unwrap().take() {
             // Rewinding
             self.level_time = self
                 .level_time
@@ -152,6 +152,13 @@ impl TimeManager {
             TimeState::Rewinding => true,
             TimeState::StopRewinding => false,
         }
+    }
+
+    pub fn rewind_next_frame(&self, rewind_speed_factor: f32) {
+        self.rewind_next_frame
+            .lock()
+            .unwrap()
+            .replace(rewind_speed_factor);
     }
 }
 

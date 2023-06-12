@@ -9,8 +9,8 @@ use crate::{
     },
     physics_context::{
         apply_collider_changes, apply_collider_sensor_change, apply_rigid_body_added,
-        apply_rigid_body_type_change, apply_transform_changes, step_physics_simulation,
-        write_transform_back, PhysicsContext,
+        apply_rigid_body_type_change, apply_transform_changes, reset_velocities,
+        step_physics_simulation, write_transform_back, PhysicsContext,
     },
     pickup_physics::{
         start_pickup, stop_pickup, update_pickup_target_position, update_pickup_transform,
@@ -90,6 +90,11 @@ impl Plugin for PhysicsPlugin {
                 apply_transform_changes
                     .in_set(PhysicsPluginSets::BeforePhysics)
                     .after(apply_player_character_controller_changes),
+            )
+            .with_system(
+                reset_velocities
+                    .in_set(PhysicsPluginSets::BeforePhysics)
+                    .after(apply_transform_changes),
             );
         // The velocity change direcly modifies the physics world, so we need to do it after we have applied the rigid body type change
         // .with_plugin(

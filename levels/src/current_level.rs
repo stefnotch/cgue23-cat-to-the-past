@@ -7,7 +7,7 @@ use crate::level_id::LevelId;
 #[derive(Resource)]
 pub struct CurrentLevel {
     pub level_id: LevelId,
-    finished_levels: HashSet<LevelId>,
+    started_levels: HashSet<LevelId>,
     start_next_level: Mutex<Option<LevelId>>,
 }
 
@@ -15,13 +15,13 @@ impl CurrentLevel {
     pub fn new() -> Self {
         Self {
             level_id: LevelId::new(0),
-            finished_levels: HashSet::new(),
+            started_levels: HashSet::new(),
             start_next_level: Mutex::new(None),
         }
     }
 
     pub fn start_next_level(&self, level_id: LevelId) {
-        if self.finished_levels.contains(&level_id) {
+        if self.started_levels.contains(&level_id) {
             return;
         }
 
@@ -33,9 +33,11 @@ impl CurrentLevel {
         let mut start_next_level = self.start_next_level.lock().unwrap();
 
         if let Some(level_id) = start_next_level.take() {
-            let old_level_id = self.level_id;
-            self.finished_levels.insert(old_level_id);
+            if !self.started_levels.insert(level_id) {
+                return None;
+            }
 
+            let old_level_id = self.level_id;
             self.level_id = level_id;
             Some(NextLevel {
                 level_id,
@@ -50,4 +52,8 @@ impl CurrentLevel {
 pub struct NextLevel {
     pub level_id: LevelId,
     pub old_level_id: LevelId,
+}
+
+pub struct ResetLevel {
+    pub level_id: LevelId,
 }

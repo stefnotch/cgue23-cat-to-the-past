@@ -1,8 +1,12 @@
 use app::entity_event::EntityEvent;
+use levels::current_level::ResetLevel;
+use levels::level_id::LevelId;
 use scene::level::NextLevelTrigger;
 use time::time::Time;
 
-use bevy_ecs::prelude::{Added, Commands, Component, Entity, Query, Res, ResMut, Resource, With};
+use bevy_ecs::prelude::{
+    Added, Commands, Component, Entity, EventReader, Query, Res, ResMut, Resource, With,
+};
 use bevy_ecs::query::{Changed, Or, Without};
 
 use math::bounding_box::BoundingBox;
@@ -271,6 +275,28 @@ pub(crate) fn apply_collider_sensor_change(
 
         collider.set_sensor(true);
         collider.set_active_events(ActiveEvents::COLLISION_EVENTS);
+    }
+}
+
+pub(crate) fn reset_velocities(
+    mut reset_level_events: EventReader<ResetLevel>,
+    mut physics_context: ResMut<PhysicsContext>,
+    mut query: Query<(&RapierRigidBodyHandle, &LevelId)>,
+) {
+    for reset_level in reset_level_events.iter() {
+        for (RapierRigidBodyHandle { handle }, level_id) in query.iter_mut() {
+            if level_id != &reset_level.level_id {
+                continue;
+            }
+
+            let rigid_body = physics_context
+                .rigid_bodies
+                .get_mut(*handle)
+                .expect("Rigid body not found");
+
+            rigid_body.set_linvel(Vector::zeros(), true);
+            rigid_body.set_angvel(Vector::zeros(), true);
+        }
     }
 }
 
