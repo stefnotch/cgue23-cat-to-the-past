@@ -84,13 +84,19 @@ fn _print_fps(time: Res<Time>) {
 fn flag_system(
     mut level_flags: ResMut<LevelFlags>,
     mut game_changes: ResMut<game_change::GameChangeHistory<FlagChange>>,
-    flag_triggers: Query<(&FlagTrigger, &EntityEvent<CollisionEvent>)>,
+    mut flag_triggers: Query<(&mut FlagTrigger, &EntityEvent<CollisionEvent>)>,
 ) {
-    for (flag_trigger, collision_events) in flag_triggers.iter() {
+    for (mut flag_trigger, collision_events) in flag_triggers.iter_mut() {
         for collision_event in collision_events.iter() {
             let level_flag_value = match collision_event {
-                CollisionEvent::Started(_e2) => true,
-                CollisionEvent::Stopped(_e2) => false,
+                CollisionEvent::Started(_e2) => {
+                    flag_trigger.current_intersections += 1;
+                    flag_trigger.current_intersections > 0
+                }
+                CollisionEvent::Stopped(_e2) => {
+                    flag_trigger.current_intersections -= 1;
+                    flag_trigger.current_intersections != 0
+                }
             };
             level_flags.set_and_record(
                 flag_trigger.level_id,

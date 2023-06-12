@@ -19,6 +19,7 @@ layout(set = 1, binding = 0) uniform Entity {
 
 void main() {
     vec4 worldPos = entity.model * vec4(position, 1.0); // world space
+    vec3 viewVector = mat3(scene.projView) * vec3(0.0, 0.0, -1.0);
     worldPos = vec4(timeRewindPosition(worldPos.xyz, scene.cameraPosition), worldPos.w);
 
     vec3 toLight = normalize(scene.lightPos - worldPos.xyz);
@@ -29,6 +30,9 @@ void main() {
 
     float bias = max(0.08 * angleFactor, 0.0005);
     worldPos.xyz -= toLight * bias;
+
+//    float projFactor = 1.0-pow(max(dot(viewVector, normalize(worldPos.xyz)), 0.0), 2.0);
+//    worldPos.xyz -= toLight * projFactor * length(worldPos.xyz) * 0.01;
 
     vec4 clipSpacePosition = scene.projView * worldPos;
     gl_Position = clipSpacePosition;

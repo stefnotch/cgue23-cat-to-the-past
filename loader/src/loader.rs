@@ -173,6 +173,7 @@ impl SceneLoader {
                         FlagTrigger {
                             level_id: level_id.clone(),
                             flag_id: flag as usize,
+                            current_intersections: 0,
                         },
                         box_collider.clone(),
                         EntityEvent::<CollisionEvent>::default(),

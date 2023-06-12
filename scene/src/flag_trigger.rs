@@ -7,4 +7,5 @@ use crate::level::FlagId;
 pub struct FlagTrigger {
     pub level_id: LevelId,
     pub flag_id: FlagId,
+    pub current_intersections: u32,
 }
