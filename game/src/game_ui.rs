@@ -188,7 +188,7 @@ fn update_game_over(
     mut game_over_query: Query<&mut UIComponent, With<UIGameOver>>,
 ) {
     let mut game_over_component = game_over_query.single_mut();
-    game_over_component.visible = game_over.is_game_over();
+    game_over_component.visible = game_over.is_game_over() && !game_over.is_game_over_rewinding();
 }
 
 pub struct UIPlugin;
