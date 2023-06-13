@@ -23,7 +23,10 @@
 					],
 					"intensity":79.57747154594767,
 					"type":"point",
-					"name":"Light"
+					"name":"Light",
+					"extras":{
+						"shadow_caster":true
+					}
 				},
 				{
 					"color":[
@@ -33,7 +36,10 @@
 					],
 					"intensity":79.57747154594767,
 					"type":"point",
-					"name":"Light.002"
+					"name":"Light.002",
+					"extras":{
+						"shadow_caster":true
+					}
 				},
 				{
 					"color":[
@@ -43,7 +49,10 @@
 					],
 					"intensity":79.57747154594767,
 					"type":"point",
-					"name":"Light.001"
+					"name":"Light.001",
+					"extras":{
+						"shadow_caster":true
+					}
 				},
 				{
 					"color":[
@@ -53,12 +62,15 @@
 					],
 					"intensity":79.57747154594767,
 					"type":"point",
-					"name":"Light.003"
+					"name":"Light.003",
+					"extras":{
+						"shadow_caster":true
+					}
 				}
 			]
 		}
 	},
-	"scene":2,
+	"scene":3,
 	"scenes":[
 		{
 			"extras":{

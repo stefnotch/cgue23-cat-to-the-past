@@ -58,7 +58,7 @@ struct AnimationProperty {
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(deny_unknown_fields)]
-struct GLTFNodeExtras {
+struct GLTFModelExtras {
     pub flag_trigger: Option<u32>,
     pub level_trigger: Option<bool>,
     pub box_collider: Option<bool>,
@@ -69,6 +69,12 @@ struct GLTFNodeExtras {
     pub pickupable: Option<bool>,
     pub casts_shadow: Option<bool>,
     pub pressure_plate: Option<bool>,
+}
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(deny_unknown_fields)]
+struct GLTFLightExtras {
+    pub shadow_caster: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -134,22 +140,12 @@ impl SceneLoader {
                 );
             }
 
-            let sphere = CpuMesh::sphere(10, 16, 0.1);
+            for (transform, light, extras, name) in scene_loading_result.lights {
+                let mut light_entity = commands.spawn((name, light, transform, level_id.clone()));
 
-            for (transform, light, name) in scene_loading_result.lights {
-                commands.spawn((
-                    name,
-                    light,
-                    LightCastShadow,
-                    // Model {
-                    //     primitives: vec![CpuPrimitive {
-                    //         mesh: sphere.clone(),
-                    //         material: Arc::new(CpuMaterial::default()),
-                    //     }],
-                    // },
-                    transform,
-                    level_id.clone(),
-                ));
+                if let Some(true) = extras.shadow_caster {
+                    light_entity.insert(LightCastShadow);
+                }
             }
 
             for (transform, name) in scene_loading_result.cameras {
@@ -276,9 +272,19 @@ impl SceneLoader {
         }
 
         if let Some(light) = node.light() {
+            let light_extras = light
+                .extras()
+                .as_ref()
+                .map(|extra| {
+                    let str = extra.get();
+                    let result: GLTFLightExtras = serde_json::from_str(str).expect(str);
+                    result
+                })
+                .unwrap_or_default();
             scene_loading_result.lights.push((
                 global_transform.clone(),
                 Self::load_light(light),
+                light_extras,
                 DebugName(node.name().unwrap_or_default().to_string()),
             ));
         }
@@ -290,13 +296,13 @@ impl SceneLoader {
             ));
         }
 
-        let extras = node
+        let model_extras = node
             .extras()
             .as_ref()
             .map(|extra| {
                 let str = extra.get();
 
-                let result: GLTFNodeExtras = serde_json::from_str(str).expect(str);
+                let result: GLTFModelExtras = serde_json::from_str(str).expect(str);
 
                 result
             })
@@ -306,7 +312,7 @@ impl SceneLoader {
             scene_loading_result.models.push((
                 global_transform.clone(),
                 Self::load_model(mesh, scene_loading_data),
-                extras,
+                model_extras,
                 DebugName(node.name().unwrap_or_default().to_string()),
             ));
         }
@@ -369,9 +375,9 @@ struct SceneLoadingData {
 }
 
 struct SceneLoadingResult {
-    lights: Vec<(Transform, Light, DebugName)>,
+    lights: Vec<(Transform, Light, GLTFLightExtras, DebugName)>,
     cameras: Vec<(Transform, DebugName)>,
-    models: Vec<(Transform, Model, GLTFNodeExtras, DebugName)>,
+    models: Vec<(Transform, Model, GLTFModelExtras, DebugName)>,
 }
 impl SceneLoadingResult {
     fn new() -> Self {
