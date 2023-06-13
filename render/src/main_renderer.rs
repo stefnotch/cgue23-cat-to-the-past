@@ -218,7 +218,7 @@ pub fn render(
     query_models: Query<(&Transform, &GpuModel)>,
     query_lights: Query<(&Transform, &Light, &LevelId)>,
     query_shadow_light: Query<(&Transform, &LevelId), (With<LightCastShadow>, With<Light>)>,
-    query_shadow_casting_models: Query<(&Transform, &GpuModel), With<CastsShadow>>,
+    query_shadow_casting_models: Query<(&Transform, &GpuModel, &LevelId), With<CastsShadow>>,
     mut frame_counter: Local<u64>,
     query_ui_components: Query<(&GpuUIComponent, &UIComponent)>,
     mut rewind_start_time: Local<f32>,
@@ -324,7 +324,11 @@ pub fn render(
         .map(|(transform, light, _)| (transform, light))
         .collect();
     let ui_components = query_ui_components.iter().collect();
-    let shadow_cast_models = query_shadow_casting_models.iter().collect();
+    let shadow_cast_models = query_shadow_casting_models
+        .iter()
+        .filter(|(_, _, level_id)| level_id == &&current_level_id)
+        .map(|(transform, gpu_model, _)| (transform, gpu_model))
+        .collect();
 
     let nearest_shadow_light = query_shadow_light
         .iter()

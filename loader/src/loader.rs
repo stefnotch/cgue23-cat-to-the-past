@@ -141,12 +141,12 @@ impl SceneLoader {
                     name,
                     light,
                     LightCastShadow,
-                    Model {
-                        primitives: vec![CpuPrimitive {
-                            mesh: sphere.clone(),
-                            material: Arc::new(CpuMaterial::default()),
-                        }],
-                    },
+                    // Model {
+                    //     primitives: vec![CpuPrimitive {
+                    //         mesh: sphere.clone(),
+                    //         material: Arc::new(CpuMaterial::default()),
+                    //     }],
+                    // },
                     transform,
                     level_id.clone(),
                 ));

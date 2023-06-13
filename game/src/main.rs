@@ -87,19 +87,22 @@ fn flag_system(
     mut level_flags: ResMut<LevelFlags>,
     mut game_changes: ResMut<game_change::GameChangeHistory<FlagChange>>,
     mut flag_triggers: Query<(&mut FlagTrigger, &EntityEvent<CollisionEvent>)>,
+    time_manager: Res<TimeManager>,
 ) {
+    let rewinding = is_rewinding(time_manager);
     for (mut flag_trigger, collision_events) in flag_triggers.iter_mut() {
         for collision_event in collision_events.iter() {
-            let level_flag_value = match collision_event {
+            match collision_event {
                 CollisionEvent::Started(_e2) => {
                     flag_trigger.current_intersections += 1;
-                    flag_trigger.current_intersections > 0
                 }
                 CollisionEvent::Stopped(_e2) => {
                     flag_trigger.current_intersections -= 1;
-                    flag_trigger.current_intersections != 0
                 }
             };
+        }
+        let level_flag_value = flag_trigger.current_intersections > 0;
+        if !rewinding {
             level_flags.set_and_record(
                 flag_trigger.level_id,
                 flag_trigger.flag_id,
@@ -222,9 +225,7 @@ impl Plugin for GamePlugin {
             )
             .with_system(next_level_trigger_system.in_set(AppStage::Update))
             .with_system(
-                flag_system
-                    .in_set(AppStage::Update)
-                    .run_if(not(is_rewinding)),
+                flag_system.in_set(AppStage::Update), // .run_if(not(is_rewinding)),
             )
             .with_system(
                 pressure_plate_system
