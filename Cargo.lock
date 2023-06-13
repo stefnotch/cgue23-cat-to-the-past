@@ -587,6 +587,7 @@ dependencies = [
  "app",
  "bevy_ecs",
  "game",
+ "levels",
  "loader",
  "math",
  "nalgebra",

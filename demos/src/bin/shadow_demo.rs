@@ -12,9 +12,11 @@ use nalgebra::Point3;
 
 use game::core::application::{AppConfig, AppStage, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
+use levels::level_id::LevelId;
 use time::time_manager::TimeManager;
 
 use loader::loader::SceneLoader;
+use scene::light::CastsShadow;
 use scene::mesh::CpuMesh;
 use scene::model::{CpuPrimitive, Model};
 use scene::transform::Transform;
@@ -47,7 +49,9 @@ pub fn spawn_moving_cube(mut commands: Commands) {
                 material: Arc::new(Default::default()),
             }],
         },
+        CastsShadow,
         MovingBox,
+        LevelId::new(0),
     ));
 }
 

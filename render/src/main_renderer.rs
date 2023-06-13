@@ -338,8 +338,7 @@ pub fn render(
             let distance_a = (camera.position - transform_a.position).norm_squared();
             let distance_b = (camera.position - transform_b.position).norm_squared();
             distance_a.total_cmp(&distance_b)
-        })
-        .expect("at least one shadow light is required");
+        });
 
     let rewind_time = if time_manager.is_rewinding() {
         if time_manager.level_delta_time().duration().is_zero() {
@@ -353,7 +352,10 @@ pub fn render(
         0.0
     };
 
-    let future = if *frame_counter > renderer.swapchain.images.len() as u64 {
+    let future = if let (Some(nearest_shadow_light), true) = (
+        nearest_shadow_light,
+        *frame_counter > renderer.swapchain.images.len() as u64,
+    ) {
         renderer
             .shadow_renderer
             .render(

@@ -176,7 +176,7 @@ void main() {
     vec3 positionToNearestShadowLight = scene.nearestShadowLight - worldPos;
     vec3 l = positionToNearestShadowLight;
 
-    vec3 color = Lo * computeShadowFactor(l)  + ambient;
+    vec3 color = Lo * max(computeShadowFactor(l),1-scene.hasShadowLight)  + ambient;
 
     float gridBlendFactor = min(scene.rewindTime * 0.4, 0.2);
     vec3 gridColor = computeGridColor(worldPos.xyz, scene.rewindTime) * computeGrid(worldPos.xyz, n.xyz);

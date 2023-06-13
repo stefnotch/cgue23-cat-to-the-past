@@ -16,3 +16,4 @@ physics = { path = "../physics" }
 scene = { path = "../scene" }
 loader = { path = "../loader" }
 math = { path = "../math" }
+levels = { path = "../levels"}

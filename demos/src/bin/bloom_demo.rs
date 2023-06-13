@@ -10,7 +10,8 @@ use scene::asset::AssetId;
 
 use game::core::application::{AppConfig, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
-use scene::light::{LightCastShadow, Light, PointLight};
+use levels::level_id::LevelId;
+use scene::light::{Light, LightCastShadow, PointLight};
 use scene::material::CpuMaterial;
 use scene::mesh::CpuMesh;
 use scene::model::{CpuPrimitive, Model};
@@ -41,6 +42,7 @@ fn spawn_bloom_demo(mut commands: Commands) {
             .position([0.0, -1.0, 0.0].into())
             .scale([12.5, 0.5, 12.5].into())
             .build(),
+        LevelId::new(0),
     ));
 
     commands.spawn((
@@ -49,6 +51,7 @@ fn spawn_bloom_demo(mut commands: Commands) {
             .position([0.0, 1.5, 0.0].into())
             .scale([0.5, 0.5, 0.5].into())
             .build(),
+        LevelId::new(0),
     ));
 
     commands.spawn((
@@ -57,6 +60,7 @@ fn spawn_bloom_demo(mut commands: Commands) {
             .position([2.0, 0.0, 1.0].into())
             .scale([0.5, 0.5, 0.5].into())
             .build(),
+        LevelId::new(0),
     ));
 
     commands.spawn((
@@ -65,6 +69,7 @@ fn spawn_bloom_demo(mut commands: Commands) {
             .position([-1.0, -1.0, 2.0].into())
             .rotation(UnitQuaternion::from_euler_angles(PI / 3.0, 0.0, PI / 3.0))
             .build(),
+        LevelId::new(0),
     ));
 
     let mut spawn_light = |position: Point3<f32>, color: Vector3<f32>, intensity: f32| {
@@ -82,7 +87,6 @@ fn spawn_bloom_demo(mut commands: Commands) {
                     }),
                 }],
             },
-            LightCastShadow,
             Light::Point(PointLight {
                 color,
                 range: 1000.0,
@@ -92,6 +96,7 @@ fn spawn_bloom_demo(mut commands: Commands) {
                 .position(position)
                 .scale([0.25, 0.25, 0.25].into())
                 .build(),
+            LevelId::new(0),
         ));
     };
 

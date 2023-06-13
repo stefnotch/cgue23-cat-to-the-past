@@ -5,6 +5,7 @@ use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::system::Commands;
 use game::core::application::{AppConfig, Application};
 use game::player::{PlayerPlugin, PlayerSpawnSettings};
+use levels::level_id::LevelId;
 use loader::config_loader::LoadableConfig;
 use nalgebra::{Point3, Vector3};
 use scene::asset::AssetId;
@@ -25,6 +26,7 @@ fn spawn_pbr_demo(mut commands: Commands) {
                 intensity: 300.0,
             }),
             TransformBuilder::new().position(position).build(),
+            LevelId::new(0),
         ));
     };
 
@@ -64,6 +66,7 @@ fn spawn_pbr_demo(mut commands: Commands) {
                         0.0,
                     ))
                     .build(),
+                LevelId::new(0),
             ));
         }
     }

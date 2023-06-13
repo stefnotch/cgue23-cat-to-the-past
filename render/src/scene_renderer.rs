@@ -4,6 +4,7 @@ use crate::scene::material::Material;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::GpuModel;
 use crate::scene::texture::Texture;
+use nalgebra::Point3;
 use scene::camera::Camera;
 use scene::light::{Light, PointLight};
 use scene::transform::Transform;
@@ -254,7 +255,7 @@ impl SceneRenderer {
         models: Vec<(&Transform, &GpuModel)>,
         lights: Vec<(&Transform, &Light)>,
         future: F,
-        nearest_shadow_light: &Transform,
+        nearest_shadow_light: Option<&Transform>,
         swapchain_frame_index: u32,
         frame_counter: u64,
         viewport: &Viewport,
@@ -300,6 +301,8 @@ impl SceneRenderer {
         let material_set_layout = self.pipeline.layout().set_layouts().get(2).unwrap();
         let entity_set_layout = self.pipeline.layout().set_layouts().get(3).unwrap();
 
+        let has_shadow_light = nearest_shadow_light.is_some();
+
         let uniform_subbuffer_scene = {
             let src_point_lights: Vec<Padded<vs::PointLight, 12>> = lights
                 .iter()
@@ -314,10 +317,15 @@ impl SceneRenderer {
             let mut point_lights = [Padded::from(default_shader_point_light()); 32];
             point_lights[..src_point_lights.len()].copy_from_slice(src_point_lights.as_slice());
 
+            let nearest_shadow_light_position = nearest_shadow_light
+                .map(|light| light.position)
+                .unwrap_or(Point3::origin()); // nearest shadow light position is the origin if there is none
+
             let uniform_data = vs::Scene {
                 pointLights: point_lights,
                 numLights: num_lights.into(),
-                nearestShadowLight: nearest_shadow_light.position.into(),
+                hasShadowLight: Padded::from(has_shadow_light as i32),
+                nearestShadowLight: nearest_shadow_light_position.into(),
                 rewindTime: rewind_time.into(),
             };
 
