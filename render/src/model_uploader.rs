@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use bevy_ecs::prelude::Changed;
+use bevy_ecs::system::NonSend;
 use bevy_ecs::{
     prelude::Entity,
     query::Without,
@@ -56,7 +57,7 @@ impl SamplerInfoMap {
 }
 
 pub fn create_gpu_models(
-    context: Res<Context>,
+    context: NonSend<Context>,
     allocator: Res<ModelUploaderAllocator>,
     mut commands: Commands,
     query_models: Query<(Entity, &Model), Without<GpuModel>>,
@@ -90,7 +91,7 @@ pub fn create_gpu_models(
 }
 
 pub fn update_gpu_models(
-    context: Res<Context>,
+    context: NonSend<Context>,
     mut texture_assets: ResMut<Assets<Texture>>,
     mut material_assets: ResMut<Assets<Material>>,
     mut samplers: ResMut<SamplerInfoMap>,
@@ -114,7 +115,7 @@ pub fn update_gpu_models(
 }
 
 pub fn create_ui_component(
-    context: Res<Context>,
+    context: NonSend<Context>,
     mut commands: Commands,
     mut texture_assets: ResMut<Assets<Texture>>,
     query_ui_components: Query<(Entity, &UIComponent), Without<GpuUIComponent>>,

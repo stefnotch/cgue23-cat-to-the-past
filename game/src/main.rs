@@ -6,7 +6,7 @@ use ::levels::current_level::{CurrentLevel, ResetLevel};
 use ::levels::level_id::LevelId;
 use app::entity_event::EntityEvent;
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::prelude::{not, Entity, EventReader, Query};
+use bevy_ecs::prelude::{Entity, EventReader, Query};
 use bevy_ecs::query::{With, Without};
 use bevy_ecs::schedule::IntoSystemConfig;
 use bevy_ecs::schedule::IntoSystemSetConfig;

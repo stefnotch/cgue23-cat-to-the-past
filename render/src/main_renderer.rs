@@ -15,7 +15,7 @@ use app::plugin::{Plugin, PluginAppAccess};
 use bevy_ecs::prelude::Local;
 use bevy_ecs::query::With;
 use bevy_ecs::schedule::{IntoSystemConfig, SystemSet};
-use bevy_ecs::system::{NonSendMut, Query, Res};
+use bevy_ecs::system::{NonSend, NonSendMut, Query, Res};
 use levels::current_level::CurrentLevel;
 use levels::level_id::LevelId;
 use scene::asset::Assets;
@@ -181,7 +181,8 @@ impl Plugin for RendererPlugin {
         let model_uploading_allocator = ModelUploaderAllocator::new(context.device());
         let sampler_info_map = SamplerInfoMap::new();
 
-        app.with_resource(context)
+        app //
+            .with_non_send_resource(context)
             .with_non_send_resource(renderer)
             .with_system(
                 create_gpu_models
@@ -211,7 +212,7 @@ impl Plugin for RendererPlugin {
 
 pub fn render(
     mut renderer: NonSendMut<Renderer>,
-    context: Res<Context>,
+    context: NonSend<Context>,
     camera: Res<Camera>,
     time_manager: Res<TimeManager>,
     current_level: Res<CurrentLevel>,
