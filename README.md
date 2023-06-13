@@ -75,13 +75,9 @@ A level internally has
 
 ## Used sources
 
-- https://github.com/vulkano-rs/vulkano/blob/master/vulkano-win/src/winit.rs#L17
-- https://github.com/vulkano-rs/vulkano/tree/master/examples/src/bin/interactive_fractal and co
-- https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom
-- https://github.com/Shot511/RapidGL/blob/65d1202a5926acad9816483b141fb24480e81668/src/demos/26_bloom/bloom.cpp
-- https://learnopengl.com/PBR/Lighting
-- https://www.youtube.com/watch?v=RRE-F57fbXw
-- https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/#perspective-projection-into-clip-space
-- https://github.com/FlaxEngine/FlaxSamples/blob/master/FirstPersonShooterTemplate/Source/FirstPersonShooter/PlayerScript.cs
-- https://madebyevan.com/shaders/grid/
-- https://www.shadertoy.com/view/MscSDf
+- Vulkano: https://github.com/vulkano-rs/vulkano/blob/master/vulkano-win/src/winit.rs#L17 and https://github.com/vulkano-rs/vulkano/tree/master/examples/src/bin/interactive_fractal and co
+- Bloom:  https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom and https://github.com/Shot511/RapidGL/blob/65d1202a5926acad9816483b141fb24480e81668/src/demos/26_bloom/bloom.cpp
+- PBR https://learnopengl.com/PBR/Lighting and https://www.youtube.com/watch?v=RRE-F57fbXw
+- Projection matrices  https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/#perspective-projection-into-clip-space
+- Player controller https://github.com/FlaxEngine/FlaxSamples/blob/master/FirstPersonShooterTemplate/Source/FirstPersonShooter/PlayerScript.cs
+- Grid shader https://madebyevan.com/shaders/grid/ and https://www.shadertoy.com/view/MscSDf
