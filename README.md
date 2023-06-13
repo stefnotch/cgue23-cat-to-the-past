@@ -81,3 +81,5 @@ A level internally has
 - Projection matrices  https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/#perspective-projection-into-clip-space
 - Player controller https://github.com/FlaxEngine/FlaxSamples/blob/master/FirstPersonShooterTemplate/Source/FirstPersonShooter/PlayerScript.cs
 - Grid shader https://madebyevan.com/shaders/grid/ and https://www.shadertoy.com/view/MscSDf
+- Game over pseudo-pixel-art https://www.123rf.com/photo_128791038_game-over-pixel-symbol.html
+- Cat picture on the cubes https://www.redbubble.com/i/sticker/cat-pixel-art-by-MoDsama/82110572.EJUG5#&gid=1&pid=3
