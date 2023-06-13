@@ -273,7 +273,7 @@ impl Application {
     }
 }
 
-fn lock_mouse(context: Res<Context>, mut event: EventReader<WindowFocusChanged>) {
+fn lock_mouse(context: NonSend<Context>, mut event: EventReader<WindowFocusChanged>) {
     for WindowFocusChanged { has_focus } in event.into_iter() {
         let window = context.window();
 

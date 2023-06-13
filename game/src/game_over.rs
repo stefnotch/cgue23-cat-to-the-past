@@ -33,6 +33,10 @@ impl GameOver {
         self.is_game_over
     }
 
+    pub fn is_game_over_rewinding(&self) -> bool {
+        self.is_game_over && Instant::now() > self.respawn_start_time
+    }
+
     fn set_game_over(&mut self) {
         if self.is_game_over {
             return;
@@ -53,11 +57,12 @@ fn update_game_over(
     spawnpoints: Query<(&Transform, &LevelId), (With<Spawnpoint>, Without<Player>)>,
 ) {
     if game_over.is_game_over() {
-        if Instant::now() <= game_over.respawn_start_time {
+        if !game_over.is_game_over_rewinding() {
             // wait for respawn
         } else if time_manager.level_time().as_secs_f32() > 0.0 {
+            let rewind_speed = (time_manager.level_time().as_secs_f32() / 2.0).max(16.0);
             // rewind time
-            time_manager.rewind_next_frame(4.0);
+            time_manager.rewind_next_frame(rewind_speed);
         } else {
             // respawn
             game_over.is_game_over = false;
