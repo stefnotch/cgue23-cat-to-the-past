@@ -65,8 +65,8 @@ fn reset_rewind_power(
     for reset_level in reset_level_events.iter() {
         let rewind_power_per_level = match reset_level.level_id.id() {
             0 => 6.0,
-            1 => 60.0,
-            2 => 60.0,
+            1 => 20.0,
+            2 => 15.0,
             3 => 60.0,
             _ => 0.0,
         };
