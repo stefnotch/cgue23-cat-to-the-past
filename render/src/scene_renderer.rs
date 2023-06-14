@@ -324,7 +324,7 @@ impl SceneRenderer {
             let uniform_data = vs::Scene {
                 pointLights: point_lights,
                 numLights: num_lights.into(),
-                hasShadowLight: Padded::from(has_shadow_light as i32),
+                hasShadowLight: has_shadow_light as i32,
                 nearestShadowLight: nearest_shadow_light_position.into(),
                 rewindTime: rewind_time.into(),
             };

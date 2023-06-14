@@ -159,7 +159,7 @@ impl SceneLoader {
 
                 let mut entity = commands.spawn((name, transform.clone(), level_id.clone()));
 
-                if let Some(_) = extras.casts_shadow {
+                if let Some(true) = extras.casts_shadow {
                     entity.insert(CastsShadow);
                 }
 
