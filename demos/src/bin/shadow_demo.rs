@@ -25,7 +25,7 @@ fn spawn_world(mut commands: Commands, scene_loader: Res<SceneLoader>) {
     let before = Instant::now();
     scene_loader
         .load_default_scene(
-            "./assets/scene/testing/shadow_test/shadow_test.glb",
+            "../../../assets/scene/demo/shadow_demo/shadow_test.glb",
             &mut commands,
         )
         .unwrap();
