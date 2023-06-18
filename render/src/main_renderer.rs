@@ -12,7 +12,7 @@ use crate::scene::texture::Texture;
 use crate::scene_renderer::SceneRenderer;
 use crate::shadow_renderer::ShadowRenderer;
 use app::plugin::{Plugin, PluginAppAccess};
-use bevy_ecs::prelude::Local;
+use bevy_ecs::prelude::{Local, Resource};
 use bevy_ecs::query::With;
 use bevy_ecs::schedule::{IntoSystemConfig, SystemSet};
 use bevy_ecs::system::{NonSend, NonSendMut, Query, Res};
@@ -44,6 +44,11 @@ use windowing::window::WindowManager;
 use crate::scene::ui_component::GpuUIComponent;
 use crate::ui_renderer::UIRenderer;
 use windowing::window::Window;
+
+#[derive(Resource)]
+pub struct ViewFrustumCullingMode {
+    pub enabled: bool,
+}
 
 /// Responsible for keeping the swapchain up-to-date and calling the sub-rendersystems
 pub struct Renderer {
@@ -202,6 +207,7 @@ impl Plugin for RendererPlugin {
                     .before(render),
             )
             .with_system(render.in_set(RendererPluginSets::Render))
+            .with_resource(ViewFrustumCullingMode { enabled: true })
             .with_resource(model_uploading_allocator)
             .with_resource(sampler_info_map)
             .with_resource(Assets::<Mesh>::default())
@@ -222,6 +228,7 @@ pub fn render(
     query_shadow_casting_models: Query<(&Transform, &GpuModel, &LevelId), With<CastsShadow>>,
     mut frame_counter: Local<u64>,
     query_ui_components: Query<(&GpuUIComponent, &UIComponent)>,
+    view_frustum_culling_mode: Res<ViewFrustumCullingMode>,
     mut rewind_start_time: Local<f32>,
 ) {
     // On Windows, this can occur from minimizing the application.
@@ -381,6 +388,7 @@ pub fn render(
         lights,
         future,
         nearest_shadow_light,
+        view_frustum_culling_mode.as_ref(),
         image_index,
         *frame_counter,
         &renderer.viewport,
@@ -470,7 +478,7 @@ impl SwapchainContainer {
                 device.clone(),
                 surface.clone(),
                 SwapchainCreateInfo {
-                    present_mode: PresentMode::Fifo,
+                    present_mode: PresentMode::Immediate,
                     min_image_count: surface_capabilities.min_image_count,
                     image_format,
                     image_extent: window.inner_size().into(),

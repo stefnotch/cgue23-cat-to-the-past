@@ -21,6 +21,7 @@ Should make for an interesting puzzle game. Or a stealth:tm: game, because you c
 - Right mouse button for time rewinding
 - Left mouse button for interacting
 - Shift to speed up rewinding. Not actually needed to solve any levels.
+- F8 enables/disables view frustum culling
 - Esc to quit
 
 ## File structure

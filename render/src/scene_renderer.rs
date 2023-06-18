@@ -4,6 +4,7 @@ use crate::scene::material::Material;
 use crate::scene::mesh::MeshVertex;
 use crate::scene::model::GpuModel;
 use crate::scene::texture::Texture;
+use crate::ViewFrustumCullingMode;
 use nalgebra::Point3;
 use scene::camera::Camera;
 use scene::light::{Light, PointLight};
@@ -256,6 +257,7 @@ impl SceneRenderer {
         lights: Vec<(&Transform, &Light)>,
         future: F,
         nearest_shadow_light: Option<&Transform>,
+        view_frustum_culling_mode: &ViewFrustumCullingMode,
         swapchain_frame_index: u32,
         frame_counter: u64,
         viewport: &Viewport,
@@ -441,7 +443,9 @@ impl SceneRenderer {
             );
 
             for primitive in &model.primitives {
-                if !primitive.intersects_frustum(&frustum_bounding_sphere, &transform) {
+                if view_frustum_culling_mode.enabled
+                    && !primitive.intersects_frustum(&frustum_bounding_sphere, &transform)
+                {
                     cull_counter += 1;
                     continue;
                 }

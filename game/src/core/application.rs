@@ -16,7 +16,7 @@ use input::events::{KeyboardInput, MouseInput, MouseMovement};
 use loader::loader::SceneLoader;
 use nalgebra::{Point3, UnitQuaternion};
 use render::context::Context;
-use render::{Renderer, RendererPlugin, RendererPluginSets};
+use render::{Renderer, RendererPlugin, RendererPluginSets, ViewFrustumCullingMode};
 use scene::camera::{update_camera, Camera};
 use windowing::config::WindowConfig;
 use windowing::dpi::PhysicalSize;
@@ -33,6 +33,8 @@ use crate::core::transform_change::{
 };
 use time::time_manager::game_change::GameChangeHistoryPlugin;
 use time::time_manager::{TimeManagerPlugin, TimeManagerPluginSet};
+use windowing::event::ElementState::Released;
+use windowing::event::VirtualKeyCode::F8;
 
 use super::transform_change::time_manager_start_track_transform;
 
@@ -199,6 +201,8 @@ impl Application {
 
         schedule.add_system(lock_mouse.in_set(AppStage::BeforeUpdate));
 
+        schedule.add_system(update_view_frustum_culling_enabled.in_set(AppStage::BeforeUpdate));
+
         self.app.run_startup();
         // Reset time after startup
         self.app.world.get_resource_mut::<Time>().unwrap().update();
@@ -288,6 +292,17 @@ fn lock_mouse(context: NonSend<Context>, mut event: EventReader<WindowFocusChang
         } else {
             window.set_cursor_grab(CursorGrabMode::None).unwrap();
             window.set_cursor_visible(true);
+        }
+    }
+}
+
+fn update_view_frustum_culling_enabled(
+    mut view_frustum_culling_mode: ResMut<ViewFrustumCullingMode>,
+    mut event_reader: EventReader<KeyboardInput>,
+) {
+    for event in event_reader.iter() {
+        if event.key_code == F8 && event.state == Released {
+            view_frustum_culling_mode.enabled = !view_frustum_culling_mode.enabled;
         }
     }
 }
