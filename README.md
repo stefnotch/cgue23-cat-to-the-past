@@ -12,11 +12,7 @@
 
 Rewinding time of the world around you, _but it doesn't affect your character._
 
-So you can totally walk up to a table, and pick up the fancy sword.
-
-Then rewind to the pastwhere the sword was still on the table. And since that didn't affect your character, you now have a sword on the table, _and a sword in your hand!_
-
-Should make for an interesting puzzle game. Or a stealth:tm: game, because you can always openly smack the guy in front of you, get to the next area...and then just load the past where the guard was still alive and didn't alert the entire facility. Or that mechanic could be used to make a cat petting simulator, where you basically have a cheatcode. You can indefinitely pet the cat, because as soon as the cat is satisfied and walks away, you just turn time back... :cat2:
+Should make for an interesting puzzle game. Or that mechanic could be used to make a cat petting simulator, where you basically have a cheatcode. You can indefinitely pet the cat, because as soon as the cat is satisfied and walks away, you just turn time back... :cat2:
 
 ## Controls
 
@@ -29,23 +25,6 @@ Should make for an interesting puzzle game. Or a stealth:tm: game, because you c
 - Shift to speed up rewinding. Not actually needed to solve any levels.
 - F8 enables/disables view frustum culling
 - Esc to quit
-
-## File structure
-
-```text
-assets/
-    ...
-    config.json - the configuration file, automatically gets created if missing
-...
-game.exe - the game executable
-```
-
-## Technical Details
-
-world space: +y up, -z forward, +x right (reasonable right-handed coordinate system)
-winding order: counter-clockwise
-units: meter
-importer: gltf, we flatten the tree, we generate one axis aligned collider per model
 
 ## Compiling and Running
 
@@ -63,7 +42,7 @@ npm build
 
 (I really want Rust build scripts that don't run during development.)
 
-## Demos
+### Demos
 
 ```
 cargo run --bin bloom_demo
@@ -71,7 +50,7 @@ cargo run --bin bloom_demo
 
 where bloom_demo can be replaced with the name of any demo project in the `demos/src/bin` folder
 
-## Levels
+### Levels
 
 A level internally has
 
@@ -79,6 +58,13 @@ A level internally has
 - a camera: spawn position
 - one shadow light
 - ...
+
+### Technical Details
+
+world space: +y up, -z forward, +x right (reasonable right-handed coordinate system)
+winding order: counter-clockwise
+units: meter
+importer: gltf, we flatten the tree, we generate one axis aligned collider per model
 
 ## Used sources
 
