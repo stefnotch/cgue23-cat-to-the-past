@@ -1,8 +1,12 @@
 # Cat to the past
+*Game by [YouSafe](https://github.com/YouSafe) and [Stefnotch](https://github.com/Stefnotch)*
+
 
 <a href="https://raw.githubusercontent.com/stefnotch/cgue23-cat-to-the-past/main/video-cat-to-the-past.mp4"><img src="./play-video.png" alt="Play video"/></a>
 
-Computergraphics Project at the TU Vienna
+## Play the game
+
+[Download it and play it](https://github.com/stefnotch/cgue23-cat-to-the-past/releases)
 
 ## Game concept
 
