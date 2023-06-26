@@ -6,7 +6,7 @@
 
 ## Play the game
 
-[Download it and play it](https://github.com/stefnotch/cgue23-cat-to-the-past/releases)
+[Download it and play it](https://github.com/stefnotch/cgue23-cat-to-the-past/releases/tag/v0.0.2)
 
 ## Game concept
 
