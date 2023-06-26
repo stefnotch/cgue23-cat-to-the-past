@@ -26,6 +26,17 @@ Should make for an interesting puzzle game. Or that mechanic could be used to ma
 - F8 enables/disables view frustum culling
 - Esc to quit
 
+## How to beat the game
+
+First level
+1. Walk through laser
+2. Door closes
+3. Rewind time
+4. Walk through door
+
+and then beat the rest of the game
+
+
 ## Compiling and Running
 
 You'll need a [Rust toolchain installed](https://www.rust-lang.org/tools/install). After that, you can start the game with
