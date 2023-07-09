@@ -34,7 +34,9 @@ First level
 3. Rewind time
 4. Walk through door
 
-and then beat the rest of the game
+and then beat the rest of the game.
+
+There is a video full of spoilers [here](https://github.com/stefnotch/cgue23-cat-to-the-past/releases/download/v0.0.2/Gameplay.Spoilers.2023-07-09.mkv)
 
 
 ## Compiling and Running
